@@ -1,0 +1,28 @@
+version: "3"
+
+tasks:
+  run:local:
+    aliases:
+      - loc
+    cmd: go run cmd/main.go --config=./config/local.yaml
+
+  run:dev:
+    aliases:
+      - dev
+    cmd: go run cmd/main.go --config=./config/dev.yaml
+
+  run:enviroment:
+    aliases:
+      - env
+    cmd: go run cmd/main.go
+
+  docker-image:
+    aliases:
+      - doc-img
+    cmd: docker build -t arumandesu/posts-service -t arumandesu/posts-service:0.0.6 . && docker push arumandesu/posts-service -a
+
+  test:coverage:
+    cmd: go test -coverprofile=./tests/c.out ./... || go tool cover -html="./tests/c.out"
+
+  test:unit:
+    cmd: go test -v ./...

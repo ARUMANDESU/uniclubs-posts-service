@@ -11,8 +11,15 @@ import (
 )
 
 const (
-	ClubExchangeName = "club-exchange"
-	UserExchangeName = "user-exchange"
+	ClubExchangeName             = "club-exchange"
+	UserExchangeName             = "user-exchange"
+	UserEventsQueue              = "user-events-posts-queue"
+	ClubEventsQueue              = "club-events-posts-queue"
+	UserUpdatedEventRoutingKey   = "user.event.updated"
+	UserActivatedEventRoutingKey = "user.event.activated"
+	UserDeletedEventRoutingKey   = "user.event.deleted"
+	ClubCreatedEventRoutingKey   = "club.event.updated"
+	ClubUpdatedEventRoutingKey   = "club.event.activated"
 )
 
 type Handler func(msg amqp.Delivery) error
@@ -25,7 +32,7 @@ type Rabbitmq struct {
 }
 
 func New(cfg config.Rabbitmq, log *slog.Logger) (*Rabbitmq, error) {
-	const op = "Rabbitmq.New"
+	const op = "rabbitmq.new"
 
 	connString := fmt.Sprintf("amqp://%v:%v@%v:%v/", cfg.User, cfg.Password, cfg.Host, cfg.Port)
 	conn, err := amqp.Dial(connString)
@@ -38,21 +45,23 @@ func New(cfg config.Rabbitmq, log *slog.Logger) (*Rabbitmq, error) {
 		return nil, fmt.Errorf("%s: failed to open a channel: %w", op, err)
 	}
 
-	err = ch.ExchangeDeclare(
-		ClubExchangeName,
-		"topic",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
+	err = declareExchanges(ch)
 	if err != nil {
-		log.Error("failed to declare exchange", logger.Err(err))
+		log.Error("failed to declare exchanges", logger.Err(err))
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// TODO:  bind routing keys to exchanges
+	err = declareQueues(ch)
+	if err != nil {
+		log.Error("failed to declare queues", logger.Err(err))
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	err = bindQueues(ch)
+	if err != nil {
+		log.Error("failed to bind queues", logger.Err(err))
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
 	return &Rabbitmq{
 		conn: conn,
@@ -63,7 +72,7 @@ func New(cfg config.Rabbitmq, log *slog.Logger) (*Rabbitmq, error) {
 }
 
 func (r *Rabbitmq) Consume(queue, routingKey string, handler func(msg amqp.Delivery) error) error {
-	const op = "Rabbitmq.Consume"
+	const op = "rabbitmq.consume"
 	log := r.log.With(
 		slog.String("op", op),
 		slog.With("queue", queue),
@@ -125,7 +134,7 @@ func (r *Rabbitmq) Consume(queue, routingKey string, handler func(msg amqp.Deliv
 }
 
 func (r *Rabbitmq) Publish(ctx context.Context, exchangeName string, routingKey string, msg any) error {
-	const op = "Rabbitmq.Publish"
+	const op = "rabbitmq.publish"
 
 	bytes, err := json.Marshal(msg)
 	if err != nil {
@@ -151,7 +160,7 @@ func (r *Rabbitmq) Publish(ctx context.Context, exchangeName string, routingKey 
 }
 
 func (r *Rabbitmq) Close() error {
-	const op = "Rabbitmq.Close"
+	const op = "rabbitmq.close"
 	log := r.log.With(slog.String("op", op))
 
 	err := r.ch.Close()
@@ -164,6 +173,123 @@ func (r *Rabbitmq) Close() error {
 	if err != nil {
 		log.Error("failed to close connection", logger.Err(err))
 		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func declareExchanges(ch *amqp.Channel) error {
+	err := ch.ExchangeDeclare(
+		ClubExchangeName,
+		"topic",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = ch.ExchangeDeclare(
+		UserExchangeName,
+		"topic",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func declareQueues(ch *amqp.Channel) error {
+	_, err := ch.QueueDeclare(
+		UserEventsQueue,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = ch.QueueDeclare(
+		ClubEventsQueue,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func bindQueues(ch *amqp.Channel) error {
+	err := ch.QueueBind(
+		UserEventsQueue,
+		UserUpdatedEventRoutingKey,
+		UserExchangeName,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = ch.QueueBind(
+		UserEventsQueue,
+		UserActivatedEventRoutingKey,
+		UserExchangeName,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = ch.QueueBind(
+		UserEventsQueue,
+		UserDeletedEventRoutingKey,
+		UserExchangeName,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = ch.QueueBind(
+		ClubEventsQueue,
+		ClubCreatedEventRoutingKey,
+		ClubExchangeName,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = ch.QueueBind(
+		ClubEventsQueue,
+		ClubUpdatedEventRoutingKey,
+		ClubExchangeName,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
 	}
 
 	return nil

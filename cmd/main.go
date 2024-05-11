@@ -1,10 +1,13 @@
 package main
 
 import (
+	"github.com/arumandesu/uniclubs-posts-service/internal/app"
 	"github.com/arumandesu/uniclubs-posts-service/internal/config"
 	"github.com/joho/godotenv"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 const (
@@ -28,7 +31,18 @@ func main() {
 		slog.Int("port", cfg.GRPC.Port),
 	)
 
-	// TODO: init application
+	application := app.New(log, cfg)
+
+	application.AMQPApp.SetupMessageConsumers()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+
+	sign := <-stop
+	defer log.Info("application stopped", slog.String("signal", sign.String()))
+	log.Info("stopping application", slog.String("signal", sign.String()))
+	application.GRPCSrv.Stop()
+	application.AMQPApp.Shutdown()
 	// TODO: run application
 	// TODO: graceful shutdown
 }

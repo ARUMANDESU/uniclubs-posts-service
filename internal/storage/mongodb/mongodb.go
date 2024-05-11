@@ -19,7 +19,7 @@ type Storage struct {
 }
 
 func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
-	const op = "mongodb.new"
+	const op = "storage.mongodb.new"
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.URI))
 	if err != nil {
@@ -46,7 +46,7 @@ func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
 }
 
 func (s Storage) SaveUser(ctx context.Context, user *domain.User) error {
-	const op = "mongodb.saveUser"
+	const op = "storage.mongodb.saveUser"
 
 	_, err := s.userCollection.InsertOne(ctx, user)
 	if err != nil {
@@ -58,7 +58,7 @@ func (s Storage) SaveUser(ctx context.Context, user *domain.User) error {
 }
 
 func (s Storage) GetUserByID(ctx context.Context, userID int64) (user *domain.User, err error) {
-	const op = "mongodb.getUserByID"
+	const op = "storage.mongodb.getUserByID"
 
 	err = s.userCollection.FindOne(ctx, bson.D{{"_id", userID}}).Decode(&user)
 	if err != nil {
@@ -69,7 +69,7 @@ func (s Storage) GetUserByID(ctx context.Context, userID int64) (user *domain.Us
 }
 
 func (s Storage) UpdateUser(ctx context.Context, user *domain.User) error {
-	const op = "mongodb.updateUser"
+	const op = "storage.mongodb.updateUser"
 
 	_, err := s.userCollection.ReplaceOne(ctx, bson.D{{"_id", user.ID}}, user)
 	if err != nil {
@@ -80,9 +80,53 @@ func (s Storage) UpdateUser(ctx context.Context, user *domain.User) error {
 }
 
 func (s Storage) DeleteUserByID(ctx context.Context, userID int64) error {
-	const op = "mongodb.deleteUserByID"
+	const op = "storage.mongodb.deleteUserByID"
 
 	_, err := s.userCollection.DeleteOne(ctx, bson.D{{"_id", userID}})
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s Storage) SaveClub(ctx context.Context, club *domain.Club) error {
+	const op = "storage.mongodb.saveClub"
+
+	_, err := s.clubsCollection.InsertOne(ctx, club)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s Storage) UpdateClub(ctx context.Context, club *domain.Club) error {
+	const op = "storage.mongodb.updateClub"
+
+	_, err := s.clubsCollection.ReplaceOne(ctx, bson.D{{"_id", club.ID}}, club)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s Storage) GetClubByID(ctx context.Context, clubID int64) (club *domain.Club, err error) {
+	const op = "storage.mongodb.getClubByID"
+
+	err = s.clubsCollection.FindOne(ctx, bson.D{{"_id", clubID}}).Decode(&club)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return club, nil
+}
+
+func (s Storage) DeleteClub(ctx context.Context, club *domain.Club) error {
+	const op = "storage.mongodb.deleteClub"
+
+	_, err := s.clubsCollection.DeleteOne(ctx, bson.D{{"_id", club.ID}})
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

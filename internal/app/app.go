@@ -30,7 +30,7 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 	l.Info("connected to mongodb")
 
 	userService := user.New(l, mongoDB)
-	clubService := club.New()
+	clubService := club.New(l, mongoDB)
 
 	rmq, err := rabbitmq.New(cfg.Rabbitmq, l)
 	if err != nil {

@@ -15,11 +15,18 @@ type Config struct {
 	RedisURL  string   `yaml:"redis_url" env:"REDIS_URL" env-required:"true"`
 	JwtSecret string   `yaml:"jwt_secret" env:"JWT_SECRET"`
 	AWS       AWS      `yaml:"aws"`
+	MongoDB   MongoDB  `yaml:"mongodb"`
 }
 
 type GRPC struct {
 	Port    int           `yaml:"port" env:"GRPC_PORT"`
 	Timeout time.Duration `yaml:"timeout" env:"GRPC_TIMEOUT"`
+}
+
+type MongoDB struct {
+	URI          string        `yaml:"uri" env:"MONGODB_URI"`
+	PingTimeout  time.Duration `yaml:"ping_timeout" env:"MONGODB_PING_TIMEOUT" env-default:"10s"`
+	DatabaseName string        `yaml:"database_name" env:"MONGODB_DATABASE_NAME" env-default:"uniposts"`
 }
 
 type AWS struct {

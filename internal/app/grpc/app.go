@@ -2,6 +2,7 @@ package grpcapp
 
 import (
 	"fmt"
+	"github.com/arumandesu/uniclubs-posts-service/internal/grpc/event"
 	"google.golang.org/grpc"
 	"log/slog"
 	"net"
@@ -13,8 +14,10 @@ type App struct {
 	port       int
 }
 
-func New(log *slog.Logger, port int) *App {
+func New(log *slog.Logger, port int, managementService event.ManagementService) *App {
 	gRPCServer := grpc.NewServer()
+
+	event.Register(gRPCServer, managementService)
 
 	return &App{
 		log:        log,

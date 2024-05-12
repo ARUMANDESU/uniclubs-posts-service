@@ -33,6 +33,7 @@ func main() {
 
 	application := app.New(log, cfg)
 
+	go application.GRPCSrv.MustRun()
 	application.AMQPApp.SetupMessageConsumers()
 
 	stop := make(chan os.Signal, 1)

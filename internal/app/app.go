@@ -7,6 +7,7 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/internal/config"
 	"github.com/arumandesu/uniclubs-posts-service/internal/rabbitmq"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/club"
+	eventManagement "github.com/arumandesu/uniclubs-posts-service/internal/services/event/management"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/user"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage/mongodb"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
@@ -38,7 +39,9 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 		panic(err)
 	}
 
-	grpcApp := grpcapp.New(l, cfg.GRPC.Port)
+	managementService := eventManagement.New(l, mongoDB)
+
+	grpcApp := grpcapp.New(l, cfg.GRPC.Port, managementService)
 
 	amqpApp := amqpapp.New(l, userService, clubService, rmq)
 	return &App{

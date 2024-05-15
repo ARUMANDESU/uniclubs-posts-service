@@ -49,7 +49,7 @@ type CoverImageMongo struct {
 func (s Storage) CreateEvent(ctx context.Context, clubId int64, userId int64) (*domain.Event, error) {
 	const op = "storage.mongodb.event.createEvent"
 
-	input := Event{
+	event := Event{
 		ID:        primitive.NewObjectID(),
 		ClubId:    clubId,
 		UserId:    userId,
@@ -58,7 +58,7 @@ func (s Storage) CreateEvent(ctx context.Context, clubId int64, userId int64) (*
 		Status:    "DRAFT",
 	}
 
-	insertResult, err := s.eventsCollection.InsertOne(ctx, input)
+	insertResult, err := s.eventsCollection.InsertOne(ctx, event)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -67,13 +67,27 @@ func (s Storage) CreateEvent(ctx context.Context, clubId int64, userId int64) (*
 	}
 
 	insertedID := insertResult.InsertedID.(primitive.ObjectID)
-	var event domain.Event
+
 	err = s.eventsCollection.FindOne(ctx, bson.M{"_id": insertedID}).Decode(&event)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &event, nil
+	var club Club
+	err = s.clubsCollection.FindOne(ctx, bson.M{"_id": event.ClubId}).Decode(&club)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var user User
+	err = s.userCollection.FindOne(ctx, bson.M{"_id": event.UserId}).Decode(&user)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	domainEvent := ToDomainEvent(event, ToDomainUser(user), ToDomainClub(club), nil, nil)
+
+	return domainEvent, nil
 }
 
 func (s Storage) GetEvent(ctx context.Context, id int64) (*domain.Event, error) {

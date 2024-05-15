@@ -38,3 +38,43 @@ func (s serverApi) UpdateEvent(ctx context.Context, req *eventv1.UpdateEventRequ
 	//TODO implement me
 	panic("implement me")
 }
+
+func (s serverApi) DeleteEvent(ctx context.Context, request *eventv1.DeleteEventRequest) (*eventv1.EventObject, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s serverApi) ListEvents(ctx context.Context, request *eventv1.ListEventsRequest) (*eventv1.ListEventsResponse, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s serverApi) PublishEvent(ctx context.Context, request *eventv1.PublishEventRequest) (*eventv1.EventObject, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s serverApi) UnpublishEvent(ctx context.Context, request *eventv1.PublishEventRequest) (*eventv1.EventObject, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s serverApi) AddCollaborator(ctx context.Context, request *eventv1.AddCollaboratorRequest) (*eventv1.EventObject, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s serverApi) RemoveCollaborator(ctx context.Context, request *eventv1.RemoveCollaboratorRequest) (*eventv1.EventObject, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s serverApi) AddOrganizer(ctx context.Context, request *eventv1.AddOrganizerRequest) (*eventv1.EventObject, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s serverApi) RemoveOrganizer(ctx context.Context, request *eventv1.RemoveOrganizerRequest) (*eventv1.EventObject, error) {
+	//TODO implement me
+	panic("implement me")
+}

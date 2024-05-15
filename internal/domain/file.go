@@ -10,7 +10,7 @@ type File struct {
 
 type CoverImage struct {
 	File
-	Position int32 `json:"position" bson:"position"`
+	Position uint32 `json:"position" bson:"position"`
 }
 
 func (f File) ToProto() *eventv1.FileObject {
@@ -26,7 +26,7 @@ func (c CoverImage) ToProto() *eventv1.CoverImage {
 		Name:     c.Name,
 		Url:      c.Url,
 		Type:     c.Type,
-		Position: c.Position,
+		Position: int32(c.Position),
 	}
 }
 
@@ -61,7 +61,7 @@ func ProtoToCoverImage(image *eventv1.CoverImage) *CoverImage {
 			Url:  image.Url,
 			Type: image.Type,
 		},
-		Position: image.Position,
+		Position: uint32(image.Position),
 	}
 }
 

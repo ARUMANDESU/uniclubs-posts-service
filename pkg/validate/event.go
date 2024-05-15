@@ -5,7 +5,6 @@ import (
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
-	"time"
 )
 
 const (
@@ -26,7 +25,7 @@ const (
 
 const timeLayout = "2006-01-02T15:04:05Z"
 
-func CreateEvent(value interface{}) error {
+/*func CreateEvent(value interface{}) error {
 	req, ok := value.(*eventv1.CreateEventRequest)
 	if !ok {
 		return validation.NewInternalError(errors.New("create event invalid type"))
@@ -56,6 +55,17 @@ func CreateEvent(value interface{}) error {
 		validation.Field(&req.CoverImages, validation.Each(validation.By(coverImages))),
 		validation.Field(&req.AttachedImages, validation.Each(validation.By(attachedFiles))),
 		validation.Field(&req.AttachedFiles, validation.Each(validation.By(attachedFiles))),
+	)
+}*/
+
+func CreateEvent(value interface{}) error {
+	req, ok := value.(*eventv1.CreateEventRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("create event invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.ClubId, validation.Required, validation.Min(0)),
+		validation.Field(&req.UserId, validation.Required, validation.Min(0)),
 	)
 }
 

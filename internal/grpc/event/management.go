@@ -2,17 +2,17 @@ package event
 
 import (
 	"context"
+
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
-	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/validate"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type ManagementService interface {
-	CreateEvent(ctx context.Context, dto *dto.CreateEventDTO) (*domain.Event, error)
-	GetEvent(ctx context.Context, dto *dto.GetEventDTO) (*domain.Event, error)
+	CreateEvent(ctx context.Context, clubId int64, userId int64) (*domain.Event, error)
+	GetEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
 }
 
 func (s serverApi) CreateEvent(ctx context.Context, req *eventv1.CreateEventRequest) (*eventv1.EventObject, error) {
@@ -21,7 +21,7 @@ func (s serverApi) CreateEvent(ctx context.Context, req *eventv1.CreateEventRequ
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	event, err := s.management.CreateEvent(ctx, dto.ProtoToCreateEventDTO(req))
+	event, err := s.management.CreateEvent(ctx, req.GetClubId(), req.GetUserId())
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}

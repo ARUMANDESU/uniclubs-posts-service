@@ -2,35 +2,34 @@ package domain
 
 import (
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
 const timeLayout = "2006-01-02T15:04:05.000Z"
 
 type Event struct {
-	ID                 primitive.ObjectID `json:"id,omitempty" bson:"_id"`
-	Club               Club               `json:"club"`
-	User               User               `json:"user"`
-	CollaboratorClubs  []Club             `json:"collaborator_clubs,omitempty"`
-	Organizers         []Organizer        `json:"organizers,omitempty"`
-	Title              string             `json:"title,omitempty"`
-	Description        string             `json:"description,omitempty"`
-	Type               string             `json:"type,omitempty"`
-	Status             string             `json:"status,omitempty"`
-	Tags               string             `json:"tags,omitempty"`
-	MaxParticipants    uint32             `json:"max_participants,omitempty"`
-	ParticipantsCount  uint32             `json:"participants_count,omitempty"`
-	LocationLink       string             `json:"location_link,omitempty"`
-	LocationUniversity string             `json:"location_university,omitempty"`
-	StartDate          time.Time          `json:"start_date"`
-	EndDate            time.Time          `json:"end_date"`
-	CoverImages        []CoverImage       `json:"cover_images,omitempty"`
-	AttachedImages     []File             `json:"attached_images,omitempty"`
-	AttachedFiles      []File             `json:"attached_files,omitempty"`
-	CreatedAt          time.Time          `json:"created_at"`
-	UpdatedAt          time.Time          `json:"updated_at"`
-	DeletedAt          time.Time          `json:"deleted_at"`
+	ID                 string       `json:"id"`
+	Club               Club         `json:"club"`
+	User               User         `json:"user"`
+	CollaboratorClubs  []Club       `json:"collaborator_clubs,omitempty"`
+	Organizers         []Organizer  `json:"organizers,omitempty"`
+	Title              string       `json:"title,omitempty"`
+	Description        string       `json:"description,omitempty"`
+	Type               string       `json:"type,omitempty"`
+	Status             string       `json:"status,omitempty"`
+	Tags               []string     `json:"tags,omitempty"`
+	MaxParticipants    uint32       `json:"max_participants,omitempty"`
+	ParticipantsCount  uint32       `json:"participants_count,omitempty"`
+	LocationLink       string       `json:"location_link,omitempty"`
+	LocationUniversity string       `json:"location_university,omitempty"`
+	StartDate          time.Time    `json:"start_date"`
+	EndDate            time.Time    `json:"end_date"`
+	CoverImages        []CoverImage `json:"cover_images,omitempty"`
+	AttachedImages     []File       `json:"attached_images,omitempty"`
+	AttachedFiles      []File       `json:"attached_files,omitempty"`
+	CreatedAt          time.Time    `json:"created_at"`
+	UpdatedAt          time.Time    `json:"updated_at"`
+	DeletedAt          time.Time    `json:"deleted_at"`
 }
 
 type Organizer struct {
@@ -57,7 +56,7 @@ func OrganizersToProto(organizers []Organizer) []*eventv1.OrganizerObject {
 
 func (e Event) ToProto() *eventv1.EventObject {
 	return &eventv1.EventObject{
-		Id:                 e.ID.String(),
+		Id:                 e.ID,
 		Club:               e.Club.ToProto(),
 		User:               e.User.ToProto(),
 		CollaboratorClubs:  ClubsToProto(e.CollaboratorClubs),

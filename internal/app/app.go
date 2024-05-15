@@ -39,7 +39,7 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 		panic(err)
 	}
 
-	managementService := eventManagement.New(l, mongoDB)
+	managementService := eventManagement.New(l, mongoDB, mongoDB, mongoDB)
 
 	grpcApp := grpcapp.New(l, cfg.GRPC.Port, managementService)
 

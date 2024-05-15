@@ -46,16 +46,16 @@ func FilesToProto(files []File) []*eventv1.FileObject {
 	return convertedFiles
 }
 
-func ProtoToFile(file *eventv1.FileObject) *File {
-	return &File{
+func ProtoToFile(file *eventv1.FileObject) File {
+	return File{
 		Name: file.Name,
 		Url:  file.Url,
 		Type: file.Type,
 	}
 }
 
-func ProtoToCoverImage(image *eventv1.CoverImage) *CoverImage {
-	return &CoverImage{
+func ProtoToCoverImage(image *eventv1.CoverImage) CoverImage {
+	return CoverImage{
 		File: File{
 			Name: image.Name,
 			Url:  image.Url,
@@ -65,16 +65,16 @@ func ProtoToCoverImage(image *eventv1.CoverImage) *CoverImage {
 	}
 }
 
-func ProtoToCoverImages(images []*eventv1.CoverImage) []*CoverImage {
-	convertedImages := make([]*CoverImage, len(images))
+func ProtoToCoverImages(images []*eventv1.CoverImage) []CoverImage {
+	convertedImages := make([]CoverImage, len(images))
 	for _, image := range images {
 		convertedImages = append(convertedImages, ProtoToCoverImage(image))
 	}
 	return convertedImages
 }
 
-func ProtoToFiles(files []*eventv1.FileObject) []*File {
-	convertedFiles := make([]*File, len(files))
+func ProtoToFiles(files []*eventv1.FileObject) []File {
+	convertedFiles := make([]File, len(files))
 	for _, file := range files {
 		convertedFiles = append(convertedFiles, ProtoToFile(file))
 	}

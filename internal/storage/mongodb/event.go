@@ -2,11 +2,13 @@ package mongodb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"strings"
 	"time"
 )
@@ -124,4 +126,45 @@ func (s Storage) GetEvent(ctx context.Context, id string) (*domain.Event, error)
 	domainEvent := ToDomainEvent(event, ToDomainUser(user), ToDomainClub(club), nil, nil)
 
 	return domainEvent, nil
+}
+
+func (s Storage) UpdateEvent(ctx context.Context, event *domain.Event) (*domain.Event, error) {
+	const op = "storage.mongodb.event.updateEvent"
+
+	eventModel := DomainToModel(event)
+
+	lastUpdated := event.UpdatedAt
+	event.UpdatedAt = time.Now()
+
+	_, err := s.eventsCollection.UpdateOne(ctx, bson.M{"_id": eventModel.ID, "updated_at": lastUpdated}, bson.M{"$set": event})
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("%s: %w", op, storage.ErrOptimisticLockingFailed)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	err = s.eventsCollection.FindOne(ctx, bson.M{"_id": eventModel.ID}).Decode(&event)
+	if err != nil {
+		if strings.Contains(err.Error(), "mongo: no documents in result") {
+			return nil, fmt.Errorf("%s: %w", op, storage.ErrEventNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var club Club
+	err = s.clubsCollection.FindOne(ctx, bson.M{"_id": event.Club.ID}).Decode(&club)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var user User
+	err = s.userCollection.FindOne(ctx, bson.M{"_id": event.User.ID}).Decode(&user)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	event = ToDomainEvent(eventModel, ToDomainUser(user), ToDomainClub(club), nil, nil)
+
+	return event, nil
 }

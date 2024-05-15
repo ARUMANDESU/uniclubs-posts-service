@@ -69,6 +69,18 @@ func CreateEvent(value interface{}) error {
 	)
 }
 
+func GetEvent(value interface{}) error {
+	req, ok := value.(*eventv1.GetEventRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("get event invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.EventId, validation.Required),
+		validation.Field(&req.UserId, validation.Min(0)),
+	)
+
+}
+
 func attachedFiles(value interface{}) error {
 	a, ok := value.(*eventv1.FileObject)
 	if !ok {

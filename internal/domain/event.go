@@ -7,6 +7,13 @@ import (
 
 const timeLayout = "2006-01-02T15:04:05.000Z"
 
+const (
+	EventStatusDraft     = "DRAFT"
+	EventStatusPublished = "PUBLISHED"
+	EventStatusCanceled  = "CANCELED"
+	EventStatusArchived  = "ARCHIVED"
+)
+
 type Event struct {
 	ID                 string       `json:"id"`
 	Club               Club         `json:"club"`
@@ -65,6 +72,7 @@ func (e Event) ToProto() *eventv1.EventObject {
 		Description:        e.Description,
 		Type:               e.Type,
 		Tags:               e.Tags,
+		Status:             e.Status,
 		MaxParticipants:    e.MaxParticipants,
 		ParticipantsCount:  e.ParticipantsCount,
 		LocationLink:       e.LocationLink,

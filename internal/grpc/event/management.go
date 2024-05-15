@@ -2,9 +2,10 @@ package event
 
 import (
 	"context"
-
+	"errors"
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
+	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/management"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/validate"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -23,15 +24,34 @@ func (s serverApi) CreateEvent(ctx context.Context, req *eventv1.CreateEventRequ
 
 	event, err := s.management.CreateEvent(ctx, req.GetClubId(), req.GetUserId())
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		switch {
+		case errors.Is(err, management.ErrEventNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, err.Error())
+		}
 	}
 
 	return event.ToProto(), nil
 }
 
 func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
+	err := validate.GetEvent(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	event, err := s.management.GetEvent(ctx, req.GetEventId(), req.GetUserId())
+	if err != nil {
+		switch {
+		case errors.Is(err, management.ErrEventNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+	}
+
+	return event.ToProto(), nil
 }
 
 func (s serverApi) UpdateEvent(ctx context.Context, req *eventv1.UpdateEventRequest) (*eventv1.EventObject, error) {

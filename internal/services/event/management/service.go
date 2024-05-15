@@ -13,6 +13,7 @@ import (
 
 var (
 	ErrClubNotExists = errors.New("club not found")
+	ErrEventNotFound = errors.New("event not found")
 )
 
 type Service struct {
@@ -24,7 +25,7 @@ type Service struct {
 
 type EventStorage interface {
 	CreateEvent(ctx context.Context, clubId, userId int64) (*domain.Event, error)
-	GetEvent(ctx context.Context, id int64) (*domain.Event, error)
+	GetEvent(ctx context.Context, id string) (*domain.Event, error)
 }
 
 type ClubProvider interface {
@@ -45,7 +46,7 @@ func New(log *slog.Logger, eventStorage EventStorage, clubProvider ClubProvider,
 }
 
 func (s Service) CreateEvent(ctx context.Context, clubId, userId int64) (*domain.Event, error) {
-	const op = "services.event.management.CreateEvent"
+	const op = "services.event.management.createEvent"
 	log := s.log.With(slog.String("op", op))
 
 	_, err := s.clubProvider.GetClubByID(ctx, clubId)
@@ -71,6 +72,23 @@ func (s Service) CreateEvent(ctx context.Context, clubId, userId int64) (*domain
 }
 
 func (s Service) GetEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error) {
-	//TODO implement me
-	panic("implement me")
+	const op = "services.event.management.getEvent"
+	log := s.log.With(slog.String("op", op))
+
+	event, err := s.eventStorage.GetEvent(ctx, eventId)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrEventNotFound):
+			return nil, ErrEventNotFound
+		default:
+			log.Error("failed to get event", logger.Err(err))
+			return nil, err
+		}
+	}
+
+	if event.User.ID != userId && event.Status == domain.EventStatusDraft {
+		return nil, ErrEventNotFound
+	}
+
+	return event, nil
 }

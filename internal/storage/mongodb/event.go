@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
+	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"strings"
 	"time"
 )
 
@@ -55,7 +57,7 @@ func (s Storage) CreateEvent(ctx context.Context, clubId int64, userId int64) (*
 		UserId:    userId,
 		UpdatedAt: time.Now(),
 		CreatedAt: time.Now(),
-		Status:    "DRAFT",
+		Status:    domain.EventStatusDraft,
 	}
 
 	insertResult, err := s.eventsCollection.InsertOne(ctx, event)
@@ -90,7 +92,36 @@ func (s Storage) CreateEvent(ctx context.Context, clubId int64, userId int64) (*
 	return domainEvent, nil
 }
 
-func (s Storage) GetEvent(ctx context.Context, id int64) (*domain.Event, error) {
-	//TODO implement me
-	panic("implement me")
+func (s Storage) GetEvent(ctx context.Context, id string) (*domain.Event, error) {
+	const op = "storage.mongodb.event.getEvent"
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var event Event
+	err = s.eventsCollection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&event)
+	if err != nil {
+		if strings.Contains(err.Error(), "mongo: no documents in result") {
+			return nil, fmt.Errorf("%s: %w", op, storage.ErrEventNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var club Club
+	err = s.clubsCollection.FindOne(ctx, bson.M{"_id": event.ClubId}).Decode(&club)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var user User
+	err = s.userCollection.FindOne(ctx, bson.M{"_id": event.UserId}).Decode(&user)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	domainEvent := ToDomainEvent(event, ToDomainUser(user), ToDomainClub(club), nil, nil)
+
+	return domainEvent, nil
 }

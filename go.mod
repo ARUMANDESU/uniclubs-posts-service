@@ -3,7 +3,7 @@ module github.com/arumandesu/uniclubs-posts-service
 go 1.22.2
 
 require (
-	github.com/ARUMANDESU/uniclubs-protos v0.4.5
+	github.com/ARUMANDESU/uniclubs-protos v0.4.7
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/joho/godotenv v1.5.1
@@ -30,7 +30,6 @@ require (
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
-	google.golang.org/genproto v0.0.0-20240513163218-0867130af1f8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240513163218-0867130af1f8 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

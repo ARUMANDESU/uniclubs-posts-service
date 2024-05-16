@@ -57,10 +57,10 @@ func UpdateEvent(value interface{}) error {
 	}
 	base := time.Now()
 
-	startTimeValidation := validation.Date(time.RFC3339).
+	startDateValidation := validation.Date(time.RFC3339).
 		Max(base.AddDate(10, 0, 0)).
 		Min(base.AddDate(-6, 0, 0))
-	endTimeValidation := validation.Date(time.RFC3339).
+	endDateValidation := validation.Date(time.RFC3339).
 		Max(base.AddDate(10, 0, 0)).
 		Min(base.AddDate(-6, 0, 0))
 
@@ -73,8 +73,8 @@ func UpdateEvent(value interface{}) error {
 		validation.Field(&req.Type, validation.In("university", "intra-club")),
 		validation.Field(&req.Tags, validation.Each(validation.Length(MinTagsLength, MaxTagsLength))),
 		validation.Field(&req.MaxParticipants, validation.Min(0), validation.Max(MaxParticipantsNumber)),
-		validation.Field(&req.StartTime, startTimeValidation),
-		validation.Field(&req.EndTime, endTimeValidation),
+		validation.Field(&req.StartDate, startDateValidation),
+		validation.Field(&req.EndDate, endDateValidation),
 		validation.Field(&req.LocationLink, validation.Length(MinLocationLink, MaxLocationLink)),
 		validation.Field(&req.LocationUniversity, validation.Length(MinLocationUniversity, MaxLocationUniversity)),
 		validation.Field(&req.CoverImages, validation.By(coverImages)),

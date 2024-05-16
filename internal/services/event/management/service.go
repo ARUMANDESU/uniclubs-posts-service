@@ -17,6 +17,7 @@ var (
 	ErrEventNotFound       = errors.New("event not found")
 	ErrEventUpdateConflict = errors.New("event update conflict")
 	ErrUserIsNotEventOwner = errors.New("permissions denied: user is not event owner")
+	ErrInvalidID           = errors.New("the provided id is not a valid ObjectID")
 )
 
 type Service struct {
@@ -30,6 +31,7 @@ type EventStorage interface {
 	CreateEvent(ctx context.Context, clubId, userId int64) (*domain.Event, error)
 	GetEvent(ctx context.Context, id string) (*domain.Event, error)
 	UpdateEvent(ctx context.Context, event *domain.Event) (*domain.Event, error)
+	DeleteEventById(ctx context.Context, eventId string) error
 }
 
 type ClubProvider interface {
@@ -84,6 +86,8 @@ func (s Service) GetEvent(ctx context.Context, eventId string, userId int64) (*d
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
 			return nil, ErrEventNotFound
+		case errors.Is(err, storage.ErrInvalidID):
+			return nil, ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return nil, err
@@ -106,6 +110,8 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
 			return nil, ErrEventNotFound
+		case errors.Is(err, storage.ErrInvalidID):
+			return nil, ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return nil, err
@@ -171,4 +177,43 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain
 	}
 
 	return updatedEvent, nil
+}
+
+func (s Service) DeleteEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error) {
+	const op = "services.event.management.deleteEvent"
+	log := s.log.With(slog.String("op", op))
+
+	event, err := s.eventStorage.GetEvent(ctx, eventId)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrEventNotFound):
+			return nil, ErrEventNotFound
+		case errors.Is(err, storage.ErrInvalidID):
+			return nil, ErrInvalidID
+		default:
+			log.Error("failed to get event", logger.Err(err))
+			return nil, err
+		}
+	}
+	if event.User.ID != userId {
+		return nil, ErrUserIsNotEventOwner
+	}
+
+	deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	err = s.eventStorage.DeleteEventById(deleteCtx, eventId)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrEventNotFound):
+			return nil, ErrEventNotFound
+		case errors.Is(err, storage.ErrInvalidID):
+			return nil, ErrInvalidID
+		default:
+			log.Error("failed to delete event", logger.Err(err))
+			return nil, err
+		}
+	}
+
+	return event, nil
 }

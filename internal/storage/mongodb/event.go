@@ -99,6 +99,9 @@ func (s Storage) GetEvent(ctx context.Context, id string) (*domain.Event, error)
 
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
+		if errors.Is(err, primitive.ErrInvalidHex) {
+			return nil, fmt.Errorf("%s: %w", op, storage.ErrInvalidID)
+		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -167,4 +170,26 @@ func (s Storage) UpdateEvent(ctx context.Context, event *domain.Event) (*domain.
 	event = ToDomainEvent(eventModel, ToDomainUser(user), ToDomainClub(club), nil, nil)
 
 	return event, nil
+}
+
+func (s Storage) DeleteEventById(ctx context.Context, eventId string) error {
+	const op = "storage.mongodb.event.deleteEventById"
+
+	objectId, err := primitive.ObjectIDFromHex(eventId)
+	if err != nil {
+		if errors.Is(err, primitive.ErrInvalidHex) {
+			return fmt.Errorf("%s: %w", op, storage.ErrInvalidID)
+		}
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = s.eventsCollection.DeleteOne(ctx, bson.M{"_id": objectId})
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return fmt.Errorf("%s: %w", storage.ErrEventNotFound)
+		}
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }

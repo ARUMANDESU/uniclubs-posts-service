@@ -2,6 +2,7 @@ package validate
 
 import (
 	"errors"
+	"fmt"
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
@@ -10,56 +11,21 @@ import (
 )
 
 const (
-	MinTitleLength        = 0
-	MaxTitleLength        = 500
-	MinDescriptionLength  = 0
-	MaxDescriptionLength  = 35000
-	MinTagsLength         = 2
-	MaxTagsLength         = 75
-	MinLocationLink       = 0
-	MaxLocationLink       = 2500
-	MinLocationUniversity = 0
-	MaxLocationUniversity = 250
-	MinNameLength         = 0
-	MaxNameLength         = 250
-	MaxPosition           = 20
-	MaxParticipantsNumber = 100000
+	MinTitleLength            = 0
+	MaxTitleLength            = 500
+	MinDescriptionLength      = 0
+	MaxDescriptionLength      = 35000
+	MinTagsLength             = 2
+	MaxTagsLength             = 75
+	MinLocationLink           = 0
+	MaxLocationLink           = 2500
+	MinLocationUniversity     = 0
+	MaxLocationUniversity     = 250
+	MinAttachedFileNameLength = 0
+	MaxAttachedFileNameLength = 250
+	MaxPosition               = 20
+	MaxParticipantsNumber     = 100000
 )
-
-const timeLayout = "2006-01-02T15:04:05Z"
-
-/*func CreateEvent(value interface{}) error {
-	req, ok := value.(*eventv1.CreateEventRequest)
-	if !ok {
-		return validation.NewInternalError(errors.New("create event invalid type"))
-	}
-	base := time.Now()
-
-	startTimeValidation := validation.Date(timeLayout).
-		Max(base.AddDate(10, 0, 0)).
-		Min(base.AddDate(-6, 0, 0))
-	endTimeValidation := validation.Date(timeLayout).
-		Max(base.AddDate(10, 0, 0)).
-		Min(base.AddDate(-6, 0, 0))
-
-	return validation.ValidateStruct(req,
-		validation.Field(&req.ClubId, validation.Required, validation.Min(0)),
-		validation.Field(&req.UserId, validation.Required, validation.Min(0)),
-		validation.Field(&req.CollaboratorClubs, validation.Each(validation.Min(0))),
-		validation.Field(&req.Title, validation.Length(MinTitleLength, MaxTitleLength)),
-		validation.Field(&req.Description, validation.Length(MinDescriptionLength, MaxDescriptionLength)),
-		validation.Field(&req.Type, validation.In("university", "intra-club")),
-		//validation.Field(&req.Tags, validation.Each(validation.Length(MinTagsLength, MaxTagsLength))),
-		validation.Field(&req.MaxParticipants, validation.Min(0)),
-		validation.Field(&req.StartTime, startTimeValidation),
-		validation.Field(&req.EndTime, endTimeValidation),
-		validation.Field(&req.LocationLink, validation.Length(MinLocationLink, MaxLocationLink)),
-		validation.Field(&req.LocationUniversity, validation.Length(MinLocationUniversity, MaxLocationUniversity)),
-		validation.Field(&req.CoverImages, validation.Each(validation.By(coverImages))),
-		validation.Field(&req.AttachedImages, validation.Each(validation.By(attachedFiles))),
-		validation.Field(&req.AttachedFiles, validation.Each(validation.By(attachedFiles))),
-	)
-}*/
 
 func CreateEvent(value interface{}) error {
 	req, ok := value.(*eventv1.CreateEventRequest)
@@ -91,10 +57,10 @@ func UpdateEvent(value interface{}) error {
 	}
 	base := time.Now()
 
-	startTimeValidation := validation.Date(timeLayout).
+	startTimeValidation := validation.Date(time.RFC3339).
 		Max(base.AddDate(10, 0, 0)).
 		Min(base.AddDate(-6, 0, 0))
-	endTimeValidation := validation.Date(timeLayout).
+	endTimeValidation := validation.Date(time.RFC3339).
 		Max(base.AddDate(10, 0, 0)).
 		Min(base.AddDate(-6, 0, 0))
 
@@ -111,37 +77,53 @@ func UpdateEvent(value interface{}) error {
 		validation.Field(&req.EndTime, endTimeValidation),
 		validation.Field(&req.LocationLink, validation.Length(MinLocationLink, MaxLocationLink)),
 		validation.Field(&req.LocationUniversity, validation.Length(MinLocationUniversity, MaxLocationUniversity)),
-		//validation.Field(&req.CoverImages, validation.Each(validation.By(coverImages))),
-		//validation.Field(&req.AttachedImages, validation.Each(validation.By(attachedFiles))),
-		//validation.Field(&req.AttachedFiles, validation.Each(validation.By(attachedFiles), validation.)),
+		validation.Field(&req.CoverImages, validation.By(coverImages)),
+		validation.Field(&req.AttachedImages, validation.By(attachedFiles)),
+		validation.Field(&req.AttachedFiles, validation.By(attachedFiles)),
 	)
 
 }
 
 func attachedFiles(value interface{}) error {
-	a, ok := value.(*eventv1.FileObject)
+	a, ok := value.([]*eventv1.FileObject)
 	if !ok {
 		log.Printf("file type: %T", value)
 		return validation.NewInternalError(errors.New("attached files invalid type"))
 	}
-	return validation.ValidateStruct(a,
-		validation.Field(&a.Url, validation.Required, is.URL),
-		validation.Field(&a.Name, validation.Required, validation.Min(MinNameLength), validation.Max(MaxNameLength)),
-		validation.Field(&a.Type, validation.Required),
-	)
+
+	for i, file := range a {
+		err := validation.ValidateStruct(file,
+			validation.Field(&file.Url, validation.Required, is.URL),
+			validation.Field(&file.Name, validation.Required, validation.Length(MinAttachedFileNameLength, MaxAttachedFileNameLength)),
+			validation.Field(&file.Type, validation.Required),
+		)
+		if err != nil {
+			return validation.NewInternalError(fmt.Errorf("attached file %d: %w", i, err))
+		}
+	}
+
+	return nil
 }
 
 func coverImages(value interface{}) error {
-	c, ok := value.(*eventv1.CoverImage)
+	c, ok := value.([]*eventv1.CoverImage)
 	if !ok {
 		log.Printf("image type: %T", value)
 		return validation.NewInternalError(errors.New("cover images invalid type"))
 	}
-	return validation.ValidateStruct(c,
-		validation.Field(&c.Url, validation.Required, is.URL),
-		validation.Field(&c.Name, validation.Required, validation.Min(MinNameLength), validation.Max(MaxNameLength)),
-		validation.Field(&c.Type, validation.Required),
-		validation.Field(&c.Position, validation.Required, validation.Min(0), validation.Max(MaxPosition)),
-	)
 
+	for i, image := range c {
+		err := validation.ValidateStruct(image,
+			validation.Field(&image.Url, validation.Required, is.URL),
+			validation.Field(&image.Name, validation.Required, validation.Length(MinAttachedFileNameLength, MaxAttachedFileNameLength)),
+			validation.Field(&image.Type, validation.Required),
+			validation.Field(&image.Position, validation.Required, validation.Min(0), validation.Max(MaxPosition)),
+		)
+		if err != nil {
+			return validation.NewInternalError(fmt.Errorf("cover image %d: %w", i, err))
+		}
+
+	}
+
+	return nil
 }

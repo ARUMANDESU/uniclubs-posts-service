@@ -32,16 +32,16 @@ func (c CoverImage) ToProto() *eventv1.CoverImage {
 
 func CoverImagesToProto(images []CoverImage) []*eventv1.CoverImage {
 	convertedImages := make([]*eventv1.CoverImage, len(images))
-	for _, image := range images {
-		convertedImages = append(convertedImages, image.ToProto())
+	for i, image := range images {
+		convertedImages[i] = image.ToProto()
 	}
 	return convertedImages
 }
 
 func FilesToProto(files []File) []*eventv1.FileObject {
 	convertedFiles := make([]*eventv1.FileObject, len(files))
-	for _, file := range files {
-		convertedFiles = append(convertedFiles, file.ToProto())
+	for i, file := range files {
+		convertedFiles[i] = file.ToProto()
 	}
 	return convertedFiles
 }
@@ -67,16 +67,16 @@ func ProtoToCoverImage(image *eventv1.CoverImage) CoverImage {
 
 func ProtoToCoverImages(images []*eventv1.CoverImage) []CoverImage {
 	convertedImages := make([]CoverImage, len(images))
-	for _, image := range images {
-		convertedImages = append(convertedImages, ProtoToCoverImage(image))
+	for i, image := range images {
+		convertedImages[i] = ProtoToCoverImage(image)
 	}
 	return convertedImages
 }
 
 func ProtoToFiles(files []*eventv1.FileObject) []File {
 	convertedFiles := make([]File, len(files))
-	for _, file := range files {
-		convertedFiles = append(convertedFiles, ProtoToFile(file))
+	for i, file := range files {
+		convertedFiles[i] = ProtoToFile(file)
 	}
 	return convertedFiles
 }

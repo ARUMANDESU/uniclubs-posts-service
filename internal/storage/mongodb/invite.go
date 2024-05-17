@@ -13,14 +13,15 @@ import (
 )
 
 type Invite struct {
-	ID      primitive.ObjectID `json:"id,omitempty" bson:"_id"`
-	EventId primitive.ObjectID `json:"event_id,omitempty" bson:"event_id"`
-	ClubId  int64              `json:"club_id,omitempty" bson:"club_id"`
+	ID      primitive.ObjectID `bson:"_id"`
+	EventId primitive.ObjectID `bson:"event_id"`
+	ClubId  int64              `bson:"club_id"`
 }
 
 type UserInvite struct {
-	Invite `bson:",inline"`
-	UserId int64 `json:"user_id,omitempty" bson:"user_id"`
+	Invite  `bson:",inline"`
+	UserId  int64 `bson:"user_id"`
+	ByWhoId int64 `bson:"by_who_id"`
 }
 
 func (s Storage) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.UserInvite, error) {
@@ -40,7 +41,8 @@ func (s Storage) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 			EventId: eventObjectId,
 			ClubId:  dto.TargetClubId,
 		},
-		UserId: dto.TargetId,
+		UserId:  dto.TargetId,
+		ByWhoId: dto.UserId,
 	}
 
 	_, err = s.inviteCollection.InsertOne(ctx, invite)

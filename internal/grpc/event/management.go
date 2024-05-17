@@ -6,7 +6,7 @@ import (
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
-	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/management"
+	event2 "github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/validate"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"google.golang.org/grpc/codes"
@@ -15,10 +15,8 @@ import (
 
 type ManagementService interface {
 	CreateEvent(ctx context.Context, clubId int64, userId int64) (*domain.Event, error)
-	GetEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
 	UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain.Event, error)
 	DeleteEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
-	SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.Event, error)
 }
 
 func (s serverApi) CreateEvent(ctx context.Context, req *eventv1.CreateEventRequest) (*eventv1.EventObject, error) {
@@ -30,29 +28,10 @@ func (s serverApi) CreateEvent(ctx context.Context, req *eventv1.CreateEventRequ
 	event, err := s.management.CreateEvent(ctx, req.GetClubId(), req.GetUserId())
 	if err != nil {
 		switch {
-		case errors.Is(err, management.ErrEventNotFound):
+		case errors.Is(err, event2.ErrEventNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, err.Error())
-		}
-	}
-
-	return event.ToProto(), nil
-}
-
-func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (*eventv1.EventObject, error) {
-	err := validate.GetEvent(req)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, err.Error())
-	}
-
-	event, err := s.management.GetEvent(ctx, req.GetEventId(), req.GetUserId())
-	if err != nil {
-		switch {
-		case errors.Is(err, management.ErrEventNotFound):
-			return nil, status.Error(codes.NotFound, err.Error())
-		default:
-			return nil, status.Error(codes.Internal, "internal error")
 		}
 	}
 
@@ -68,11 +47,11 @@ func (s serverApi) UpdateEvent(ctx context.Context, req *eventv1.UpdateEventRequ
 	event, err := s.management.UpdateEvent(ctx, dto.UpdateToDTO(req))
 	if err != nil {
 		switch {
-		case errors.Is(err, management.ErrEventNotFound):
+		case errors.Is(err, event2.ErrEventNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, management.ErrEventUpdateConflict):
+		case errors.Is(err, event2.ErrEventUpdateConflict):
 			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case errors.Is(err, management.ErrUserIsNotEventOwner):
+		case errors.Is(err, event2.ErrUserIsNotEventOwner):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")
@@ -94,11 +73,11 @@ func (s serverApi) DeleteEvent(ctx context.Context, req *eventv1.DeleteEventRequ
 	event, err := s.management.DeleteEvent(ctx, req.GetEventId(), req.GetUserId())
 	if err != nil {
 		switch {
-		case errors.Is(err, management.ErrEventNotFound):
+		case errors.Is(err, event2.ErrEventNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, management.ErrInvalidID):
+		case errors.Is(err, event2.ErrInvalidID):
 			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, management.ErrUserIsNotEventOwner):
+		case errors.Is(err, event2.ErrUserIsNotEventOwner):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")
@@ -106,11 +85,6 @@ func (s serverApi) DeleteEvent(ctx context.Context, req *eventv1.DeleteEventRequ
 	}
 
 	return event.ToProto(), nil
-}
-
-func (s serverApi) ListEvents(ctx context.Context, req *eventv1.ListEventsRequest) (*eventv1.ListEventsResponse, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (s serverApi) PublishEvent(ctx context.Context, req *eventv1.PublishEventRequest) (*eventv1.EventObject, error) {
@@ -119,53 +93,6 @@ func (s serverApi) PublishEvent(ctx context.Context, req *eventv1.PublishEventRe
 }
 
 func (s serverApi) UnpublishEvent(ctx context.Context, req *eventv1.PublishEventRequest) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s serverApi) AddCollaborator(ctx context.Context, req *eventv1.AddCollaboratorRequest) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s serverApi) RemoveCollaborator(ctx context.Context, req *eventv1.RemoveCollaboratorRequest) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s serverApi) AddOrganizer(ctx context.Context, req *eventv1.AddOrganizerRequest) (*eventv1.EventObject, error) {
-	err := validation.ValidateStruct(req,
-		validation.Field(&req.EventId, validation.Required),
-		validation.Field(&req.UserId, validation.Required, validation.Min(0), validation.NotIn(req.OrganizerId).Error("organizer_id must be different from user_id")),
-		validation.Field(&req.OrganizerId, validation.Required, validation.Min(0)),
-		validation.Field(&req.OrganizerClubId, validation.Required, validation.Min(0)),
-	)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, err.Error())
-	}
-
-	event, err := s.management.SendJoinRequestToUser(ctx, dto.AddOrganizerRequestToUserToDTO(req))
-	if err != nil {
-		switch {
-		case errors.Is(err, management.ErrEventNotFound):
-			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, management.ErrInvalidID):
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, management.ErrPermissionsDenied):
-			return nil, status.Error(codes.PermissionDenied, err.Error())
-		case errors.Is(err, management.ErrInviteAlreadyExists):
-			return nil, status.Error(codes.AlreadyExists, err.Error())
-		case errors.Is(err, management.ErrUserIsFromAnotherClub):
-			return nil, status.Error(codes.PermissionDenied, err.Error())
-		default:
-			return nil, status.Error(codes.Internal, "internal error")
-		}
-	}
-
-	return event.ToProto(), nil
-}
-
-func (s serverApi) RemoveOrganizer(ctx context.Context, req *eventv1.RemoveOrganizerRequest) (*eventv1.EventObject, error) {
 	//TODO implement me
 	panic("implement me")
 }

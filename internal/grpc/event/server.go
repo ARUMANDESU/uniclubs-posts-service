@@ -7,9 +7,30 @@ import (
 
 type serverApi struct {
 	eventv1.UnimplementedEventServer
-	management ManagementService
+	Services
 }
 
-func Register(gRPC *grpc.Server, management ManagementService) {
-	eventv1.RegisterEventServer(gRPC, &serverApi{management: management})
+type Services struct {
+	management   ManagementService
+	collaborator CollaboratorService
+	info         InfoService
+}
+
+func Register(
+	gRPC *grpc.Server,
+	services Services,
+) {
+	eventv1.RegisterEventServer(gRPC, &serverApi{Services: services})
+}
+
+func NewServices(
+	management ManagementService,
+	collaborator CollaboratorService,
+	info InfoService,
+) Services {
+	return Services{
+		management:   management,
+		collaborator: collaborator,
+		info:         info,
+	}
 }

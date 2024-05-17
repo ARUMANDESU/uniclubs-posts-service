@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
+	eventService "github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"log/slog"
 	"time"
@@ -12,24 +13,11 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
 )
 
-var (
-	ErrClubNotExists         = errors.New("club not found")
-	ErrEventNotFound         = errors.New("event not found")
-	ErrEventUpdateConflict   = errors.New("event update conflict")
-	ErrUserIsNotEventOwner   = errors.New("permissions denied: user is not event owner")
-	ErrInvalidID             = errors.New("the provided id is not a valid ObjectID")
-	ErrInviteAlreadyExists   = errors.New("invite already exists")
-	ErrUserAlreadyOrganizer  = errors.New("user is already an organizer")
-	ErrUserIsFromAnotherClub = errors.New("user is from another club")
-	ErrPermissionsDenied     = errors.New("permissions denied")
-)
-
 type Service struct {
-	log                    *slog.Logger
-	eventStorage           EventStorage
-	clubProvider           ClubProvider
-	userProvider           UserProvider
-	organizerInviteStorage OrganizerInviteStorage
+	log          *slog.Logger
+	eventStorage EventStorage
+	clubProvider ClubProvider
+	userProvider UserProvider
 }
 
 type EventStorage interface {
@@ -37,13 +25,6 @@ type EventStorage interface {
 	GetEvent(ctx context.Context, id string) (*domain.Event, error)
 	UpdateEvent(ctx context.Context, event *domain.Event) (*domain.Event, error)
 	DeleteEventById(ctx context.Context, eventId string) error
-}
-
-type OrganizerInviteStorage interface {
-	SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.UserInvite, error)
-	GetJoinRequests(ctx context.Context, eventId string) ([]domain.UserInvite, error)
-	GetJoinRequestByUserId(ctx context.Context, userId int64) (*domain.UserInvite, error)
-	GetJoinRequestsById(ctx context.Context, requestId string) (*domain.UserInvite, error)
 }
 
 type ClubProvider interface {
@@ -59,14 +40,12 @@ func New(
 	eventStorage EventStorage,
 	clubProvider ClubProvider,
 	userProvider UserProvider,
-	inviteStorage OrganizerInviteStorage,
 ) Service {
 	return Service{
-		log:                    log,
-		eventStorage:           eventStorage,
-		clubProvider:           clubProvider,
-		userProvider:           userProvider,
-		organizerInviteStorage: inviteStorage,
+		log:          log,
+		eventStorage: eventStorage,
+		clubProvider: clubProvider,
+		userProvider: userProvider,
 	}
 }
 
@@ -78,7 +57,7 @@ func (s Service) CreateEvent(ctx context.Context, clubId, userId int64) (*domain
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrClubNotExists):
-			return nil, ErrClubNotExists
+			return nil, eventService.ErrClubNotExists
 		default:
 			log.Error("failed to get club", logger.Err(err))
 			return nil, err
@@ -96,30 +75,6 @@ func (s Service) CreateEvent(ctx context.Context, clubId, userId int64) (*domain
 	return event, nil
 }
 
-func (s Service) GetEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error) {
-	const op = "services.event.management.getEvent"
-	log := s.log.With(slog.String("op", op))
-
-	event, err := s.eventStorage.GetEvent(ctx, eventId)
-	if err != nil {
-		switch {
-		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, ErrEventNotFound
-		case errors.Is(err, storage.ErrInvalidID):
-			return nil, ErrInvalidID
-		default:
-			log.Error("failed to get event", logger.Err(err))
-			return nil, err
-		}
-	}
-
-	if event.User.ID != userId && event.Status == domain.EventStatusDraft {
-		return nil, ErrEventNotFound
-	}
-
-	return event, nil
-}
-
 func (s Service) UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain.Event, error) {
 	const op = "services.event.management.updateEvent"
 	log := s.log.With(slog.String("op", op))
@@ -128,9 +83,9 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, ErrEventNotFound
+			return nil, eventService.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, ErrInvalidID
+			return nil, eventService.ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return nil, err
@@ -138,7 +93,7 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain
 	}
 
 	if event.User.ID != dto.UserId {
-		return nil, ErrUserIsNotEventOwner
+		return nil, eventService.ErrUserIsNotEventOwner
 	}
 
 	for _, path := range dto.Paths {
@@ -187,7 +142,7 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrOptimisticLockingFailed):
-			return nil, ErrEventUpdateConflict
+			return nil, eventService.ErrEventUpdateConflict
 		default:
 			log.Error("failed to update event", logger.Err(err))
 			return nil, err
@@ -206,16 +161,16 @@ func (s Service) DeleteEvent(ctx context.Context, eventId string, userId int64) 
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, ErrEventNotFound
+			return nil, eventService.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, ErrInvalidID
+			return nil, eventService.ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return nil, err
 		}
 	}
 	if event.User.ID != userId {
-		return nil, ErrUserIsNotEventOwner
+		return nil, eventService.ErrUserIsNotEventOwner
 	}
 
 	deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -225,86 +180,11 @@ func (s Service) DeleteEvent(ctx context.Context, eventId string, userId int64) 
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, ErrEventNotFound
+			return nil, eventService.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, ErrInvalidID
+			return nil, eventService.ErrInvalidID
 		default:
 			log.Error("failed to delete event", logger.Err(err))
-			return nil, err
-		}
-	}
-
-	return event, nil
-}
-
-func (s Service) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.Event, error) {
-	const op = "services.event.management.sendJoinRequestToUser"
-	log := s.log.With(slog.String("op", op))
-
-	event, err := s.eventStorage.GetEvent(ctx, dto.EventId)
-	if err != nil {
-		switch {
-		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, ErrEventNotFound
-		case errors.Is(err, storage.ErrInvalidID):
-			return nil, ErrInvalidID
-		default:
-			log.Error("failed to get event", logger.Err(err))
-			return nil, err
-		}
-	}
-
-	// Check if the user is event owner or organizer
-	if !event.IsOrganizer(dto.UserId) {
-		return nil, ErrPermissionsDenied
-	}
-
-	// Check if the target user is already an organizer
-	if event.IsOrganizer(dto.TargetId) {
-		return nil, ErrUserAlreadyOrganizer
-	}
-
-	userInvite, err := s.organizerInviteStorage.GetJoinRequestByUserId(ctx, dto.TargetId)
-	if err != nil && !errors.Is(err, storage.ErrInviteNotFound) {
-		switch {
-		case errors.Is(err, storage.ErrInvalidID):
-			return nil, ErrInvalidID
-		default:
-			log.Error("failed to get join request by user id", logger.Err(err))
-			return nil, err
-		}
-	}
-
-	if userInvite != nil {
-		return nil, ErrInviteAlreadyExists
-	}
-
-	// if the target user is the event owner then check if the target club is the same as the event club
-	// if the target user is an organizer then check if the target club is the same as the organizer club
-	if event.User.ID == dto.UserId {
-		if event.Club.ID != dto.TargetClubId {
-			return nil, ErrUserIsFromAnotherClub
-		}
-	} else {
-		organizer := event.GetOrganizerById(dto.UserId)
-		if organizer == nil {
-			return nil, ErrPermissionsDenied
-		}
-
-		if organizer.ClubId != dto.TargetClubId {
-			return nil, ErrUserIsFromAnotherClub
-		}
-	}
-
-	sendJoinRequestCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	_, err = s.organizerInviteStorage.SendJoinRequestToUser(sendJoinRequestCtx, dto)
-	if err != nil {
-		switch {
-		case errors.Is(err, storage.ErrInvalidID):
-			return nil, ErrInvalidID
-		default:
-			log.Error("failed to send join request", logger.Err(err))
 			return nil, err
 		}
 	}

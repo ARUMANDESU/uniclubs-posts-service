@@ -14,10 +14,10 @@ type App struct {
 	port       int
 }
 
-func New(log *slog.Logger, port int, managementService event.ManagementService) *App {
+func New(log *slog.Logger, port int, services event.Services) *App {
 	gRPCServer := grpc.NewServer()
 
-	event.Register(gRPCServer, managementService)
+	event.Register(gRPCServer, services)
 
 	return &App{
 		log:        log,

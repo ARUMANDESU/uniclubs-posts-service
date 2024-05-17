@@ -5,8 +5,11 @@ import (
 	amqpapp "github.com/arumandesu/uniclubs-posts-service/internal/app/amqp"
 	grpcapp "github.com/arumandesu/uniclubs-posts-service/internal/app/grpc"
 	"github.com/arumandesu/uniclubs-posts-service/internal/config"
+	"github.com/arumandesu/uniclubs-posts-service/internal/grpc/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/rabbitmq"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/club"
+	eventCollaborator "github.com/arumandesu/uniclubs-posts-service/internal/services/event/collaborator"
+	eventInfo "github.com/arumandesu/uniclubs-posts-service/internal/services/event/info"
 	eventManagement "github.com/arumandesu/uniclubs-posts-service/internal/services/event/management"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/user"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage/mongodb"
@@ -39,9 +42,12 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 		panic(err)
 	}
 
-	managementService := eventManagement.New(l, mongoDB, mongoDB, mongoDB, mongoDB)
-
-	grpcApp := grpcapp.New(l, cfg.GRPC.Port, managementService)
+	services := event.NewServices(
+		eventManagement.New(l, mongoDB, mongoDB, mongoDB),
+		eventCollaborator.New(l, mongoDB, mongoDB),
+		eventInfo.New(l, mongoDB),
+	)
+	grpcApp := grpcapp.New(l, cfg.GRPC.Port, services)
 
 	amqpApp := amqpapp.New(l, userService, clubService, rmq)
 	return &App{

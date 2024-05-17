@@ -108,3 +108,22 @@ func (s Storage) GetJoinRequestsById(ctx context.Context, requestId string) (*do
 
 	return ToDomainUserInvite(invite), nil
 }
+
+func (s Storage) DeleteJoinRequest(ctx context.Context, requestId string) error {
+	const op = "storage.mongodb.deleteJoinRequest"
+
+	objectID, err := primitive.ObjectIDFromHex(requestId)
+	if err != nil {
+		if errors.Is(err, primitive.ErrInvalidHex) {
+			return fmt.Errorf("%s: %w", op, storage.ErrInvalidID)
+		}
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = s.inviteCollection.DeleteOne(ctx, bson.M{"_id": objectID})
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}

@@ -16,6 +16,8 @@ import (
 
 type CollaboratorService interface {
 	SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.Event, error)
+	AcceptUserJoinRequest(ctx context.Context, inviteId string, userId int64) error
+	RejectUserJoinRequest(ctx context.Context, inviteId string, userId int64) error
 }
 
 func (s serverApi) AddCollaborator(ctx context.Context, req *eventv1.AddCollaboratorRequest) (*empty.Empty, error) {
@@ -77,14 +79,36 @@ func (s serverApi) RemoveOrganizer(ctx context.Context, req *eventv1.RemoveOrgan
 func (s serverApi) HandleInviteUser(ctx context.Context, request *eventv1.HandleInviteUserRequest) (*emptypb.Empty, error) {
 	err := validation.ValidateStruct(request,
 		validation.Field(&request.UserId, validation.Required, validation.Min(0)),
-		validation.Field(&request.InviteId, validation.Required, validation.Min(0)),
+		validation.Field(&request.InviteId, validation.Required),
 	)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	//TODO implement me
-	panic("implement me")
+	if request.GetAction() == eventv1.HandleInviteUserRequest_Action_ACCEPT {
+		err = s.collaborator.AcceptUserJoinRequest(ctx, request.InviteId, request.UserId)
+	} else if request.GetAction() == eventv1.HandleInviteUserRequest_Action_REJECT {
+		err = s.collaborator.RejectUserJoinRequest(ctx, request.InviteId, request.UserId)
+	}
+
+	if err != nil {
+		switch {
+		case errors.Is(err, event.ErrInviteNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		case errors.Is(err, event.ErrInvalidID):
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		case errors.Is(err, event.ErrPermissionsDenied):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		case errors.Is(err, event.ErrUserAlreadyOrganizer):
+			return nil, status.Error(codes.AlreadyExists, err.Error())
+		case errors.Is(err, event.ErrEventUpdateConflict):
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
+		}
+	}
+
+	return &empty.Empty{}, nil
 }
 
 func (s serverApi) RevokeInviteUser(ctx context.Context, request *eventv1.RevokeInviteUserRequest) (*emptypb.Empty, error) {

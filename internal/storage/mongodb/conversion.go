@@ -5,7 +5,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func ToDomainEvent(event Event, user domain.User, club domain.Club, organizers []domain.Organizer, collaboratorClubs []domain.Club) *domain.Event {
+func ToDomainEvent(
+	event Event,
+	user domain.User,
+	club domain.Club,
+	organizers []domain.Organizer,
+	collaboratorClubs []domain.Club,
+) *domain.Event {
 	return &domain.Event{
 		ID:                 event.ID.Hex(),
 		Club:               club,
@@ -112,7 +118,7 @@ func DomainToModel(event *domain.Event) Event {
 		ClubId:              event.Club.ID,
 		UserId:              event.User.ID,
 		CollaboratorClubIds: ToCollaboratorClubIds(event.CollaboratorClubs),
-		OrganizerIds:        ToOrganizerIds(event.Organizers),
+		Organizers:          ToOrganizers(event.Organizers),
 		Title:               event.Title,
 		Description:         event.Description,
 		Type:                event.Type,
@@ -168,10 +174,13 @@ func ToCollaboratorClubIds(clubs []domain.Club) []int64 {
 	return clubIds
 }
 
-func ToOrganizerIds(organizers []domain.Organizer) []int64 {
-	organizerIds := make([]int64, len(organizers))
+func ToOrganizers(organizers []domain.Organizer) []OrganizerMongo {
+	organizerIds := make([]OrganizerMongo, len(organizers))
 	for i, organizer := range organizers {
-		organizerIds[i] = organizer.User.ID
+		organizerIds[i] = OrganizerMongo{
+			ID:     organizer.User.ID,
+			ClubId: organizer.ClubId,
+		}
 	}
 	return organizerIds
 }

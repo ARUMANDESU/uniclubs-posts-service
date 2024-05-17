@@ -10,3 +10,7 @@ type UserInvite struct {
 	Invite
 	UserId int64 `json:"user_id"`
 }
+
+func (u UserInvite) IsInvited(userId int64) bool {
+	return u.UserId == userId
+}

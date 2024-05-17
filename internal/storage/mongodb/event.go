@@ -18,7 +18,7 @@ type Event struct {
 	ClubId              int64              `bson:"club_id"`
 	UserId              int64              `bson:"user_id"`
 	CollaboratorClubIds []int64            `bson:"collaborator_club_ids,omitempty"`
-	OrganizerIds        []int64            `bson:"organizer_ids,omitempty"`
+	Organizers          []OrganizerMongo   `bson:"organizers,omitempty"`
 	Title               string             `bson:"title,omitempty"`
 	Description         string             `bson:"description,omitempty"`
 	Type                string             `bson:"type,omitempty"`
@@ -49,6 +49,11 @@ type FileMongo struct {
 type CoverImageMongo struct {
 	FileMongo
 	Position uint32 `bson:"position"`
+}
+
+type OrganizerMongo struct {
+	ID     int64 `bson:"id"`
+	ClubId int64 `bson:"club_id"`
 }
 
 func (s Storage) CreateEvent(ctx context.Context, clubId int64, userId int64) (*domain.Event, error) {
@@ -127,7 +132,12 @@ func (s Storage) GetEvent(ctx context.Context, id string) (*domain.Event, error)
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	domainEvent := ToDomainEvent(event, ToDomainUser(user), ToDomainClub(club), nil, nil)
+	domainOrganizers, err := s.getOrganizers(ctx, event.Organizers)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	domainEvent := ToDomainEvent(event, ToDomainUser(user), ToDomainClub(club), domainOrganizers, nil)
 
 	return domainEvent, nil
 }
@@ -140,7 +150,7 @@ func (s Storage) UpdateEvent(ctx context.Context, event *domain.Event) (*domain.
 	lastUpdated := event.UpdatedAt
 	event.UpdatedAt = time.Now()
 
-	_, err := s.eventsCollection.UpdateOne(ctx, bson.M{"_id": eventModel.ID, "updated_at": lastUpdated}, bson.M{"$set": event})
+	_, err := s.eventsCollection.UpdateOne(ctx, bson.M{"_id": eventModel.ID, "updated_at": lastUpdated}, bson.M{"$set": eventModel})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, fmt.Errorf("%s: %w", op, storage.ErrOptimisticLockingFailed)
@@ -148,7 +158,7 @@ func (s Storage) UpdateEvent(ctx context.Context, event *domain.Event) (*domain.
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	err = s.eventsCollection.FindOne(ctx, bson.M{"_id": eventModel.ID}).Decode(&event)
+	err = s.eventsCollection.FindOne(ctx, bson.M{"_id": eventModel.ID}).Decode(&eventModel)
 	if err != nil {
 		if strings.Contains(err.Error(), "mongo: no documents in result") {
 			return nil, fmt.Errorf("%s: %w", op, storage.ErrEventNotFound)
@@ -168,7 +178,12 @@ func (s Storage) UpdateEvent(ctx context.Context, event *domain.Event) (*domain.
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	event = ToDomainEvent(eventModel, ToDomainUser(user), ToDomainClub(club), nil, nil)
+	domainOrganizers, err := s.getOrganizers(ctx, eventModel.Organizers)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	event = ToDomainEvent(eventModel, ToDomainUser(user), ToDomainClub(club), domainOrganizers, nil)
 
 	return event, nil
 }
@@ -193,4 +208,28 @@ func (s Storage) DeleteEventById(ctx context.Context, eventId string) error {
 	}
 
 	return nil
+}
+
+func (s Storage) getOrganizers(ctx context.Context, organizersMongo []OrganizerMongo) ([]domain.Organizer, error) {
+	const op = "storage.mongodb.getOrganizers"
+
+	organizers := make([]domain.Organizer, len(organizersMongo))
+
+	for i, organizerMongo := range organizersMongo {
+		var user User
+		err := s.userCollection.FindOne(ctx, bson.M{"_id": organizerMongo.ID}).Decode(&user)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				return nil, nil
+			}
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+
+		organizers[i] = domain.Organizer{
+			User:   ToDomainUser(user),
+			ClubId: organizerMongo.ClubId,
+		}
+	}
+
+	return organizers, nil
 }

@@ -12,4 +12,5 @@ var (
 	ErrUserAlreadyOrganizer  = errors.New("user is already an organizer")
 	ErrUserIsFromAnotherClub = errors.New("user is from another club")
 	ErrPermissionsDenied     = errors.New("permissions denied")
+	ErrInviteNotFound        = errors.New("invite not found")
 )

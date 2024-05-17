@@ -39,7 +39,7 @@ type Event struct {
 	DeletedAt          time.Time    `json:"deleted_at"`
 }
 
-func (e Event) IsOrganizer(userId int64) bool {
+func (e *Event) IsOrganizer(userId int64) bool {
 	if e.User.ID == userId {
 		return true
 	}
@@ -53,7 +53,7 @@ func (e Event) IsOrganizer(userId int64) bool {
 	return false
 }
 
-func (e Event) GetOrganizerById(userId int64) *Organizer {
+func (e *Event) GetOrganizerById(userId int64) *Organizer {
 	for _, organizer := range e.Organizers {
 		if organizer.ID == userId {
 			return &organizer
@@ -61,6 +61,10 @@ func (e Event) GetOrganizerById(userId int64) *Organizer {
 	}
 
 	return nil
+}
+
+func (e *Event) AddOrganizer(organizer Organizer) {
+	e.Organizers = append(e.Organizers, organizer)
 }
 
 type Organizer struct {
@@ -79,13 +83,13 @@ func (o Organizer) ToProto() *eventv1.OrganizerObject {
 }
 func OrganizersToProto(organizers []Organizer) []*eventv1.OrganizerObject {
 	convertedOrganizers := make([]*eventv1.OrganizerObject, len(organizers))
-	for _, organizer := range organizers {
-		convertedOrganizers = append(convertedOrganizers, organizer.ToProto())
+	for i, organizer := range organizers {
+		convertedOrganizers[i] = organizer.ToProto()
 	}
 	return convertedOrganizers
 }
 
-func (e Event) ToProto() *eventv1.EventObject {
+func (e *Event) ToProto() *eventv1.EventObject {
 	return &eventv1.EventObject{
 		Id:                 e.ID,
 		Club:               e.Club.ToProto(),

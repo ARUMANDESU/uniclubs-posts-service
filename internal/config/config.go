@@ -9,13 +9,10 @@ import (
 )
 
 type Config struct {
-	Env       string   `yaml:"env" env:"ENV" env-default:"local"`
-	GRPC      GRPC     `yaml:"grpc"`
-	Rabbitmq  Rabbitmq `yaml:"rabbitmq"`
-	RedisURL  string   `yaml:"redis_url" env:"REDIS_URL" env-required:"true"`
-	JwtSecret string   `yaml:"jwt_secret" env:"JWT_SECRET"`
-	AWS       AWS      `yaml:"aws"`
-	MongoDB   MongoDB  `yaml:"mongodb"`
+	Env      string   `yaml:"env" env:"ENV" env-default:"local"`
+	GRPC     GRPC     `yaml:"grpc"`
+	Rabbitmq Rabbitmq `yaml:"rabbitmq"`
+	MongoDB  MongoDB  `yaml:"mongodb"`
 }
 
 type GRPC struct {
@@ -27,11 +24,6 @@ type MongoDB struct {
 	URI          string        `yaml:"uri" env:"MONGODB_URI"`
 	PingTimeout  time.Duration `yaml:"ping_timeout" env:"MONGODB_PING_TIMEOUT" env-default:"10s"`
 	DatabaseName string        `yaml:"database_name" env:"MONGODB_DATABASE_NAME" env-default:"uniposts"`
-}
-
-type AWS struct {
-	Region string `yaml:"region" env:"AWS_REGION"`
-	Bucket string `yaml:"bucket" env:"AWS_S3_BUCKET"`
 }
 
 type Rabbitmq struct {

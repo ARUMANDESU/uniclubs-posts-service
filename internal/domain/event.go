@@ -39,6 +39,30 @@ type Event struct {
 	DeletedAt          time.Time    `json:"deleted_at"`
 }
 
+func (e Event) IsOrganizer(userId int64) bool {
+	if e.User.ID == userId {
+		return true
+	}
+
+	for _, organizer := range e.Organizers {
+		if organizer.ID == userId {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (e Event) GetOrganizerById(userId int64) *Organizer {
+	for _, organizer := range e.Organizers {
+		if organizer.ID == userId {
+			return &organizer
+		}
+	}
+
+	return nil
+}
+
 type Organizer struct {
 	User
 	ClubId int64

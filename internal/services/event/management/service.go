@@ -13,18 +13,23 @@ import (
 )
 
 var (
-	ErrClubNotExists       = errors.New("club not found")
-	ErrEventNotFound       = errors.New("event not found")
-	ErrEventUpdateConflict = errors.New("event update conflict")
-	ErrUserIsNotEventOwner = errors.New("permissions denied: user is not event owner")
-	ErrInvalidID           = errors.New("the provided id is not a valid ObjectID")
+	ErrClubNotExists         = errors.New("club not found")
+	ErrEventNotFound         = errors.New("event not found")
+	ErrEventUpdateConflict   = errors.New("event update conflict")
+	ErrUserIsNotEventOwner   = errors.New("permissions denied: user is not event owner")
+	ErrInvalidID             = errors.New("the provided id is not a valid ObjectID")
+	ErrInviteAlreadyExists   = errors.New("invite already exists")
+	ErrUserAlreadyOrganizer  = errors.New("user is already an organizer")
+	ErrUserIsFromAnotherClub = errors.New("user is from another club")
+	ErrPermissionsDenied     = errors.New("permissions denied")
 )
 
 type Service struct {
-	log          *slog.Logger
-	eventStorage EventStorage
-	clubProvider ClubProvider
-	userProvider UserProvider
+	log                    *slog.Logger
+	eventStorage           EventStorage
+	clubProvider           ClubProvider
+	userProvider           UserProvider
+	organizerInviteStorage OrganizerInviteStorage
 }
 
 type EventStorage interface {
@@ -32,6 +37,13 @@ type EventStorage interface {
 	GetEvent(ctx context.Context, id string) (*domain.Event, error)
 	UpdateEvent(ctx context.Context, event *domain.Event) (*domain.Event, error)
 	DeleteEventById(ctx context.Context, eventId string) error
+}
+
+type OrganizerInviteStorage interface {
+	SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.UserInvite, error)
+	GetJoinRequests(ctx context.Context, eventId string) ([]domain.UserInvite, error)
+	GetJoinRequestByUserId(ctx context.Context, userId int64) (*domain.UserInvite, error)
+	GetJoinRequestsById(ctx context.Context, requestId string) (*domain.UserInvite, error)
 }
 
 type ClubProvider interface {
@@ -42,12 +54,19 @@ type UserProvider interface {
 	GetUserByID(ctx context.Context, id int64) (*domain.User, error)
 }
 
-func New(log *slog.Logger, eventStorage EventStorage, clubProvider ClubProvider, userProvider UserProvider) Service {
+func New(
+	log *slog.Logger,
+	eventStorage EventStorage,
+	clubProvider ClubProvider,
+	userProvider UserProvider,
+	inviteStorage OrganizerInviteStorage,
+) Service {
 	return Service{
-		log:          log,
-		eventStorage: eventStorage,
-		clubProvider: clubProvider,
-		userProvider: userProvider,
+		log:                    log,
+		eventStorage:           eventStorage,
+		clubProvider:           clubProvider,
+		userProvider:           userProvider,
+		organizerInviteStorage: inviteStorage,
 	}
 }
 
@@ -211,6 +230,81 @@ func (s Service) DeleteEvent(ctx context.Context, eventId string, userId int64) 
 			return nil, ErrInvalidID
 		default:
 			log.Error("failed to delete event", logger.Err(err))
+			return nil, err
+		}
+	}
+
+	return event, nil
+}
+
+func (s Service) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.Event, error) {
+	const op = "services.event.management.sendJoinRequestToUser"
+	log := s.log.With(slog.String("op", op))
+
+	event, err := s.eventStorage.GetEvent(ctx, dto.EventId)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrEventNotFound):
+			return nil, ErrEventNotFound
+		case errors.Is(err, storage.ErrInvalidID):
+			return nil, ErrInvalidID
+		default:
+			log.Error("failed to get event", logger.Err(err))
+			return nil, err
+		}
+	}
+
+	// Check if the user is event owner or organizer
+	if !event.IsOrganizer(dto.UserId) {
+		return nil, ErrPermissionsDenied
+	}
+
+	// Check if the target user is already an organizer
+	if event.IsOrganizer(dto.TargetId) {
+		return nil, ErrUserAlreadyOrganizer
+	}
+
+	userInvite, err := s.organizerInviteStorage.GetJoinRequestByUserId(ctx, dto.TargetId)
+	if err != nil && !errors.Is(err, storage.ErrInviteNotFound) {
+		switch {
+		case errors.Is(err, storage.ErrInvalidID):
+			return nil, ErrInvalidID
+		default:
+			log.Error("failed to get join request by user id", logger.Err(err))
+			return nil, err
+		}
+	}
+
+	if userInvite != nil {
+		return nil, ErrInviteAlreadyExists
+	}
+
+	// if the target user is the event owner then check if the target club is the same as the event club
+	// if the target user is an organizer then check if the target club is the same as the organizer club
+	if event.User.ID == dto.UserId {
+		if event.Club.ID != dto.TargetClubId {
+			return nil, ErrUserIsFromAnotherClub
+		}
+	} else {
+		organizer := event.GetOrganizerById(dto.UserId)
+		if organizer == nil {
+			return nil, ErrPermissionsDenied
+		}
+
+		if organizer.ClubId != dto.TargetClubId {
+			return nil, ErrUserIsFromAnotherClub
+		}
+	}
+
+	sendJoinRequestCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	_, err = s.organizerInviteStorage.SendJoinRequestToUser(sendJoinRequestCtx, dto)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrInvalidID):
+			return nil, ErrInvalidID
+		default:
+			log.Error("failed to send join request", logger.Err(err))
 			return nil, err
 		}
 	}

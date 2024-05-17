@@ -23,6 +23,13 @@ type UpdateEvent struct {
 	Paths              []string
 }
 
+type SendJoinRequestToUser struct {
+	EventId      string `json:"event_id"`
+	UserId       int64  `json:"user_id"`
+	TargetId     int64  `json:"target_id"`
+	TargetClubId int64  `json:"target_club_id"`
+}
+
 func UpdateToDTO(event *eventv1.UpdateEventRequest) *UpdateEvent {
 	return &UpdateEvent{
 		EventId:            event.GetEventId(),
@@ -40,5 +47,14 @@ func UpdateToDTO(event *eventv1.UpdateEventRequest) *UpdateEvent {
 		AttachedImages:     domain.ProtoToFiles(event.GetAttachedImages()),
 		AttachedFiles:      domain.ProtoToFiles(event.GetAttachedFiles()),
 		Paths:              event.GetUpdateMask().GetPaths(),
+	}
+}
+
+func AddOrganizerRequestToUserToDTO(event *eventv1.AddOrganizerRequest) *SendJoinRequestToUser {
+	return &SendJoinRequestToUser{
+		EventId:      event.GetEventId(),
+		UserId:       event.GetUserId(),
+		TargetId:     event.GetOrganizerId(),
+		TargetClubId: event.GetOrganizerClubId(),
 	}
 }

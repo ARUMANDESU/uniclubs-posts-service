@@ -18,6 +18,7 @@ type ManagementService interface {
 	GetEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
 	UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain.Event, error)
 	DeleteEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
+	SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.Event, error)
 }
 
 func (s serverApi) CreateEvent(ctx context.Context, req *eventv1.CreateEventRequest) (*eventv1.EventObject, error) {
@@ -51,7 +52,7 @@ func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (
 		case errors.Is(err, management.ErrEventNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
 		default:
-			return nil, status.Error(codes.Internal, err.Error())
+			return nil, status.Error(codes.Internal, "internal error")
 		}
 	}
 
@@ -74,7 +75,7 @@ func (s serverApi) UpdateEvent(ctx context.Context, req *eventv1.UpdateEventRequ
 		case errors.Is(err, management.ErrUserIsNotEventOwner):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		default:
-			return nil, status.Error(codes.Internal, err.Error())
+			return nil, status.Error(codes.Internal, "internal error")
 		}
 	}
 
@@ -100,7 +101,7 @@ func (s serverApi) DeleteEvent(ctx context.Context, req *eventv1.DeleteEventRequ
 		case errors.Is(err, management.ErrUserIsNotEventOwner):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		default:
-			return nil, err
+			return nil, status.Error(codes.Internal, "internal error")
 		}
 	}
 
@@ -133,8 +134,35 @@ func (s serverApi) RemoveCollaborator(ctx context.Context, req *eventv1.RemoveCo
 }
 
 func (s serverApi) AddOrganizer(ctx context.Context, req *eventv1.AddOrganizerRequest) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
+	err := validation.ValidateStruct(req,
+		validation.Field(&req.EventId, validation.Required),
+		validation.Field(&req.UserId, validation.Required, validation.Min(0), validation.NotIn(req.OrganizerId).Error("organizer_id must be different from user_id")),
+		validation.Field(&req.OrganizerId, validation.Required, validation.Min(0)),
+		validation.Field(&req.OrganizerClubId, validation.Required, validation.Min(0)),
+	)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	event, err := s.management.SendJoinRequestToUser(ctx, dto.AddOrganizerRequestToUserToDTO(req))
+	if err != nil {
+		switch {
+		case errors.Is(err, management.ErrEventNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		case errors.Is(err, management.ErrInvalidID):
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		case errors.Is(err, management.ErrPermissionsDenied):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		case errors.Is(err, management.ErrInviteAlreadyExists):
+			return nil, status.Error(codes.AlreadyExists, err.Error())
+		case errors.Is(err, management.ErrUserIsFromAnotherClub):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
+		}
+	}
+
+	return event.ToProto(), nil
 }
 
 func (s serverApi) RemoveOrganizer(ctx context.Context, req *eventv1.RemoveOrganizerRequest) (*eventv1.EventObject, error) {

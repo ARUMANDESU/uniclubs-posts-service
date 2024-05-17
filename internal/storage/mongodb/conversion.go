@@ -175,3 +175,34 @@ func ToOrganizerIds(organizers []domain.Organizer) []int64 {
 	}
 	return organizerIds
 }
+
+func ToDomainInvite(invite Invite) domain.Invite {
+	return domain.Invite{
+		ID:      invite.ID.Hex(),
+		EventId: invite.EventId.Hex(),
+		ClubId:  invite.ClubId,
+	}
+}
+
+func ToDomainUserInvite(userInvite UserInvite) *domain.UserInvite {
+	return &domain.UserInvite{
+		Invite: ToDomainInvite(userInvite.Invite),
+		UserId: userInvite.UserId,
+	}
+}
+
+func ToDomainInvites(invites []Invite) []domain.Invite {
+	domainInvites := make([]domain.Invite, len(invites))
+	for i, invite := range invites {
+		domainInvites[i] = ToDomainInvite(invite)
+	}
+	return domainInvites
+}
+
+func ToDomainUserInvites(userInvites []UserInvite) []domain.UserInvite {
+	domainUserInvites := make([]domain.UserInvite, len(userInvites))
+	for i, userInvite := range userInvites {
+		domainUserInvites[i] = *ToDomainUserInvite(userInvite)
+	}
+	return domainUserInvites
+}

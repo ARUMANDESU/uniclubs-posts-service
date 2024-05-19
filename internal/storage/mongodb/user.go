@@ -50,6 +50,7 @@ func (s Storage) updateUserInEventCollection(ctx context.Context, user *domain.U
 		"$set": bson.M{
 			"organizers.$[elem].first_name": user.FirstName,
 			"organizers.$[elem].last_name":  user.LastName,
+			"organizers.$[elem].barcode":    user.Barcode,
 			"organizers.$[elem].avatar_url": user.AvatarURL,
 		},
 	}, options.Update().SetArrayFilters(options.ArrayFilters{
@@ -69,6 +70,7 @@ func (s Storage) updateUserInInviteCollection(ctx context.Context, user *domain.
 		"$set": bson.M{
 			"user.first_name": user.FirstName,
 			"user.last_name":  user.LastName,
+			"user.barcode":    user.Barcode,
 			"user.avatar_url": user.AvatarURL,
 		},
 	})

@@ -43,7 +43,7 @@ func (s Service) GetEvent(ctx context.Context, eventId string, userId int64) (*d
 		}
 	}
 
-	if event.User.ID != userId && event.Status == domain.EventStatusDraft {
+	if !event.IsOrganizer(userId) && event.Status == domain.EventStatusDraft {
 		return nil, eventService.ErrEventNotFound
 	}
 

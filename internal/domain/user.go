@@ -19,3 +19,13 @@ func (u User) ToProto() *eventv1.UserObject {
 		AvatarUrl: u.AvatarURL,
 	}
 }
+
+func UserFromProto(user *eventv1.UserObject) User {
+	return User{
+		ID:        user.GetId(),
+		FirstName: user.GetFirstName(),
+		LastName:  user.GetLastName(),
+		Barcode:   user.GetBarcode(),
+		AvatarURL: user.GetAvatarUrl(),
+	}
+}

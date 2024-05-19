@@ -7,22 +7,11 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
+	"github.com/arumandesu/uniclubs-posts-service/internal/storage/mongodb/dao"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
-
-type Invite struct {
-	ID      primitive.ObjectID `bson:"_id"`
-	EventId primitive.ObjectID `bson:"event_id"`
-	ClubId  int64              `bson:"club_id"`
-}
-
-type UserInvite struct {
-	Invite  `bson:",inline"`
-	UserId  int64 `bson:"user_id"`
-	ByWhoId int64 `bson:"by_who_id"`
-}
 
 func (s Storage) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.UserInvite, error) {
 	const op = "storage.mongodb.sendJoinRequestToUser"
@@ -35,14 +24,12 @@ func (s Storage) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	invite := UserInvite{
-		Invite: Invite{
-			ID:      primitive.NewObjectID(),
-			EventId: eventObjectId,
-			ClubId:  dto.TargetClubId,
-		},
-		UserId:  dto.TargetId,
+	invite := dao.OrganizerInvite{
+		ID:      primitive.NewObjectID(),
+		EventId: eventObjectId,
+		ClubId:  dto.TargetClubId,
 		ByWhoId: dto.UserId,
+		User:    dao.UserFromDomainUser(dto.Target),
 	}
 
 	_, err = s.inviteCollection.InsertOne(ctx, invite)
@@ -50,7 +37,7 @@ func (s Storage) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return ToDomainUserInvite(invite), nil
+	return dao.ToDomainUserInvite(invite), nil
 
 }
 
@@ -62,19 +49,19 @@ func (s Storage) GetJoinRequests(ctx context.Context, eventId string) ([]domain.
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var invites []UserInvite
+	var invites []dao.OrganizerInvite
 	err = find.All(ctx, &invites)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return ToDomainUserInvites(invites), nil
+	return dao.ToDomainUserInvites(invites), nil
 }
 
 func (s Storage) GetJoinRequestByUserId(ctx context.Context, userId int64) (*domain.UserInvite, error) {
 	const op = "storage.mongodb.getJoinRequestByUserId"
 
-	var invite UserInvite
+	var invite dao.OrganizerInvite
 	err := s.inviteCollection.FindOne(ctx, bson.M{"user_id": userId}).Decode(&invite)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -83,7 +70,7 @@ func (s Storage) GetJoinRequestByUserId(ctx context.Context, userId int64) (*dom
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return ToDomainUserInvite(invite), nil
+	return dao.ToDomainUserInvite(invite), nil
 }
 
 func (s Storage) GetJoinRequestsById(ctx context.Context, requestId string) (*domain.UserInvite, error) {
@@ -97,7 +84,7 @@ func (s Storage) GetJoinRequestsById(ctx context.Context, requestId string) (*do
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var invite UserInvite
+	var invite dao.OrganizerInvite
 	err = s.inviteCollection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&invite)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -106,7 +93,7 @@ func (s Storage) GetJoinRequestsById(ctx context.Context, requestId string) (*do
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return ToDomainUserInvite(invite), nil
+	return dao.ToDomainUserInvite(invite), nil
 }
 
 func (s Storage) DeleteJoinRequest(ctx context.Context, requestId string) error {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
+	"github.com/arumandesu/uniclubs-posts-service/internal/storage/mongodb/dao"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,60 +14,20 @@ import (
 	"time"
 )
 
-type Event struct {
-	ID                  primitive.ObjectID `bson:"_id"`
-	ClubId              int64              `bson:"club_id"`
-	UserId              int64              `bson:"user_id"`
-	CollaboratorClubIds []int64            `bson:"collaborator_club_ids,omitempty"`
-	Organizers          []OrganizerMongo   `bson:"organizers,omitempty"`
-	Title               string             `bson:"title,omitempty"`
-	Description         string             `bson:"description,omitempty"`
-	Type                string             `bson:"type,omitempty"`
-	Status              string             `bson:"status,omitempty"`
-	IsApprove           bool               `bson:"is_approve"`
-	Tags                []string           `bson:"tags,omitempty"`
-	ParticipantIds      []int64            `bson:"participant_ids,omitempty"`
-	MaxParticipants     uint32             `bson:"max_participants,omitempty"`
-	ParticipantsCount   uint32             `bson:"participants_count,omitempty"`
-	LocationLink        string             `bson:"location_link,omitempty"`
-	LocationUniversity  string             `bson:"location_university,omitempty"`
-	StartDate           time.Time          `bson:"start_date,omitempty"`
-	EndDate             time.Time          `bson:"end_date,omitempty"`
-	CoverImages         []CoverImageMongo  `bson:"cover_images,omitempty"`
-	AttachedImages      []FileMongo        `bson:"attached_images,omitempty"`
-	AttachedFiles       []FileMongo        `bson:"attached_files,omitempty"`
-	CreatedAt           time.Time          `bson:"created_at"`
-	UpdatedAt           time.Time          `bson:"updated_at"`
-	DeletedAt           time.Time          `bson:"deleted_at"`
-}
-
-type FileMongo struct {
-	URL  string `bson:"url"`
-	Name string `bson:"name"`
-	Type string `bson:"type"`
-}
-
-type CoverImageMongo struct {
-	FileMongo
-	Position uint32 `bson:"position"`
-}
-
-type OrganizerMongo struct {
-	ID     int64 `bson:"id"`
-	ClubId int64 `bson:"club_id"`
-}
-
-func (s Storage) CreateEvent(ctx context.Context, clubId int64, userId int64) (*domain.Event, error) {
+func (s Storage) CreateEvent(ctx context.Context, club *domain.Club, user *domain.User) (*domain.Event, error) {
 	const op = "storage.mongodb.event.createEvent"
 
-	event := Event{
+	event := dao.Event{
 		ID:        primitive.NewObjectID(),
-		ClubId:    clubId,
-		UserId:    userId,
+		ClubId:    club.ID,
+		OwnerId:   user.ID,
 		UpdatedAt: time.Now(),
 		CreatedAt: time.Now(),
 		Status:    domain.EventStatusDraft,
 	}
+
+	event.AddOrganizer(dao.OrganizerFromDomainUser(*user, club.ID))
+	event.AddCollaboratorClub(dao.ClubFromDomainClub(*club))
 
 	insertResult, err := s.eventsCollection.InsertOne(ctx, event)
 	if err != nil {
@@ -83,21 +44,7 @@ func (s Storage) CreateEvent(ctx context.Context, clubId int64, userId int64) (*
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var club Club
-	err = s.clubsCollection.FindOne(ctx, bson.M{"_id": event.ClubId}).Decode(&club)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	var user User
-	err = s.userCollection.FindOne(ctx, bson.M{"_id": event.UserId}).Decode(&user)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	domainEvent := ToDomainEvent(event, ToDomainUser(user), ToDomainClub(club), nil, nil)
-
-	return domainEvent, nil
+	return dao.ToDomainEvent(event), nil
 }
 
 func (s Storage) GetEvent(ctx context.Context, id string) (*domain.Event, error) {
@@ -111,7 +58,7 @@ func (s Storage) GetEvent(ctx context.Context, id string) (*domain.Event, error)
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var event Event
+	var event dao.Event
 	err = s.eventsCollection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&event)
 	if err != nil {
 		if strings.Contains(err.Error(), "mongo: no documents in result") {
@@ -120,32 +67,13 @@ func (s Storage) GetEvent(ctx context.Context, id string) (*domain.Event, error)
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var club Club
-	err = s.clubsCollection.FindOne(ctx, bson.M{"_id": event.ClubId}).Decode(&club)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	var user User
-	err = s.userCollection.FindOne(ctx, bson.M{"_id": event.UserId}).Decode(&user)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	domainOrganizers, err := s.getOrganizers(ctx, event.Organizers)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	domainEvent := ToDomainEvent(event, ToDomainUser(user), ToDomainClub(club), domainOrganizers, nil)
-
-	return domainEvent, nil
+	return dao.ToDomainEvent(event), nil
 }
 
 func (s Storage) UpdateEvent(ctx context.Context, event *domain.Event) (*domain.Event, error) {
 	const op = "storage.mongodb.event.updateEvent"
 
-	eventModel := DomainToModel(event)
+	eventModel := dao.EventToModel(event)
 
 	lastUpdated := event.UpdatedAt
 	event.UpdatedAt = time.Now()
@@ -166,26 +94,7 @@ func (s Storage) UpdateEvent(ctx context.Context, event *domain.Event) (*domain.
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var club Club
-	err = s.clubsCollection.FindOne(ctx, bson.M{"_id": event.Club.ID}).Decode(&club)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	var user User
-	err = s.userCollection.FindOne(ctx, bson.M{"_id": event.User.ID}).Decode(&user)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	domainOrganizers, err := s.getOrganizers(ctx, eventModel.Organizers)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	event = ToDomainEvent(eventModel, ToDomainUser(user), ToDomainClub(club), domainOrganizers, nil)
-
-	return event, nil
+	return dao.ToDomainEvent(eventModel), nil
 }
 
 func (s Storage) DeleteEventById(ctx context.Context, eventId string) error {
@@ -208,28 +117,4 @@ func (s Storage) DeleteEventById(ctx context.Context, eventId string) error {
 	}
 
 	return nil
-}
-
-func (s Storage) getOrganizers(ctx context.Context, organizersMongo []OrganizerMongo) ([]domain.Organizer, error) {
-	const op = "storage.mongodb.getOrganizers"
-
-	organizers := make([]domain.Organizer, len(organizersMongo))
-
-	for i, organizerMongo := range organizersMongo {
-		var user User
-		err := s.userCollection.FindOne(ctx, bson.M{"_id": organizerMongo.ID}).Decode(&user)
-		if err != nil {
-			if errors.Is(err, mongo.ErrNoDocuments) {
-				return nil, nil
-			}
-			return nil, fmt.Errorf("%s: %w", op, err)
-		}
-
-		organizers[i] = domain.Organizer{
-			User:   ToDomainUser(user),
-			ClubId: organizerMongo.ClubId,
-		}
-	}
-
-	return organizers, nil
 }

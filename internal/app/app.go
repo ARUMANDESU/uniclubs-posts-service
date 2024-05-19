@@ -43,7 +43,7 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 	}
 
 	services := event.NewServices(
-		eventManagement.New(l, mongoDB, mongoDB, mongoDB),
+		eventManagement.New(l, mongoDB),
 		eventCollaborator.New(l, mongoDB, mongoDB),
 		eventInfo.New(l, mongoDB),
 	)

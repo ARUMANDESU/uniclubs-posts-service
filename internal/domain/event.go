@@ -16,10 +16,10 @@ const (
 
 type Event struct {
 	ID                 string       `json:"id"`
-	Club               Club         `json:"club"`
-	User               User         `json:"user"`
-	CollaboratorClubs  []Club       `json:"collaborator_clubs,omitempty"`
-	Organizers         []Organizer  `json:"organizers,omitempty"`
+	ClubId             int64        `json:"club_id"`
+	OwnerId            int64        `json:"owner_id"`
+	CollaboratorClubs  []Club       `json:"collaborator_clubs"`
+	Organizers         []Organizer  `json:"organizers"`
 	Title              string       `json:"title,omitempty"`
 	Description        string       `json:"description,omitempty"`
 	Type               string       `json:"type,omitempty"`
@@ -40,10 +40,6 @@ type Event struct {
 }
 
 func (e *Event) IsOrganizer(userId int64) bool {
-	if e.User.ID == userId {
-		return true
-	}
-
 	for _, organizer := range e.Organizers {
 		if organizer.ID == userId {
 			return true
@@ -92,8 +88,8 @@ func OrganizersToProto(organizers []Organizer) []*eventv1.OrganizerObject {
 func (e *Event) ToProto() *eventv1.EventObject {
 	return &eventv1.EventObject{
 		Id:                 e.ID,
-		Club:               e.Club.ToProto(),
-		User:               e.User.ToProto(),
+		ClubId:             e.ClubId,
+		OwnerId:            e.OwnerId,
 		CollaboratorClubs:  ClubsToProto(e.CollaboratorClubs),
 		Organizers:         OrganizersToProto(e.Organizers),
 		Title:              e.Title,

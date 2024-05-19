@@ -20,15 +20,11 @@ type Amqp interface {
 }
 
 type UserService interface {
-	HandleCreateUser(msg amqp091.Delivery) error
 	HandleUpdateUser(msg amqp091.Delivery) error
-	HandleDeleteUser(msg amqp091.Delivery) error
 }
 
 type ClubService interface {
-	HandleCreateClub(msg amqp091.Delivery) error
 	HandleUpdateClub(msg amqp091.Delivery) error
-	HandleDeleteClub(msg amqp091.Delivery) error
 }
 
 func New(log *slog.Logger, userService UserService, clubService ClubService, amqp Amqp) *App {
@@ -41,13 +37,8 @@ func New(log *slog.Logger, userService UserService, clubService ClubService, amq
 }
 
 func (a *App) SetupMessageConsumers() {
-	a.consumeMessages(rabbitmq.UserEventsQueue, rabbitmq.UserActivatedEventRoutingKey, a.usrService.HandleCreateUser)
 	a.consumeMessages(rabbitmq.UserEventsQueue, rabbitmq.UserUpdatedEventRoutingKey, a.usrService.HandleUpdateUser)
-	a.consumeMessages(rabbitmq.UserEventsQueue, rabbitmq.UserDeletedEventRoutingKey, a.usrService.HandleDeleteUser)
-
-	a.consumeMessages(rabbitmq.ClubEventsQueue, rabbitmq.ClubCreatedEventRoutingKey, a.clubService.HandleCreateClub)
 	a.consumeMessages(rabbitmq.ClubEventsQueue, rabbitmq.ClubUpdatedEventRoutingKey, a.clubService.HandleUpdateClub)
-	//a.consumeMessages(rabbitmq.ClubEventsQueue, rabbitmq.ClubDeletedEventRoutingKey, a.clubService.HandleDeleteClub)
 }
 
 func (a *App) consumeMessages(queue, routingKey string, handler rabbitmq.Handler) {

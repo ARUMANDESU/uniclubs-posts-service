@@ -7,6 +7,7 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event"
+	"github.com/arumandesu/uniclubs-posts-service/pkg/validate"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
@@ -31,12 +32,7 @@ func (s serverApi) RemoveCollaborator(ctx context.Context, req *eventv1.RemoveCo
 }
 
 func (s serverApi) AddOrganizer(ctx context.Context, req *eventv1.AddOrganizerRequest) (*empty.Empty, error) {
-	err := validation.ValidateStruct(req,
-		validation.Field(&req.EventId, validation.Required),
-		validation.Field(&req.UserId, validation.Required, validation.Min(0), validation.NotIn(req.OrganizerId).Error("organizer_id must be different from user_id")),
-		validation.Field(&req.OrganizerId, validation.Required, validation.Min(0)),
-		validation.Field(&req.OrganizerClubId, validation.Required, validation.Min(0)),
-	)
+	err := validate.AddOrganizer(req)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}

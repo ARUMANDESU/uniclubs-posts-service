@@ -11,8 +11,6 @@ import (
 
 type Storage struct {
 	client           *mongo.Client
-	userCollection   *mongo.Collection
-	clubsCollection  *mongo.Collection
 	eventsCollection *mongo.Collection
 	inviteCollection *mongo.Collection
 }
@@ -32,15 +30,11 @@ func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
 	}
 
 	db := client.Database(cfg.DatabaseName)
-	usersCollection := db.Collection("users")
-	clubsCollection := db.Collection("clubs")
 	eventsCollection := db.Collection("events")
 	inviteCollection := db.Collection("invites")
 
 	return &Storage{
 		client:           client,
-		userCollection:   usersCollection,
-		clubsCollection:  clubsCollection,
 		eventsCollection: eventsCollection,
 		inviteCollection: inviteCollection,
 	}, nil

@@ -2,11 +2,8 @@ package validate
 
 import (
 	"errors"
-	"fmt"
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	validation "github.com/go-ozzo/ozzo-validation"
-	"github.com/go-ozzo/ozzo-validation/is"
-	"log"
 	"time"
 )
 
@@ -33,8 +30,8 @@ func CreateEvent(value interface{}) error {
 		return validation.NewInternalError(errors.New("create event invalid type"))
 	}
 	return validation.ValidateStruct(req,
-		validation.Field(&req.ClubId, validation.Required, validation.Min(0)),
-		validation.Field(&req.UserId, validation.Required, validation.Min(0)),
+		validation.Field(&req.Club, validation.By(club)),
+		validation.Field(&req.User, validation.By(user)),
 	)
 }
 
@@ -47,7 +44,6 @@ func GetEvent(value interface{}) error {
 		validation.Field(&req.EventId, validation.Required),
 		validation.Field(&req.UserId, validation.Min(0)),
 	)
-
 }
 
 func UpdateEvent(value interface{}) error {
@@ -66,7 +62,6 @@ func UpdateEvent(value interface{}) error {
 
 	return validation.ValidateStruct(req,
 		validation.Field(&req.EventId, validation.Required),
-		validation.Field(&req.ClubId, validation.Required, validation.Min(0)),
 		validation.Field(&req.UserId, validation.Required, validation.Min(0)),
 		validation.Field(&req.Title, validation.Length(MinTitleLength, MaxTitleLength)),
 		validation.Field(&req.Description, validation.Length(MinDescriptionLength, MaxDescriptionLength)),
@@ -81,49 +76,17 @@ func UpdateEvent(value interface{}) error {
 		validation.Field(&req.AttachedImages, validation.By(attachedFiles)),
 		validation.Field(&req.AttachedFiles, validation.By(attachedFiles)),
 	)
-
 }
 
-func attachedFiles(value interface{}) error {
-	a, ok := value.([]*eventv1.FileObject)
+func AddOrganizer(value interface{}) error {
+	req, ok := value.(*eventv1.AddOrganizerRequest)
 	if !ok {
-		log.Printf("file type: %T", value)
-		return validation.NewInternalError(errors.New("attached files invalid type"))
+		return validation.NewInternalError(errors.New("add organizer invalid type"))
 	}
-
-	for i, file := range a {
-		err := validation.ValidateStruct(file,
-			validation.Field(&file.Url, validation.Required, is.URL),
-			validation.Field(&file.Name, validation.Required, validation.Length(MinAttachedFileNameLength, MaxAttachedFileNameLength)),
-			validation.Field(&file.Type, validation.Required),
-		)
-		if err != nil {
-			return validation.NewInternalError(fmt.Errorf("attached file %d: %w", i, err))
-		}
-	}
-
-	return nil
-}
-
-func coverImages(value interface{}) error {
-	c, ok := value.([]*eventv1.CoverImage)
-	if !ok {
-		log.Printf("image type: %T", value)
-		return validation.NewInternalError(errors.New("cover images invalid type"))
-	}
-
-	for i, image := range c {
-		err := validation.ValidateStruct(image,
-			validation.Field(&image.Url, validation.Required, is.URL),
-			validation.Field(&image.Name, validation.Required, validation.Length(MinAttachedFileNameLength, MaxAttachedFileNameLength)),
-			validation.Field(&image.Type, validation.Required),
-			validation.Field(&image.Position, validation.Required, validation.Min(0), validation.Max(MaxPosition)),
-		)
-		if err != nil {
-			return validation.NewInternalError(fmt.Errorf("cover image %d: %w", i, err))
-		}
-
-	}
-
-	return nil
+	return validation.ValidateStruct(req,
+		validation.Field(&req.EventId, validation.Required),
+		validation.Field(&req.UserId, validation.Required, validation.Min(0), validation.NotIn(req.Target.Id).Error("target_id must be different from user_id")),
+		validation.Field(&req.Target, validation.By(user)),
+		validation.Field(&req.TargetClubId, validation.Required, validation.Min(0)),
+	)
 }

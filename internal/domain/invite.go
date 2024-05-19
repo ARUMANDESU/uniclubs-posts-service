@@ -7,10 +7,13 @@ type Invite struct {
 }
 
 type UserInvite struct {
-	Invite
-	UserId int64 `json:"user_id"`
+	ID      string `json:"id"`
+	EventId string `json:"event_id"`
+	ClubId  int64  `json:"club_id"`
+	ByWhoId int64  `json:"by_who_id"`
+	User    User   `json:"user"`
 }
 
 func (u UserInvite) IsInvited(userId int64) bool {
-	return u.UserId == userId
+	return u.User.ID == userId
 }

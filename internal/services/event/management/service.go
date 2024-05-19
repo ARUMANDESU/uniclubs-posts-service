@@ -16,57 +16,26 @@ import (
 type Service struct {
 	log          *slog.Logger
 	eventStorage EventStorage
-	clubProvider ClubProvider
-	userProvider UserProvider
 }
 
 type EventStorage interface {
-	CreateEvent(ctx context.Context, clubId, userId int64) (*domain.Event, error)
+	CreateEvent(ctx context.Context, club *domain.Club, user *domain.User) (*domain.Event, error)
 	GetEvent(ctx context.Context, id string) (*domain.Event, error)
 	UpdateEvent(ctx context.Context, event *domain.Event) (*domain.Event, error)
 	DeleteEventById(ctx context.Context, eventId string) error
 }
 
-type ClubProvider interface {
-	GetClubByID(ctx context.Context, id int64) (*domain.Club, error)
+func New(log *slog.Logger, eventStorage EventStorage) Service {
+	return Service{log: log, eventStorage: eventStorage}
 }
 
-type UserProvider interface {
-	GetUserByID(ctx context.Context, id int64) (*domain.User, error)
-}
-
-func New(
-	log *slog.Logger,
-	eventStorage EventStorage,
-	clubProvider ClubProvider,
-	userProvider UserProvider,
-) Service {
-	return Service{
-		log:          log,
-		eventStorage: eventStorage,
-		clubProvider: clubProvider,
-		userProvider: userProvider,
-	}
-}
-
-func (s Service) CreateEvent(ctx context.Context, clubId, userId int64) (*domain.Event, error) {
+func (s Service) CreateEvent(ctx context.Context, club domain.Club, user domain.User) (*domain.Event, error) {
 	const op = "services.event.management.createEvent"
 	log := s.log.With(slog.String("op", op))
 
-	_, err := s.clubProvider.GetClubByID(ctx, clubId)
-	if err != nil {
-		switch {
-		case errors.Is(err, storage.ErrClubNotExists):
-			return nil, eventService.ErrClubNotExists
-		default:
-			log.Error("failed to get club", logger.Err(err))
-			return nil, err
-		}
-	}
-
 	createCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	event, err := s.eventStorage.CreateEvent(createCtx, clubId, userId)
+	event, err := s.eventStorage.CreateEvent(createCtx, &club, &user)
 	if err != nil {
 		log.Error("failed to create event", logger.Err(err))
 		return nil, err
@@ -92,7 +61,7 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain
 		}
 	}
 
-	if event.User.ID != dto.UserId {
+	if event.OwnerId != dto.UserId {
 		return nil, eventService.ErrUserIsNotEventOwner
 	}
 
@@ -169,7 +138,7 @@ func (s Service) DeleteEvent(ctx context.Context, eventId string, userId int64) 
 			return nil, err
 		}
 	}
-	if event.User.ID != userId {
+	if event.OwnerId != userId {
 		return nil, eventService.ErrUserIsNotEventOwner
 	}
 

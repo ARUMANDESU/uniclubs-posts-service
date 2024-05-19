@@ -20,8 +20,16 @@ func (c Club) ToProto() *eventv1.ClubObject {
 
 func ClubsToProto(clubs []Club) []*eventv1.ClubObject {
 	convertedClubs := make([]*eventv1.ClubObject, len(clubs))
-	for _, club := range clubs {
-		convertedClubs = append(convertedClubs, club.ToProto())
+	for i, club := range clubs {
+		convertedClubs[i] = club.ToProto()
 	}
 	return convertedClubs
+}
+
+func ClubFromProto(club *eventv1.ClubObject) Club {
+	return Club{
+		ID:      club.GetId(),
+		Name:    club.GetName(),
+		LogoURL: club.GetLogoUrl(),
+	}
 }

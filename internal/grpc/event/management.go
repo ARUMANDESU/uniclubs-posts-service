@@ -14,7 +14,7 @@ import (
 )
 
 type ManagementService interface {
-	CreateEvent(ctx context.Context, clubId int64, userId int64) (*domain.Event, error)
+	CreateEvent(ctx context.Context, club domain.Club, user domain.User) (*domain.Event, error)
 	UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain.Event, error)
 	DeleteEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
 }
@@ -25,7 +25,7 @@ func (s serverApi) CreateEvent(ctx context.Context, req *eventv1.CreateEventRequ
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	event, err := s.management.CreateEvent(ctx, req.GetClubId(), req.GetUserId())
+	event, err := s.management.CreateEvent(ctx, domain.ClubFromProto(req.GetClub()), domain.UserFromProto(req.GetUser()))
 	if err != nil {
 		switch {
 		case errors.Is(err, event2.ErrEventNotFound):

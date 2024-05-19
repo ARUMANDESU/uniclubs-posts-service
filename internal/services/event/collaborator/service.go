@@ -63,11 +63,11 @@ func (s Service) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 	}
 
 	// Check if the target user is already an organizer
-	if event.IsOrganizer(dto.TargetId) {
+	if event.IsOrganizer(dto.Target.ID) {
 		return nil, eventService.ErrUserAlreadyOrganizer
 	}
 
-	userInvite, err := s.organizerInviteStorage.GetJoinRequestByUserId(ctx, dto.TargetId)
+	userInvite, err := s.organizerInviteStorage.GetJoinRequestByUserId(ctx, dto.Target.ID)
 	if err != nil && !errors.Is(err, storage.ErrInviteNotFound) {
 		switch {
 		case errors.Is(err, storage.ErrInvalidID):
@@ -84,8 +84,8 @@ func (s Service) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 
 	// if the target user is the event owner then check if the target club is the same as the event club
 	// if the target user is an organizer then check if the target club is the same as the organizer club
-	if event.User.ID == dto.UserId {
-		if event.Club.ID != dto.TargetClubId {
+	if event.OwnerId == dto.UserId {
+		if event.OwnerId != dto.TargetClubId {
 			return nil, eventService.ErrUserIsFromAnotherClub
 		}
 	} else {
@@ -151,7 +151,7 @@ func (s Service) AcceptUserJoinRequest(ctx context.Context, inviteId string, use
 		}
 	}
 
-	if event.IsOrganizer(invite.UserId) {
+	if event.IsOrganizer(invite.User.ID) {
 		return eventService.ErrUserAlreadyOrganizer
 	}
 
@@ -173,7 +173,7 @@ func (s Service) AcceptUserJoinRequest(ctx context.Context, inviteId string, use
 	go func() {
 		defer wg.Done()
 		newOrganizer := domain.Organizer{
-			User:   domain.User{ID: invite.UserId},
+			User:   invite.User,
 			ClubId: invite.ClubId,
 		}
 		event.AddOrganizer(newOrganizer)

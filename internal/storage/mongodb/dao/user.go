@@ -1,18 +1,21 @@
 package dao
 
-import "github.com/arumandesu/uniclubs-posts-service/internal/domain"
+import (
+	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
+)
 
 type User struct {
-	ID        int64  `json:"id,omitempty" bson:"_id"`
-	FirstName string `json:"first_name,omitempty" bson:"first_name"`
-	LastName  string `json:"last_name,omitempty" bson:"last_name"`
-	Barcode   string `json:"barcode,omitempty" bson:"barcode"`
-	AvatarURL string `json:"avatar_url,omitempty" bson:"avatar_url"`
+	ID        int64  `bson:"_id"`
+	FirstName string `bson:"first_name"`
+	LastName  string `bson:"last_name"`
+	Barcode   string `bson:"barcode"`
+	AvatarURL string `bson:"avatar_url,omitempty"`
 }
 
 type Organizer struct {
-	User   `bson:",inline"`
-	ClubId int64 `json:"club_id" bson:"club_id"`
+	User    `bson:",inline"`
+	ClubId  int64 `bson:"club_id"`
+	ByWhoId int64 `bson:"by_who_id,omitempty"`
 }
 
 // Into dao
@@ -34,13 +37,18 @@ func OrganizerFromDomainUser(user domain.User, clubId int64) Organizer {
 	}
 }
 
+func ToOrganizer(organizer domain.Organizer) Organizer {
+	return Organizer{
+		User:    UserFromDomainUser(organizer.User),
+		ClubId:  organizer.ClubId,
+		ByWhoId: organizer.ByWhoId,
+	}
+}
+
 func ToOrganizers(organizers []domain.Organizer) []Organizer {
 	organizerIds := make([]Organizer, len(organizers))
 	for i, organizer := range organizers {
-		organizerIds[i] = Organizer{
-			User:   UserFromDomainUser(organizer.User),
-			ClubId: organizer.ClubId,
-		}
+		organizerIds[i] = ToOrganizer(organizer)
 	}
 	return organizerIds
 }
@@ -67,8 +75,9 @@ func ToDomainUsers(usersMongo []User) []domain.User {
 
 func ToDomainOrganizer(organizer Organizer) domain.Organizer {
 	return domain.Organizer{
-		User:   ToDomainUser(organizer.User),
-		ClubId: organizer.ClubId,
+		User:    ToDomainUser(organizer.User),
+		ClubId:  organizer.ClubId,
+		ByWhoId: organizer.ByWhoId,
 	}
 }
 

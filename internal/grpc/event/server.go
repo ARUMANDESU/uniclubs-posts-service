@@ -12,6 +12,7 @@ type serverApi struct {
 
 type Services struct {
 	management   ManagementService
+	organizer    OrganizerService
 	collaborator CollaboratorService
 	info         InfoService
 }
@@ -25,11 +26,13 @@ func Register(
 
 func NewServices(
 	management ManagementService,
+	organizer OrganizerService,
 	collaborator CollaboratorService,
 	info InfoService,
 ) Services {
 	return Services{
 		management:   management,
+		organizer:    organizer,
 		collaborator: collaborator,
 		info:         info,
 	}

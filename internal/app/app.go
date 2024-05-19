@@ -42,9 +42,12 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 		panic(err)
 	}
 
+	eventCollaboratorService := eventCollaborator.New(l, mongoDB, mongoDB)
+
 	services := event.NewServices(
 		eventManagement.New(l, mongoDB),
-		eventCollaborator.New(l, mongoDB, mongoDB),
+		eventCollaboratorService,
+		eventCollaboratorService,
 		eventInfo.New(l, mongoDB),
 	)
 	grpcApp := grpcapp.New(l, cfg.GRPC.Port, services)

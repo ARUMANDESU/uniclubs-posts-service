@@ -3,11 +3,17 @@ package domain
 import eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 
 type User struct {
-	ID        int64  `json:"id" bson:"_id"`
-	FirstName string `json:"first_name" bson:"first_name"`
-	LastName  string `json:"last_name" bson:"last_name"`
-	Barcode   string `json:"barcode" bson:"barcode"`
-	AvatarURL string `json:"avatar_url" bson:"avatar_url"`
+	ID        int64  `json:"id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Barcode   string `json:"barcode"`
+	AvatarURL string `json:"avatar_url"`
+}
+
+type Organizer struct {
+	User    `json:",inline"`
+	ClubId  int64 `json:"club_id"`
+	ByWhoId int64 `json:"by_who_id"`
 }
 
 func (u User) ToProto() *eventv1.UserObject {
@@ -28,4 +34,26 @@ func UserFromProto(user *eventv1.UserObject) User {
 		Barcode:   user.GetBarcode(),
 		AvatarURL: user.GetAvatarUrl(),
 	}
+}
+
+func (o Organizer) ToProto() *eventv1.OrganizerObject {
+	return &eventv1.OrganizerObject{
+		Id:        o.ID,
+		FirstName: o.FirstName,
+		LastName:  o.LastName,
+		AvatarUrl: o.AvatarURL,
+		ClubId:    o.ClubId,
+	}
+}
+
+func (o Organizer) IsByWho(userId int64) bool {
+	return o.ByWhoId == userId
+}
+
+func OrganizersToProto(organizers []Organizer) []*eventv1.OrganizerObject {
+	convertedOrganizers := make([]*eventv1.OrganizerObject, len(organizers))
+	for i, organizer := range organizers {
+		convertedOrganizers[i] = organizer.ToProto()
+	}
+	return convertedOrganizers
 }

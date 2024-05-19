@@ -11,15 +11,12 @@ import (
 )
 
 const (
-	ClubExchangeName             = "club-exchange"
-	UserExchangeName             = "user-exchange"
-	UserEventsQueue              = "user-events-posts-queue"
-	ClubEventsQueue              = "club-events-posts-queue"
-	UserUpdatedEventRoutingKey   = "user.event.updated"
-	UserActivatedEventRoutingKey = "user.event.activated"
-	UserDeletedEventRoutingKey   = "user.event.deleted"
-	ClubCreatedEventRoutingKey   = "club.event.activated"
-	ClubUpdatedEventRoutingKey   = "club.event.updated"
+	ClubExchangeName           = "club-exchange"
+	UserExchangeName           = "user-exchange"
+	UserEventsQueue            = "user-events-posts-queue"
+	ClubEventsQueue            = "club-events-posts-queue"
+	UserUpdatedEventRoutingKey = "user.event.updated"
+	ClubUpdatedEventRoutingKey = "club.event.updated"
 )
 
 type Handler func(msg amqp.Delivery) error
@@ -241,39 +238,6 @@ func bindQueues(ch *amqp.Channel) error {
 		UserEventsQueue,
 		UserUpdatedEventRoutingKey,
 		UserExchangeName,
-		false,
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-
-	err = ch.QueueBind(
-		UserEventsQueue,
-		UserActivatedEventRoutingKey,
-		UserExchangeName,
-		false,
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-
-	err = ch.QueueBind(
-		UserEventsQueue,
-		UserDeletedEventRoutingKey,
-		UserExchangeName,
-		false,
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-
-	err = ch.QueueBind(
-		ClubEventsQueue,
-		ClubCreatedEventRoutingKey,
-		ClubExchangeName,
 		false,
 		nil,
 	)

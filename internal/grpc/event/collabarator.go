@@ -8,17 +8,26 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/validate"
-	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-type CollaboratorService interface {
+type OrganizerService interface {
 	SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.Event, error)
-	AcceptUserJoinRequest(ctx context.Context, inviteId string, userId int64) error
-	RejectUserJoinRequest(ctx context.Context, inviteId string, userId int64) error
+	AcceptUserJoinRequest(ctx context.Context, inviteId string, userId int64) (domain.Event, error)
+	RejectUserJoinRequest(ctx context.Context, inviteId string, userId int64) (domain.Event, error)
+	KickOrganizer(ctx context.Context, eventId string, userId, targetId int64) error
+	RevokeInviteOrganizer(ctx context.Context, inviteId string, userId int64) error
+}
+
+type CollaboratorService interface {
+	SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.Event, error)
+	AcceptClubJoinRequest(ctx context.Context, inviteId string, userId int64) (domain.Event, error)
+	RejectClubJoinRequest(ctx context.Context, inviteId string, userId int64) (domain.Event, error)
+	KickClub(ctx context.Context, userId, targetId int64) error
+	RevokeInviteClub(ctx context.Context, inviteId string, userId int64) error
 }
 
 func (s serverApi) AddCollaborator(ctx context.Context, req *eventv1.AddCollaboratorRequest) (*empty.Empty, error) {
@@ -31,13 +40,23 @@ func (s serverApi) RemoveCollaborator(ctx context.Context, req *eventv1.RemoveCo
 	panic("implement me")
 }
 
+func (s serverApi) HandleInviteClub(ctx context.Context, req *eventv1.HandleInviteClubRequest) (*eventv1.EventObject, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s serverApi) RevokeInviteClub(ctx context.Context, request *eventv1.RevokeInviteRequest) (*emptypb.Empty, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (s serverApi) AddOrganizer(ctx context.Context, req *eventv1.AddOrganizerRequest) (*empty.Empty, error) {
 	err := validate.AddOrganizer(req)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	_, err = s.collaborator.SendJoinRequestToUser(ctx, dto.AddOrganizerRequestToUserToDTO(req))
+	_, err = s.organizer.SendJoinRequestToUser(ctx, dto.AddOrganizerRequestToUserToDTO(req))
 	if err != nil {
 		switch {
 		case errors.Is(err, event.ErrEventNotFound):
@@ -59,32 +78,41 @@ func (s serverApi) AddOrganizer(ctx context.Context, req *eventv1.AddOrganizerRe
 }
 
 func (s serverApi) RemoveOrganizer(ctx context.Context, req *eventv1.RemoveOrganizerRequest) (*empty.Empty, error) {
-	err := validation.ValidateStruct(req,
-		validation.Field(&req.EventId, validation.Required),
-		validation.Field(&req.UserId, validation.Required, validation.Min(0), validation.NotIn(req.OrganizerId).Error("organizer_id must be different from user_id")),
-		validation.Field(&req.OrganizerId, validation.Required, validation.Min(0)),
-	)
+	err := validate.RemoveOrganizer(req)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	//TODO implement me
-	panic("implement me")
+	err = s.organizer.KickOrganizer(ctx, req.GetEventId(), req.GetUserId(), req.GetOrganizerId())
+	if err != nil {
+		switch {
+		case errors.Is(err, event.ErrEventNotFound), errors.Is(err, event.ErrUserIsNotEventOrganizer):
+			return nil, status.Error(codes.NotFound, err.Error())
+		case errors.Is(err, event.ErrInvalidID):
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		case errors.Is(err, event.ErrPermissionsDenied), errors.Is(err, event.ErrUserIsEventOwner):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		case errors.Is(err, event.ErrEventUpdateConflict):
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
+		}
+	}
+
+	return &empty.Empty{}, nil
 }
 
-func (s serverApi) HandleInviteUser(ctx context.Context, request *eventv1.HandleInviteUserRequest) (*emptypb.Empty, error) {
-	err := validation.ValidateStruct(request,
-		validation.Field(&request.UserId, validation.Required, validation.Min(0)),
-		validation.Field(&request.InviteId, validation.Required),
-	)
+func (s serverApi) HandleInviteUser(ctx context.Context, req *eventv1.HandleInviteUserRequest) (*eventv1.EventObject, error) {
+	err := validate.HandleInviteUser(req)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	if request.GetAction() == eventv1.HandleInviteUserRequest_Action_ACCEPT {
-		err = s.collaborator.AcceptUserJoinRequest(ctx, request.InviteId, request.UserId)
-	} else if request.GetAction() == eventv1.HandleInviteUserRequest_Action_REJECT {
-		err = s.collaborator.RejectUserJoinRequest(ctx, request.InviteId, request.UserId)
+	var res domain.Event
+	if req.GetAction() == eventv1.HandleInvite_Action_ACCEPT {
+		res, err = s.organizer.AcceptUserJoinRequest(ctx, req.InviteId, req.UserId)
+	} else if req.GetAction() == eventv1.HandleInvite_Action_REJECT {
+		res, err = s.organizer.RejectUserJoinRequest(ctx, req.InviteId, req.UserId)
 	}
 
 	if err != nil {
@@ -104,10 +132,28 @@ func (s serverApi) HandleInviteUser(ctx context.Context, request *eventv1.Handle
 		}
 	}
 
-	return &empty.Empty{}, nil
+	return res.ToProto(), nil
 }
 
-func (s serverApi) RevokeInviteUser(ctx context.Context, request *eventv1.RevokeInviteUserRequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+func (s serverApi) RevokeInviteUser(ctx context.Context, req *eventv1.RevokeInviteRequest) (*emptypb.Empty, error) {
+	err := validate.RevokeInviteUser(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	err = s.organizer.RevokeInviteOrganizer(ctx, req.GetInviteId(), req.GetUserId())
+	if err != nil {
+		switch {
+		case errors.Is(err, event.ErrEventNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		case errors.Is(err, event.ErrInvalidID):
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		case errors.Is(err, event.ErrPermissionsDenied), errors.Is(err, event.ErrUserIsEventOwner):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
+		}
+	}
+
+	return &empty.Empty{}, nil
 }

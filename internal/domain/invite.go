@@ -17,3 +17,7 @@ type UserInvite struct {
 func (u UserInvite) IsInvited(userId int64) bool {
 	return u.User.ID == userId
 }
+
+func (u UserInvite) IsByWho(userId int64) bool {
+	return u.ByWhoId == userId
+}

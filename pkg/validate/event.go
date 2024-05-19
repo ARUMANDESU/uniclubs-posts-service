@@ -90,3 +90,49 @@ func AddOrganizer(value interface{}) error {
 		validation.Field(&req.TargetClubId, validation.Required, validation.Min(0)),
 	)
 }
+
+func RemoveOrganizer(value interface{}) error {
+	req, ok := value.(*eventv1.RemoveOrganizerRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("remove organizer invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.EventId, validation.Required),
+		validation.Field(&req.UserId, validation.Required, validation.Min(0), validation.NotIn(req.OrganizerId).Error("organizer_id must be different from user_id")),
+		validation.Field(&req.OrganizerId, validation.Required, validation.Min(0)),
+	)
+}
+
+func HandleInviteUser(value interface{}) error {
+	req, ok := value.(*eventv1.HandleInviteUserRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("handle invite user invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.InviteId, validation.Required),
+		validation.Field(&req.UserId, validation.Required, validation.Min(0)),
+	)
+
+}
+
+func RevokeInviteUser(value interface{}) error {
+	req, ok := value.(*eventv1.RevokeInviteRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("revoke invite invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.InviteId, validation.Required),
+		validation.Field(&req.UserId, validation.Required, validation.Min(0)),
+	)
+}
+
+func RevokeInviteClub(value interface{}) error {
+	req, ok := value.(*eventv1.RevokeInviteRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("revoke invite invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.InviteId, validation.Required),
+		validation.Field(&req.UserId, validation.Required, validation.Min(0)),
+	)
+}

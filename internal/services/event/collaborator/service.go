@@ -8,9 +8,11 @@ import (
 )
 
 type Service struct {
-	log                    *slog.Logger
-	eventStorage           EventStorage
-	organizerInviteStorage OrganizerInviteStorage
+	log               *slog.Logger
+	eventStorage      EventStorage
+	userInviteStorage OrganizerInviteStorage
+	clubInviteStorage ClubInviteStorage
+	inviteDeleter     InviteDeleter
 }
 
 type EventStorage interface {
@@ -19,17 +21,35 @@ type EventStorage interface {
 }
 
 type OrganizerInviteStorage interface {
-	SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.UserInvite, error)
-	GetJoinRequests(ctx context.Context, eventId string) ([]domain.UserInvite, error)
-	GetJoinRequestByUserId(ctx context.Context, userId int64) (*domain.UserInvite, error)
-	GetJoinRequestsById(ctx context.Context, requestId string) (*domain.UserInvite, error)
-	DeleteJoinRequest(ctx context.Context, requestId string) error
+	CreateJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.UserInvite, error)
+	GetUserJoinRequests(ctx context.Context, eventId string) ([]domain.UserInvite, error)
+	GetJoinRequestsByUserInviteId(ctx context.Context, inviteId string) (*domain.UserInvite, error)
+	GetJoinRequestByUserId(ctx context.Context, eventId string, userId int64) (*domain.UserInvite, error)
 }
 
-func New(log *slog.Logger, eventProvider EventStorage, organizerInviteStorage OrganizerInviteStorage) Service {
+type ClubInviteStorage interface {
+	CreateJoinRequestToClub(ctx context.Context, dto *dto.SendJoinRequestToClub) (*domain.Invite, error)
+	GetClubJoinRequests(ctx context.Context, eventId string) ([]domain.Invite, error)
+	GetJoinRequestsByClubInviteId(ctx context.Context, inviteId string) (*domain.Invite, error)
+	GetJoinRequestByClubId(ctx context.Context, eventId string, clubId int64) (*domain.Invite, error)
+}
+
+type InviteDeleter interface {
+	DeleteInvite(ctx context.Context, inviteId string) error
+}
+
+func New(
+	log *slog.Logger,
+	eventProvider EventStorage,
+	organizerInviteStorage OrganizerInviteStorage,
+	clubInviteStorage ClubInviteStorage,
+	inviteDeleter InviteDeleter,
+) Service {
 	return Service{
-		log:                    log,
-		eventStorage:           eventProvider,
-		organizerInviteStorage: organizerInviteStorage,
+		log:               log,
+		eventStorage:      eventProvider,
+		userInviteStorage: organizerInviteStorage,
+		clubInviteStorage: clubInviteStorage,
+		inviteDeleter:     inviteDeleter,
 	}
 }

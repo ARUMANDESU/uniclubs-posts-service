@@ -40,7 +40,7 @@ func (s Service) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 		return nil, eventService.ErrUserAlreadyOrganizer
 	}
 
-	userInvite, err := s.organizerInviteStorage.GetJoinRequestByUserId(ctx, dto.Target.ID)
+	userInvite, err := s.userInviteStorage.GetJoinRequestByUserId(ctx, dto.EventId, dto.Target.ID)
 	if err != nil && !errors.Is(err, storage.ErrInviteNotFound) {
 		switch {
 		case errors.Is(err, storage.ErrInvalidID):
@@ -66,7 +66,7 @@ func (s Service) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 
 	sendJoinRequestCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
-	_, err = s.organizerInviteStorage.SendJoinRequestToUser(sendJoinRequestCtx, dto)
+	_, err = s.userInviteStorage.CreateJoinRequestToUser(sendJoinRequestCtx, dto)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInvalidID):
@@ -86,7 +86,7 @@ func (s Service) AcceptUserJoinRequest(ctx context.Context, inviteId string, use
 	const op = "services.event.management.acceptUserJoinRequest"
 	log := s.log.With(slog.String("op", op))
 
-	invite, err := s.organizerInviteStorage.GetJoinRequestsById(ctx, inviteId)
+	invite, err := s.userInviteStorage.GetJoinRequestsByUserInviteId(ctx, inviteId)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInviteNotFound):
@@ -129,7 +129,7 @@ func (s Service) AcceptUserJoinRequest(ctx context.Context, inviteId string, use
 		defer wg.Done()
 		deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		err = s.organizerInviteStorage.DeleteJoinRequest(deleteCtx, inviteId)
+		err = s.inviteDeleter.DeleteInvite(deleteCtx, inviteId)
 		if err != nil {
 			errCh <- err
 		}
@@ -179,7 +179,7 @@ func (s Service) RejectUserJoinRequest(ctx context.Context, inviteId string, use
 	const op = "services.event.management.rejectUserJoinRequest"
 	log := s.log.With(slog.String("op", op))
 
-	invite, err := s.organizerInviteStorage.GetJoinRequestsById(ctx, inviteId)
+	invite, err := s.userInviteStorage.GetJoinRequestsByUserInviteId(ctx, inviteId)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInviteNotFound):
@@ -198,7 +198,7 @@ func (s Service) RejectUserJoinRequest(ctx context.Context, inviteId string, use
 	deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	err = s.organizerInviteStorage.DeleteJoinRequest(deleteCtx, inviteId)
+	err = s.inviteDeleter.DeleteInvite(deleteCtx, inviteId)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInviteNotFound):
@@ -277,7 +277,7 @@ func (s Service) RevokeInviteOrganizer(ctx context.Context, inviteId string, use
 	const op = "services.event.management.revokeInviteOrganizer"
 	log := s.log.With(slog.String("op", op))
 
-	invite, err := s.organizerInviteStorage.GetJoinRequestsById(ctx, inviteId)
+	invite, err := s.userInviteStorage.GetJoinRequestsByUserInviteId(ctx, inviteId)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInviteNotFound):
@@ -296,7 +296,7 @@ func (s Service) RevokeInviteOrganizer(ctx context.Context, inviteId string, use
 
 	deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	err = s.organizerInviteStorage.DeleteJoinRequest(deleteCtx, inviteId)
+	err = s.inviteDeleter.DeleteInvite(deleteCtx, inviteId)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInvalidID):

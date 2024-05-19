@@ -3,7 +3,7 @@ package domain
 type Invite struct {
 	ID      string `json:"id"`
 	EventId string `json:"event_id"`
-	ClubId  int64  `json:"club_id"`
+	Club    Club   `json:"club"`
 }
 
 type UserInvite struct {

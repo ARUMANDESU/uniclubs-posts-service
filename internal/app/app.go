@@ -42,7 +42,7 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 		panic(err)
 	}
 
-	eventCollaboratorService := eventCollaborator.New(l, mongoDB, mongoDB)
+	eventCollaboratorService := eventCollaborator.New(l, mongoDB, mongoDB, mongoDB, mongoDB)
 
 	services := event.NewServices(
 		eventManagement.New(l, mongoDB),

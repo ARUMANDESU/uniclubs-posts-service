@@ -23,7 +23,7 @@ type OrganizerService interface {
 }
 
 type CollaboratorService interface {
-	SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.Event, error)
+	SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinRequestToClub) (*domain.Event, error)
 	AcceptClubJoinRequest(ctx context.Context, inviteId string, userId int64) (domain.Event, error)
 	RejectClubJoinRequest(ctx context.Context, inviteId string, userId int64) (domain.Event, error)
 	KickClub(ctx context.Context, userId, targetId int64) error
@@ -31,8 +31,28 @@ type CollaboratorService interface {
 }
 
 func (s serverApi) AddCollaborator(ctx context.Context, req *eventv1.AddCollaboratorRequest) (*empty.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+	err := validate.AddCollaborator(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	_, err = s.collaborator.SendJoinRequestToClub(ctx, dto.AddCollaboratorRequestToClubToDTO(req))
+	if err != nil {
+		switch {
+		case errors.Is(err, event.ErrEventNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		case errors.Is(err, event.ErrInvalidID):
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		case errors.Is(err, event.ErrPermissionsDenied):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		case errors.Is(err, event.ErrInviteAlreadyExists), errors.Is(err, event.ErrClubAlreadyCollaborator):
+			return nil, status.Error(codes.AlreadyExists, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
+		}
+	}
+
+	return &empty.Empty{}, nil
 }
 
 func (s serverApi) RemoveCollaborator(ctx context.Context, req *eventv1.RemoveCollaboratorRequest) (*empty.Empty, error) {

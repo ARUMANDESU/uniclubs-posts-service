@@ -86,6 +86,15 @@ func (e *Event) RemoveOrganizer(organizerId int64) error {
 	return ErrOrganizerNotFound
 }
 
+func (e *Event) IsCollaborator(clubId int64) bool {
+	for _, club := range e.CollaboratorClubs {
+		if club.ID == clubId {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Event) ToProto() *eventv1.EventObject {
 	return &eventv1.EventObject{
 		Id:                 e.ID,

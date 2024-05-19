@@ -5,9 +5,9 @@ import (
 )
 
 type Club struct {
-	ID      int64  `json:"id" bson:"_id"`
-	Name    string `json:"name" bson:"name"`
-	LogoURL string `json:"logo_url" bson:"logo_url"`
+	ID      int64  `json:"id"`
+	Name    string `json:"name"`
+	LogoURL string `json:"logo_url"`
 }
 
 func (c Club) ToProto() *eventv1.ClubObject {

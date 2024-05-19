@@ -26,8 +26,14 @@ type UpdateEvent struct {
 type SendJoinRequestToUser struct {
 	EventId      string      `json:"event_id"`
 	UserId       int64       `json:"user_id"`
-	Target       domain.User `json:"target_id"`
+	Target       domain.User `json:"target"`
 	TargetClubId int64       `json:"target_club_id"`
+}
+
+type SendJoinRequestToClub struct {
+	EventId string      `json:"event_id"`
+	UserId  int64       `json:"user_id"`
+	Club    domain.Club `json:"club"`
 }
 
 func UpdateToDTO(event *eventv1.UpdateEventRequest) *UpdateEvent {
@@ -56,5 +62,13 @@ func AddOrganizerRequestToUserToDTO(event *eventv1.AddOrganizerRequest) *SendJoi
 		UserId:       event.GetUserId(),
 		Target:       domain.UserFromProto(event.GetTarget()),
 		TargetClubId: event.GetTargetClubId(),
+	}
+}
+
+func AddCollaboratorRequestToClubToDTO(event *eventv1.AddCollaboratorRequest) *SendJoinRequestToClub {
+	return &SendJoinRequestToClub{
+		EventId: event.GetEventId(),
+		UserId:  event.GetUserId(),
+		Club:    domain.ClubFromProto(event.GetClub()),
 	}
 }

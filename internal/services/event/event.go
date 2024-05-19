@@ -11,6 +11,7 @@ var (
 	ErrInvalidID               = errors.New("the provided id is not a valid ObjectID")
 	ErrInviteAlreadyExists     = errors.New("invite already exists")
 	ErrUserAlreadyOrganizer    = errors.New("user is already an organizer")
+	ErrClubAlreadyCollaborator = errors.New("club is already a collaborator")
 	ErrUserIsFromAnotherClub   = errors.New("user is from another club")
 	ErrPermissionsDenied       = errors.New("permissions denied")
 	ErrUserIsEventOwner        = errors.New("user is event owner")

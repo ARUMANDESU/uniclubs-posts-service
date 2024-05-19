@@ -8,7 +8,7 @@ import (
 type ClubInvite struct {
 	ID      primitive.ObjectID `bson:"_id"`
 	EventId primitive.ObjectID `bson:"event_id"`
-	ClubId  int64              `bson:"club_id"`
+	Club    Club               `bson:"club"`
 }
 
 type OrganizerInvite struct {
@@ -19,11 +19,11 @@ type OrganizerInvite struct {
 	User    User               `bson:"user"`
 }
 
-func ToDomainInvite(i ClubInvite) domain.Invite {
-	return domain.Invite{
+func ToDomainInvite(i ClubInvite) *domain.Invite {
+	return &domain.Invite{
 		ID:      i.ID.Hex(),
 		EventId: i.EventId.Hex(),
-		ClubId:  i.ClubId,
+		Club:    ToDomainClub(i.Club),
 	}
 }
 
@@ -40,7 +40,7 @@ func ToDomainUserInvite(u OrganizerInvite) *domain.UserInvite {
 func ToDomainInvites(invites []ClubInvite) []domain.Invite {
 	domainInvites := make([]domain.Invite, len(invites))
 	for i, invite := range invites {
-		domainInvites[i] = ToDomainInvite(invite)
+		domainInvites[i] = *ToDomainInvite(invite)
 	}
 	return domainInvites
 }

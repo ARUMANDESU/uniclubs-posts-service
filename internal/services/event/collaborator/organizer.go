@@ -214,7 +214,7 @@ func (s Service) RejectUserJoinRequest(ctx context.Context, inviteId string, use
 	return domain.Event{}, nil
 }
 
-func (s Service) KickOrganizer(ctx context.Context, eventId string, userId, targetId int64) error {
+func (s Service) KickOrganizer(ctx context.Context, eventId string, userId, targetId int64) (*domain.Event, error) {
 	const op = "services.event.management.kickOrganizer"
 	log := s.log.With(slog.String("op", op))
 
@@ -222,55 +222,55 @@ func (s Service) KickOrganizer(ctx context.Context, eventId string, userId, targ
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return eventService.ErrEventNotFound
+			return nil, eventService.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return eventService.ErrInvalidID
+			return nil, eventService.ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
-			return err
+			return nil, err
 		}
 	}
 
 	if !event.IsOrganizer(userId) {
-		return eventService.ErrPermissionsDenied
+		return nil, eventService.ErrPermissionsDenied
 	}
 
 	target := event.GetOrganizerById(targetId)
 	if target == nil {
-		return eventService.ErrUserIsNotEventOrganizer
+		return nil, eventService.ErrUserIsNotEventOrganizer
 	}
 
 	if !(target.IsByWho(userId) || event.IsOwner(userId)) {
-		return eventService.ErrPermissionsDenied
+		return nil, eventService.ErrPermissionsDenied
 	}
 
 	err = event.RemoveOrganizer(targetId)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrOrganizerNotFound):
-			return eventService.ErrUserIsNotEventOrganizer
+			return nil, eventService.ErrUserIsNotEventOrganizer
 		case errors.Is(err, domain.ErrUserIsEventOwner):
-			return eventService.ErrUserIsEventOwner
+			return nil, eventService.ErrUserIsEventOwner
 		default:
 			log.Error("failed to remove organizer", logger.Err(err))
-			return err
+			return nil, err
 		}
 	}
 
 	updateCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	_, err = s.eventStorage.UpdateEvent(updateCtx, event)
+	event, err = s.eventStorage.UpdateEvent(updateCtx, event)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrOptimisticLockingFailed):
-			return eventService.ErrEventUpdateConflict
+			return nil, eventService.ErrEventUpdateConflict
 		default:
 			log.Error("failed to update event", logger.Err(err))
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return event, nil
 }
 
 func (s Service) RevokeInviteOrganizer(ctx context.Context, inviteId string, userId int64) error {

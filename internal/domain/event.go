@@ -95,6 +95,10 @@ func (e *Event) IsCollaborator(clubId int64) bool {
 	return false
 }
 
+func (e *Event) AddCollaborator(club Club) {
+	e.CollaboratorClubs = append(e.CollaboratorClubs, club)
+}
+
 func (e *Event) ToProto() *eventv1.EventObject {
 	return &eventv1.EventObject{
 		Id:                 e.ID,

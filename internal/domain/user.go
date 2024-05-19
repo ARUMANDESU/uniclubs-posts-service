@@ -16,6 +16,14 @@ type Organizer struct {
 	ByWhoId int64 `json:"by_who_id"`
 }
 
+func (u User) ToOrganizer(clubId, byWhoId int64) Organizer {
+	return Organizer{
+		User:    u,
+		ClubId:  clubId,
+		ByWhoId: byWhoId,
+	}
+}
+
 func (u User) ToProto() *eventv1.UserObject {
 	return &eventv1.UserObject{
 		Id:        u.ID,

@@ -36,6 +36,12 @@ type SendJoinRequestToClub struct {
 	Club    domain.Club `json:"club"`
 }
 
+type AcceptJoinRequestClub struct {
+	InviteId string      `json:"invite_id"`
+	ClubId   int64       `json:"club_id"`
+	User     domain.User `json:"user"`
+}
+
 func UpdateToDTO(event *eventv1.UpdateEventRequest) *UpdateEvent {
 	return &UpdateEvent{
 		EventId:            event.GetEventId(),
@@ -70,5 +76,13 @@ func AddCollaboratorRequestToClubToDTO(event *eventv1.AddCollaboratorRequest) *S
 		EventId: event.GetEventId(),
 		UserId:  event.GetUserId(),
 		Club:    domain.ClubFromProto(event.GetClub()),
+	}
+}
+
+func AcceptJoinRequestClubToDTO(event *eventv1.HandleInviteClubRequest) *AcceptJoinRequestClub {
+	return &AcceptJoinRequestClub{
+		InviteId: event.GetInviteId(),
+		ClubId:   event.GetClubId(),
+		User:     domain.UserFromProto(event.GetUser()),
 	}
 }

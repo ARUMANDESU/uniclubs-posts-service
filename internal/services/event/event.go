@@ -16,4 +16,5 @@ var (
 	ErrPermissionsDenied       = errors.New("permissions denied")
 	ErrUserIsEventOwner        = errors.New("user is event owner")
 	ErrInviteNotFound          = errors.New("invite not found")
+	ErrClubMismatch            = errors.New("club mismatch")
 )

@@ -3,12 +3,14 @@ package collaborator
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
 	eventService "github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
 	"log/slog"
+	"sync"
 	"time"
 )
 
@@ -68,14 +70,128 @@ func (s Service) SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinReq
 	return event, nil
 }
 
-func (s Service) AcceptClubJoinRequest(ctx context.Context, inviteId string, userId int64) (domain.Event, error) {
-	// todo: implement me
-	panic("implement me")
+func (s Service) AcceptClubJoinRequest(ctx context.Context, dto *dto.AcceptJoinRequestClub) (domain.Event, error) {
+	const op = "collaborator.Service.acceptClubJoinRequest"
+	log := s.log.With(slog.String("op", op))
+
+	invite, err := s.clubInviteStorage.GetJoinRequestsByClubInviteId(ctx, dto.InviteId)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrInvalidID):
+			return domain.Event{}, eventService.ErrInvalidID
+		case errors.Is(err, storage.ErrInviteNotFound):
+			return domain.Event{}, eventService.ErrInviteNotFound
+		default:
+			log.Error("failed to get join requests by club invite id", logger.Err(err))
+			return domain.Event{}, err
+		}
+	}
+
+	if invite.Club.ID != dto.ClubId {
+		return domain.Event{}, fmt.Errorf("%w got %d", eventService.ErrClubMismatch, dto.ClubId)
+	}
+
+	event, err := s.eventStorage.GetEvent(ctx, invite.EventId)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrEventNotFound):
+			return domain.Event{}, eventService.ErrEventNotFound
+		case errors.Is(err, storage.ErrInvalidID):
+			return domain.Event{}, eventService.ErrInvalidID
+		default:
+			log.Error("failed to get event", logger.Err(err))
+			return domain.Event{}, err
+		}
+	}
+
+	if event.IsCollaborator(dto.ClubId) {
+		return domain.Event{}, eventService.ErrClubAlreadyCollaborator
+	}
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, 2)
+
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		err = s.inviteDeleter.DeleteInvite(deleteCtx, dto.InviteId)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		event.AddCollaborator(invite.Club)
+		event.AddOrganizer(dto.User.ToOrganizer(dto.ClubId, event.OwnerId))
+
+		updateCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		_, err = s.eventStorage.UpdateEvent(updateCtx, event)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+
+	wg.Wait()
+
+	close(errCh)
+
+	// Check if there were any errors
+	for err := range errCh {
+		if err != nil {
+			switch {
+			case errors.Is(err, storage.ErrInviteNotFound):
+				return domain.Event{}, eventService.ErrInviteNotFound
+			case errors.Is(err, storage.ErrInvalidID):
+				return domain.Event{}, eventService.ErrInvalidID
+			case errors.Is(err, storage.ErrOptimisticLockingFailed):
+				return domain.Event{}, eventService.ErrEventUpdateConflict
+			default:
+				log.Error("failed to accept join request", logger.Err(err))
+				return domain.Event{}, err
+			}
+		}
+	}
+	return *event, nil
+
 }
 
-func (s Service) RejectClubJoinRequest(ctx context.Context, inviteId string, userId int64) (domain.Event, error) {
-	// todo: implement me
-	panic("implement me")
+func (s Service) RejectClubJoinRequest(ctx context.Context, inviteId string, clubId int64) (domain.Event, error) {
+	const op = "collaborator.Service.rejectClubJoinRequest"
+	log := s.log.With(slog.String("op", op))
+
+	invite, err := s.clubInviteStorage.GetJoinRequestsByClubInviteId(ctx, inviteId)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrInvalidID):
+			return domain.Event{}, eventService.ErrInvalidID
+		case errors.Is(err, storage.ErrInviteNotFound):
+			return domain.Event{}, eventService.ErrInviteNotFound
+		default:
+			log.Error("failed to get join requests by club invite id", logger.Err(err))
+			return domain.Event{}, err
+		}
+	}
+
+	if invite.Club.ID != clubId {
+		return domain.Event{}, fmt.Errorf("%w got %d", eventService.ErrClubMismatch, clubId)
+	}
+
+	err = s.inviteDeleter.DeleteInvite(ctx, inviteId)
+	if err != nil {
+		if errors.Is(err, storage.ErrInvalidID) {
+			return domain.Event{}, eventService.ErrInvalidID
+		}
+		log.Error("failed to delete invite", logger.Err(err))
+		return domain.Event{}, err
+	}
+
+	return domain.Event{}, nil
 }
 
 func (s Service) KickClub(ctx context.Context, userId, targetId int64) error {

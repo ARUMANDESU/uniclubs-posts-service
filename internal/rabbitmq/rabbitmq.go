@@ -72,7 +72,10 @@ func (r *Rabbitmq) Consume(queue, routingKey string, handler func(msg amqp.Deliv
 	const op = "rabbitmq.consume"
 	log := r.log.With(
 		slog.String("op", op),
-		slog.With("queue", queue),
+		slog.With(
+			slog.String("queue", queue),
+			slog.String("routing_key", routingKey),
+		),
 	)
 
 	err := r.ch.Qos(

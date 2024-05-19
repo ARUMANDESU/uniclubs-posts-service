@@ -15,7 +15,7 @@ import (
 )
 
 func (s Service) SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinRequestToClub) (*domain.Event, error) {
-	const op = "collaborator.Service.sendJoinRequestToClub"
+	const op = "services.event.collaborator.sendJoinRequestToClub"
 	log := s.log.With(slog.String("op", op))
 
 	event, err := s.eventStorage.GetEvent(ctx, dto.EventId)
@@ -71,7 +71,7 @@ func (s Service) SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinReq
 }
 
 func (s Service) AcceptClubJoinRequest(ctx context.Context, dto *dto.AcceptJoinRequestClub) (domain.Event, error) {
-	const op = "collaborator.Service.acceptClubJoinRequest"
+	const op = "services.event.collaborator.acceptClubJoinRequest"
 	log := s.log.With(slog.String("op", op))
 
 	invite, err := s.clubInviteStorage.GetJoinRequestsByClubInviteId(ctx, dto.InviteId)
@@ -162,7 +162,7 @@ func (s Service) AcceptClubJoinRequest(ctx context.Context, dto *dto.AcceptJoinR
 }
 
 func (s Service) RejectClubJoinRequest(ctx context.Context, inviteId string, clubId int64) (domain.Event, error) {
-	const op = "collaborator.Service.rejectClubJoinRequest"
+	const op = "services.event.collaborator.rejectClubJoinRequest"
 	log := s.log.With(slog.String("op", op))
 
 	invite, err := s.clubInviteStorage.GetJoinRequestsByClubInviteId(ctx, inviteId)
@@ -194,13 +194,81 @@ func (s Service) RejectClubJoinRequest(ctx context.Context, inviteId string, clu
 	return domain.Event{}, nil
 }
 
-func (s Service) KickClub(ctx context.Context, userId, targetId int64) error {
-	// todo: implement me
-	panic("implement me")
+func (s Service) KickClub(ctx context.Context, eventId string, userId, clubId int64) (*domain.Event, error) {
+	const op = "services.event.collaborator.kickClub"
+	log := s.log.With(slog.String("op", op))
+
+	event, err := s.eventStorage.GetEvent(ctx, eventId)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrEventNotFound):
+			return nil, eventService.ErrEventNotFound
+		case errors.Is(err, storage.ErrInvalidID):
+			return nil, eventService.ErrInvalidID
+		default:
+			log.Error("failed to get event", logger.Err(err))
+			return nil, err
+		}
+	}
+
+	if !event.IsOwner(userId) {
+		return nil, eventService.ErrPermissionsDenied
+	}
+
+	if !event.IsCollaborator(clubId) {
+		return nil, eventService.ErrCollaboratorNotFound
+	}
+
+	club := event.GetCollaboratorById(clubId)
+	if club == nil {
+		return nil, eventService.ErrCollaboratorNotFound
+	}
+
+	err = event.RemoveCollaborator(clubId)
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrClubIsEventOwner):
+			return nil, eventService.ErrClubIsEventOwner
+		case errors.Is(err, domain.ErrCollaboratorsEmpty), errors.Is(err, domain.ErrCollaboratorNotFound):
+			return nil, eventService.ErrCollaboratorNotFound
+		default:
+			log.Error("failed to remove collaborator", logger.Err(err))
+			return nil, err
+		}
+	}
+
+	//delete organizers from that club
+	err = event.RemoveOrganizersByClubId(clubId)
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrOrganizerNotFound):
+			return nil, eventService.ErrOrganizerNotFound
+		case errors.Is(err, domain.ErrUserIsEventOwner):
+			return nil, eventService.ErrUserIsEventOwner
+		default:
+			log.Error(fmt.Sprintf("failed to remove organizers with club id: %d", clubId), logger.Err(err))
+			return nil, err
+		}
+	}
+
+	updateCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	event, err = s.eventStorage.UpdateEvent(updateCtx, event)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrOptimisticLockingFailed):
+			return nil, eventService.ErrEventUpdateConflict
+		default:
+			log.Error("failed to update event", logger.Err(err))
+			return nil, err
+		}
+	}
+
+	return event, nil
 }
 
 func (s Service) RevokeInviteClub(ctx context.Context, inviteId string, userId int64) error {
-	const op = "collaborator.Service.revokeInviteClub"
+	const op = "services.event.collaborator.revokeInviteClub"
 	log := s.log.With(slog.String("op", op))
 
 	invite, err := s.clubInviteStorage.GetJoinRequestsByClubInviteId(ctx, inviteId)

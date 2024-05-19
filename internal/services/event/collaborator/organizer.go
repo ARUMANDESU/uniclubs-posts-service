@@ -176,7 +176,7 @@ func (s Service) AcceptUserJoinRequest(ctx context.Context, inviteId string, use
 }
 
 func (s Service) RejectUserJoinRequest(ctx context.Context, inviteId string, userId int64) (domain.Event, error) {
-	const op = "services.event.management.rejectUserJoinRequest"
+	const op = "services.event.collaborator.rejectUserJoinRequest"
 	log := s.log.With(slog.String("op", op))
 
 	invite, err := s.userInviteStorage.GetJoinRequestsByUserInviteId(ctx, inviteId)
@@ -215,7 +215,7 @@ func (s Service) RejectUserJoinRequest(ctx context.Context, inviteId string, use
 }
 
 func (s Service) KickOrganizer(ctx context.Context, eventId string, userId, targetId int64) (*domain.Event, error) {
-	const op = "services.event.management.kickOrganizer"
+	const op = "services.event.collaborator.kickOrganizer"
 	log := s.log.With(slog.String("op", op))
 
 	event, err := s.eventStorage.GetEvent(ctx, eventId)
@@ -249,8 +249,8 @@ func (s Service) KickOrganizer(ctx context.Context, eventId string, userId, targ
 		switch {
 		case errors.Is(err, domain.ErrOrganizerNotFound):
 			return nil, eventService.ErrUserIsNotEventOrganizer
-		case errors.Is(err, domain.ErrUserIsEventOwner):
-			return nil, eventService.ErrUserIsEventOwner
+		case errors.Is(err, domain.ErrOrganizersEmpty):
+			return nil, eventService.ErrOrganizerNotFound
 		default:
 			log.Error("failed to remove organizer", logger.Err(err))
 			return nil, err
@@ -274,7 +274,7 @@ func (s Service) KickOrganizer(ctx context.Context, eventId string, userId, targ
 }
 
 func (s Service) RevokeInviteOrganizer(ctx context.Context, inviteId string, userId int64) error {
-	const op = "services.event.management.revokeInviteOrganizer"
+	const op = "services.event.collaborator.revokeInviteOrganizer"
 	log := s.log.With(slog.String("op", op))
 
 	invite, err := s.userInviteStorage.GetJoinRequestsByUserInviteId(ctx, inviteId)

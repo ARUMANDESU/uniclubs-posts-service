@@ -26,7 +26,7 @@ type CollaboratorService interface {
 	SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinRequestToClub) (*domain.Event, error)
 	AcceptClubJoinRequest(ctx context.Context, dto *dto.AcceptJoinRequestClub) (domain.Event, error)
 	RejectClubJoinRequest(ctx context.Context, inviteId string, clubId int64) (domain.Event, error)
-	KickClub(ctx context.Context, userId, targetId int64) error
+	KickClub(ctx context.Context, eventId string, userId, clubId int64) (*domain.Event, error)
 	RevokeInviteClub(ctx context.Context, inviteId string, userId int64) error
 }
 
@@ -56,8 +56,28 @@ func (s serverApi) AddCollaborator(ctx context.Context, req *eventv1.AddCollabor
 }
 
 func (s serverApi) RemoveCollaborator(ctx context.Context, req *eventv1.RemoveCollaboratorRequest) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
+	err := validate.RemoveCollaborator(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	res, err := s.collaborator.KickClub(ctx, req.GetEventId(), req.GetUserId(), req.GetClubId())
+	if err != nil {
+		switch {
+		case errors.Is(err, event.ErrInviteNotFound), errors.Is(err, event.ErrCollaboratorNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		case errors.Is(err, event.ErrInvalidID), errors.Is(err, event.ErrClubMismatch):
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		case errors.Is(err, event.ErrPermissionsDenied), errors.Is(err, event.ErrClubIsEventOwner):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		case errors.Is(err, event.ErrEventUpdateConflict):
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
+		}
+	}
+
+	return res.ToProto(), nil
 }
 
 func (s serverApi) HandleInviteClub(ctx context.Context, req *eventv1.HandleInviteClubRequest) (*eventv1.EventObject, error) {
@@ -150,7 +170,9 @@ func (s serverApi) RemoveOrganizer(ctx context.Context, req *eventv1.RemoveOrgan
 	res, err := s.organizer.KickOrganizer(ctx, req.GetEventId(), req.GetUserId(), req.GetOrganizerId())
 	if err != nil {
 		switch {
-		case errors.Is(err, event.ErrEventNotFound), errors.Is(err, event.ErrUserIsNotEventOrganizer):
+		case errors.Is(err, event.ErrEventNotFound),
+			errors.Is(err, event.ErrUserIsNotEventOrganizer),
+			errors.Is(err, event.ErrOrganizerNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
 		case errors.Is(err, event.ErrInvalidID):
 			return nil, status.Error(codes.InvalidArgument, err.Error())

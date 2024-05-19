@@ -69,7 +69,7 @@ func (e *Event) AddOrganizer(organizer Organizer) {
 
 func (e *Event) RemoveOrganizer(organizerId int64) error {
 	if len(e.Organizers) == 0 {
-		return ErrOrganizerNotFound
+		return ErrOrganizersEmpty
 	}
 
 	if organizerId == e.OwnerId {
@@ -86,6 +86,24 @@ func (e *Event) RemoveOrganizer(organizerId int64) error {
 	return ErrOrganizerNotFound
 }
 
+func (e *Event) RemoveOrganizersByClubId(clubId int64) error {
+	if len(e.Organizers) == 0 {
+		return ErrOrganizersEmpty
+	}
+
+	for i, organizer := range e.Organizers {
+		if organizer.ID == e.OwnerId {
+			continue
+		}
+
+		if organizer.ClubId == clubId {
+			e.Organizers = append(e.Organizers[:i], e.Organizers[i+1:]...)
+		}
+	}
+
+	return nil
+}
+
 func (e *Event) IsCollaborator(clubId int64) bool {
 	for _, club := range e.CollaboratorClubs {
 		if club.ID == clubId {
@@ -97,6 +115,34 @@ func (e *Event) IsCollaborator(clubId int64) bool {
 
 func (e *Event) AddCollaborator(club Club) {
 	e.CollaboratorClubs = append(e.CollaboratorClubs, club)
+}
+
+func (e *Event) GetCollaboratorById(clubId int64) *Club {
+	for _, collaborator := range e.CollaboratorClubs {
+		if clubId == collaborator.ID {
+			return &collaborator
+		}
+	}
+
+	return nil
+}
+
+func (e *Event) RemoveCollaborator(clubId int64) error {
+	if len(e.CollaboratorClubs) == 0 {
+		return ErrCollaboratorsEmpty
+	}
+	if clubId == e.ClubId {
+		return ErrClubIsEventOwner
+	}
+
+	for i, collaborator := range e.CollaboratorClubs {
+		if collaborator.ID == clubId {
+			e.CollaboratorClubs = append(e.CollaboratorClubs[:i], e.CollaboratorClubs[i+1:]...)
+			return nil
+		}
+	}
+
+	return ErrCollaboratorNotFound
 }
 
 func (e *Event) ToProto() *eventv1.EventObject {

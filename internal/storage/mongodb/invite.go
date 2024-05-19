@@ -32,7 +32,7 @@ func (s Storage) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 		User:    dao.UserFromDomainUser(dto.Target),
 	}
 
-	_, err = s.inviteCollection.InsertOne(ctx, invite)
+	_, err = s.invitesCollection.InsertOne(ctx, invite)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -44,7 +44,7 @@ func (s Storage) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 func (s Storage) GetJoinRequests(ctx context.Context, eventId string) ([]domain.UserInvite, error) {
 	const op = "storage.mongodb.getJoinRequests"
 
-	find, err := s.inviteCollection.Find(ctx, bson.D{{"event_id", eventId}})
+	find, err := s.invitesCollection.Find(ctx, bson.D{{"event_id", eventId}})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -62,7 +62,7 @@ func (s Storage) GetJoinRequestByUserId(ctx context.Context, userId int64) (*dom
 	const op = "storage.mongodb.getJoinRequestByUserId"
 
 	var invite dao.OrganizerInvite
-	err := s.inviteCollection.FindOne(ctx, bson.M{"user_id": userId}).Decode(&invite)
+	err := s.invitesCollection.FindOne(ctx, bson.M{"user_id": userId}).Decode(&invite)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, fmt.Errorf("%s: %w", op, storage.ErrInviteNotFound)
@@ -85,7 +85,7 @@ func (s Storage) GetJoinRequestsById(ctx context.Context, requestId string) (*do
 	}
 
 	var invite dao.OrganizerInvite
-	err = s.inviteCollection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&invite)
+	err = s.invitesCollection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&invite)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, fmt.Errorf("%s: %w", op, storage.ErrInviteNotFound)
@@ -107,7 +107,7 @@ func (s Storage) DeleteJoinRequest(ctx context.Context, requestId string) error 
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	_, err = s.inviteCollection.DeleteOne(ctx, bson.M{"_id": objectID})
+	_, err = s.invitesCollection.DeleteOne(ctx, bson.M{"_id": objectID})
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

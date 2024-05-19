@@ -82,21 +82,13 @@ func (s Service) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 		return nil, eventService.ErrInviteAlreadyExists
 	}
 
-	// if the target user is the event owner then check if the target club is the same as the event club
-	// if the target user is an organizer then check if the target club is the same as the organizer club
-	if event.OwnerId == dto.UserId {
-		if event.OwnerId != dto.TargetClubId {
-			return nil, eventService.ErrUserIsFromAnotherClub
-		}
-	} else {
-		organizer := event.GetOrganizerById(dto.UserId)
-		if organizer == nil {
-			return nil, eventService.ErrPermissionsDenied
-		}
+	organizer := event.GetOrganizerById(dto.UserId)
+	if organizer == nil {
+		return nil, eventService.ErrPermissionsDenied
+	}
 
-		if organizer.ClubId != dto.TargetClubId {
-			return nil, eventService.ErrUserIsFromAnotherClub
-		}
+	if organizer.ClubId != dto.TargetClubId {
+		return nil, eventService.ErrUserIsFromAnotherClub
 	}
 
 	sendJoinRequestCtx, cancel := context.WithTimeout(ctx, 3*time.Second)

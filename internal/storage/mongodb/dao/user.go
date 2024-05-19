@@ -11,7 +11,7 @@ type User struct {
 }
 
 type Organizer struct {
-	User
+	User   `bson:",inline"`
 	ClubId int64 `json:"club_id" bson:"club_id"`
 }
 

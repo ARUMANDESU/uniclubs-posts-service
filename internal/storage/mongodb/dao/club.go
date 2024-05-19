@@ -3,7 +3,7 @@ package dao
 import "github.com/arumandesu/uniclubs-posts-service/internal/domain"
 
 type Club struct {
-	ID      int64  `json:"id,omitempty" bson:"id"`
+	ID      int64  `json:"id,omitempty" bson:"_id"`
 	Name    string `json:"name,omitempty" bson:"name"`
 	LogoURL string `json:"logo_url,omitempty" bson:"logo_url"`
 }

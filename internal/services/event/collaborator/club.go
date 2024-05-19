@@ -84,6 +84,47 @@ func (s Service) KickClub(ctx context.Context, userId, targetId int64) error {
 }
 
 func (s Service) RevokeInviteClub(ctx context.Context, inviteId string, userId int64) error {
-	// todo: implement me
-	panic("implement me")
+	const op = "collaborator.Service.revokeInviteClub"
+	log := s.log.With(slog.String("op", op))
+
+	invite, err := s.clubInviteStorage.GetJoinRequestsByClubInviteId(ctx, inviteId)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrInvalidID):
+			return eventService.ErrInvalidID
+		case errors.Is(err, storage.ErrInviteNotFound):
+			return eventService.ErrInviteNotFound
+		default:
+			log.Error("failed to get join requests by club invite id", logger.Err(err))
+			return err
+		}
+	}
+
+	event, err := s.eventStorage.GetEvent(ctx, invite.EventId)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrEventNotFound):
+			return eventService.ErrEventNotFound
+		case errors.Is(err, storage.ErrInvalidID):
+			return eventService.ErrInvalidID
+		default:
+			log.Error("failed to get event", logger.Err(err))
+			return err
+		}
+	}
+
+	if !event.IsOwner(userId) {
+		return eventService.ErrPermissionsDenied
+	}
+
+	err = s.inviteDeleter.DeleteInvite(ctx, inviteId)
+	if err != nil {
+		if errors.Is(err, storage.ErrInvalidID) {
+			return eventService.ErrInvalidID
+		}
+		log.Error("failed to delete invite", logger.Err(err))
+		return err
+	}
+
+	return nil
 }

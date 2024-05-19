@@ -115,18 +115,7 @@ func HandleInviteUser(value interface{}) error {
 
 }
 
-func RevokeInviteUser(value interface{}) error {
-	req, ok := value.(*eventv1.RevokeInviteRequest)
-	if !ok {
-		return validation.NewInternalError(errors.New("revoke invite invalid type"))
-	}
-	return validation.ValidateStruct(req,
-		validation.Field(&req.InviteId, validation.Required),
-		validation.Field(&req.UserId, validation.Required, validation.Min(0)),
-	)
-}
-
-func RevokeInviteClub(value interface{}) error {
+func RevokeInvite(value interface{}) error {
 	req, ok := value.(*eventv1.RevokeInviteRequest)
 	if !ok {
 		return validation.NewInternalError(errors.New("revoke invite invalid type"))

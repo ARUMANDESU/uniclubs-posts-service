@@ -65,9 +65,27 @@ func (s serverApi) HandleInviteClub(ctx context.Context, req *eventv1.HandleInvi
 	panic("implement me")
 }
 
-func (s serverApi) RevokeInviteClub(ctx context.Context, request *eventv1.RevokeInviteRequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+func (s serverApi) RevokeInviteClub(ctx context.Context, req *eventv1.RevokeInviteRequest) (*emptypb.Empty, error) {
+	err := validate.RevokeInvite(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	err = s.collaborator.RevokeInviteClub(ctx, req.GetInviteId(), req.GetUserId())
+	if err != nil {
+		switch {
+		case errors.Is(err, event.ErrEventNotFound), errors.Is(err, event.ErrInviteNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		case errors.Is(err, event.ErrInvalidID):
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		case errors.Is(err, event.ErrPermissionsDenied), errors.Is(err, event.ErrUserIsEventOwner):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
+		}
+	}
+
+	return &empty.Empty{}, nil
 }
 
 func (s serverApi) AddOrganizer(ctx context.Context, req *eventv1.AddOrganizerRequest) (*empty.Empty, error) {
@@ -156,7 +174,7 @@ func (s serverApi) HandleInviteUser(ctx context.Context, req *eventv1.HandleInvi
 }
 
 func (s serverApi) RevokeInviteUser(ctx context.Context, req *eventv1.RevokeInviteRequest) (*emptypb.Empty, error) {
-	err := validate.RevokeInviteUser(req)
+	err := validate.RevokeInvite(req)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}

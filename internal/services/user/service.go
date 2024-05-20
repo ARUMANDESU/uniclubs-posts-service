@@ -50,7 +50,6 @@ func (s Service) HandleUpdateUser(msg amqp091.Delivery) error {
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrUserNotExists):
-			log.Error("user not found", logger.Err(err))
 			return fmt.Errorf("%s: %w", op, ErrUserNotExist)
 		default:
 			log.Error("failed to update user", logger.Err(err))

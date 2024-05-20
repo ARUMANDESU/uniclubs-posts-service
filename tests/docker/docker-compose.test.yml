@@ -1,0 +1,34 @@
+version: '3.8'
+name: 'usms-posts-test'
+
+services:
+  mongo:
+    image: mongo
+    container_name: "mongo-test"
+    restart: always
+    ports:
+      - "38028:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: test
+      MONGO_INITDB_ROOT_PASSWORD: test
+    networks:
+      - app
+
+  mongo-express:
+    image: mongo-express
+    container_name: "mongo-express-test"
+    restart: always
+    ports:
+      - "8083:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: test
+      ME_CONFIG_MONGODB_ADMINPASSWORD: test
+      ME_CONFIG_MONGODB_URL: mongodb://test:test@mongo-test:27017/
+      ME_CONFIG_BASICAUTH: false
+    networks:
+      - app
+
+
+
+networks:
+  app:

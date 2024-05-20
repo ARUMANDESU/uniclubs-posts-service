@@ -1,13 +1,3 @@
-github.com/ARUMANDESU/uniclubs-protos v0.4.8 h1:6LNxUvzr0yFNQ0vL1e4cS5dllMUlQtDM7Rx4lnEaAts=
-github.com/ARUMANDESU/uniclubs-protos v0.4.8/go.mod h1:Isf2QP9zEZIGAIffCnTbDRY8A/S7lpyofaC9c5vva50=
-github.com/ARUMANDESU/uniclubs-protos v0.5.0 h1:kLcGv2z7cKTNYeGcFAhdDVmlrfG3dn7kxQU9snvqkgo=
-github.com/ARUMANDESU/uniclubs-protos v0.5.0/go.mod h1:Isf2QP9zEZIGAIffCnTbDRY8A/S7lpyofaC9c5vva50=
-github.com/ARUMANDESU/uniclubs-protos v0.5.1 h1:Z8tlEf6+R5KK5RryK85e8GVaudCYoKzVjc3fPVrZp+w=
-github.com/ARUMANDESU/uniclubs-protos v0.5.1/go.mod h1:Isf2QP9zEZIGAIffCnTbDRY8A/S7lpyofaC9c5vva50=
-github.com/ARUMANDESU/uniclubs-protos v0.5.3 h1:PCP2a5n6WC442B++ekVzBxzzJs6/uMuUjt45Fgg4bOw=
-github.com/ARUMANDESU/uniclubs-protos v0.5.3/go.mod h1:Isf2QP9zEZIGAIffCnTbDRY8A/S7lpyofaC9c5vva50=
-github.com/ARUMANDESU/uniclubs-protos v0.5.4-0.20240519184510-fc7bc8819996 h1:i1XhrpWO38ScyV82Suf7qsbG5VplF48dehunKTnylWs=
-github.com/ARUMANDESU/uniclubs-protos v0.5.4-0.20240519184510-fc7bc8819996/go.mod h1:Isf2QP9zEZIGAIffCnTbDRY8A/S7lpyofaC9c5vva50=
 github.com/ARUMANDESU/uniclubs-protos v0.5.5 h1:KgAJf3mVPUg3VbPsKY2U0q47Nu2QiRB8YG2lZkrC66g=
 github.com/ARUMANDESU/uniclubs-protos v0.5.5/go.mod h1:Isf2QP9zEZIGAIffCnTbDRY8A/S7lpyofaC9c5vva50=
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
@@ -44,6 +34,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/rabbitmq/amqp091-go v1.10.0 h1:STpn5XsHlHGcecLmMFCtg7mqq0RnD+zFr4uzukfVhBw=
 github.com/rabbitmq/amqp091-go v1.10.0/go.mod h1:Hy4jKW5kQART1u+JkDTF9YYOQUHXqMuhrgxOEeS7G4o=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
+github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
+github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=

@@ -11,10 +11,15 @@ tasks:
       - dev
     cmd: go run cmd/main.go --config=./config/dev.yaml
 
-  run:enviroment:
+  run:environment:
     aliases:
       - env
     cmd: go run cmd/main.go
+
+  run:test:
+    aliases:
+      - test
+    cmd: go run cmd/main.go --env=.env.test
 
   docker-image:
     aliases:

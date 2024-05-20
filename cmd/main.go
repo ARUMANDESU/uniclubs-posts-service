@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/arumandesu/uniclubs-posts-service/internal/app"
 	"github.com/arumandesu/uniclubs-posts-service/internal/config"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
@@ -12,10 +14,14 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
+	var env string
+	flag.StringVar(&env, "env", ".env", "environment variables file")
+	flag.Parse()
+
+	err := godotenv.Load(env)
 	if err != nil {
 		log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-		log.Error("error loading .env file")
+		log.Error(fmt.Sprintf("error loading .env file: %v", err))
 	}
 
 	cfg := config.MustLoad()

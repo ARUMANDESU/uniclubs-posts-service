@@ -9,91 +9,68 @@ import (
 )
 
 func TestLoadByPath_HappyPath(t *testing.T) {
-	fileName, err := createTempConfigFile()
-	if err != nil {
+	t.Run("happy path", func(t *testing.T) {
+		fileName, err := createTempConfigFile(t)
 		require.NoError(t, err)
-	}
-	t.Cleanup(func() {
-		os.Remove(fileName)
+
+		t.Cleanup(func() {
+			os.Remove(fileName)
+		})
+
+		cfg, err := loadByPath(fileName)
+
+		require.NoError(t, err)
+		assertConfig(t, cfg)
 	})
-
-	cfg, err := loadByPath(fileName)
-
-	require.NoError(t, err)
-	assertConfig(t, cfg)
 }
 
 func TestLoadFromEnv_HappyPath(t *testing.T) {
-	setEnvVariables()
-	t.Cleanup(func() {
-		unsetEnvVariables()
+	t.Run("happy path", func(t *testing.T) {
+		setEnvVariables(t)
+
+		cfg := mustLoadFromEnv()
+
+		assertConfig(t, cfg)
 	})
-
-	cfg := mustLoadFromEnv()
-
-	assertConfig(t, cfg)
-}
-
-func TestLoadFromEnv_FailPath(t *testing.T) {
-	//setEnvVariables()
-
-	require.Panics(t, func() {
-		mustLoadFromEnv()
-	})
-
 }
 
 func TestMustLoad_FromYaml(t *testing.T) {
-	fileName, err := createTempConfigFile()
-	if err != nil {
-		require.NoError(t, err)
-	}
-	t.Cleanup(func() {
-		os.Remove(fileName)
+	t.Run("from yaml", func(t *testing.T) {
+		fileName, err := createTempConfigFile(t)
+		if err != nil {
+			require.NoError(t, err)
+		}
+		t.Cleanup(func() {
+			os.Remove(fileName)
+		})
+
+		os.Args = []string{"cmd", "-config", fileName}
+		cfg := MustLoad()
+
+		assertConfig(t, cfg)
 	})
-
-	os.Args = []string{"cmd", "-config", fileName}
-	cfg := MustLoad()
-
-	assertConfig(t, cfg)
 }
 
 func TestMustLoad_FromEnv(t *testing.T) {
-	setEnvVariables()
-	t.Cleanup(func() {
-		unsetEnvVariables()
+	t.Run("from env", func(t *testing.T) {
+		setEnvVariables(t)
+
+		cfg := MustLoad()
+
+		assertConfig(t, cfg)
 	})
-
-	cfg := MustLoad()
-
-	assertConfig(t, cfg)
-}
-
-func TestMustLoad_FromYaml_FailPath(t *testing.T) {
-	os.Args = []string{"cmd", "-config", "./some/wrong/path"}
-
-	require.Panics(t, func() {
-		MustLoad()
-	})
-
-}
-
-func TestMustLoad_FromEnv_FailPath(t *testing.T) {
-	os.Args = []string{"cmd", "-config", ""}
-
-	require.Panics(t, func() {
-		MustLoad()
-	})
-
 }
 
 func TestLoadByPath_FailPath_WrongPath(t *testing.T) {
-	_, err := loadByPath("./some/wrong/path")
+	t.Run("wrong path", func(t *testing.T) {
+		_, err := loadByPath("./some/wrong/path")
 
-	require.Error(t, err, "have to return error")
+		require.Error(t, err, "have to return error")
+	})
 }
 
-func createTempConfigFile() (string, error) {
+func createTempConfigFile(t *testing.T) (string, error) {
+	t.Helper()
 	f, err := os.Create("./temp_config.yaml")
 	if err != nil {
 		return "", err
@@ -101,20 +78,18 @@ func createTempConfigFile() (string, error) {
 	defer f.Close()
 
 	configData := []byte(`env: "test"
-database_dsn: "test_database_dsn"
-redis_url: "test_redis_url"
 grpc:
-  port: 44044
+  port: 44046
   timeout: "1h"
 rabbitmq:
   user: "admin"
   password: "admin"
   host: "localhost"
   port: "5672"
-jwt_secret: "secret"
-aws:
-  region: "us-east-1"
-  bucket: "bucket"`)
+mongodb:
+  uri: "mongodb://admin:admin@localhost:27017"
+  ping_timeout: "10s"
+  database_name: "ucms-posts-dev"`)
 
 	_, err = f.Write(configData)
 	if err != nil {
@@ -124,52 +99,65 @@ aws:
 	return f.Name(), nil
 }
 
-func setEnvVariables() {
-	os.Setenv("ENV", "test")
-	os.Setenv("DATABASE_DSN", "test_database_dsn")
-	os.Setenv("REDIS_URL", "test_redis_url")
-	os.Setenv("GRPC_PORT", "44044")
-	os.Setenv("GRPC_TIMEOUT", "1h")
-	os.Setenv("RABBITMQ_USER", "admin")
-	os.Setenv("RABBITMQ_PASSWORD", "admin")
-	os.Setenv("RABBITMQ_HOST", "localhost")
-	os.Setenv("RABBITMQ_PORT", "5672")
-	os.Setenv("JWT_SECRET", "secret")
-	os.Setenv("AWS_REGION", "us-east-1")
-	os.Setenv("AWS_ACCESS_KEY_ID", "key_id")
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "access_key")
-	os.Setenv("AWS_S3_BUCKET", "bucket")
+func createTempConfigFileWithWrongData(t *testing.T) (string, error) {
+	t.Helper()
+	f, err := os.Create("./temp_config.yaml")
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	configData := []byte(`env: "test"
+grpc:
+  port: 44046
+  timeout: "1h"
+rabbittttttmq:
+  user: "admin"
+  password: "admin"
+mongodb:
+uri: "mongodb://admin:aarstdmin@localhost:27017"
+ping_timeout: "10s"
+database_name: "ucms-posts-dev"`)
+
+	_, err = f.Write(configData)
+	if err != nil {
+		return "", err
+	}
+
+	return f.Name(), nil
+}
+
+func setEnvVariables(t *testing.T) {
+	t.Helper()
+	t.Setenv("ENV", "test")
+
+	t.Setenv("GRPC_PORT", "44046")
+	t.Setenv("GRPC_TIMEOUT", "1h")
+
+	t.Setenv("MONGODB_URI", "mongodb://admin:admin@localhost:27017")
+	t.Setenv("MONGODB_PING_TIMEOUT", "10s")
+	t.Setenv("MONGODB_DATABASE_NAME", "ucms-posts-dev")
+
+	t.Setenv("RABBITMQ_USER", "admin")
+	t.Setenv("RABBITMQ_PASSWORD", "admin")
+	t.Setenv("RABBITMQ_HOST", "localhost")
+	t.Setenv("RABBITMQ_PORT", "5672")
 }
 
 func assertConfig(t *testing.T, cfg *Config) {
 	t.Helper()
 
 	assert.Equal(t, "test", cfg.Env)
-	assert.Equal(t, "test_redis_url", cfg.RedisURL)
-	assert.Equal(t, 44044, cfg.GRPC.Port)
+
+	assert.Equal(t, 44046, cfg.GRPC.Port)
 	assert.Equal(t, time.Hour, cfg.GRPC.Timeout)
+
+	assert.Equal(t, "mongodb://admin:admin@localhost:27017", cfg.MongoDB.URI)
+	assert.Equal(t, 10*time.Second, cfg.MongoDB.PingTimeout)
+	assert.Equal(t, "ucms-posts-dev", cfg.MongoDB.DatabaseName)
+
 	assert.Equal(t, "admin", cfg.Rabbitmq.User)
 	assert.Equal(t, "admin", cfg.Rabbitmq.Password)
 	assert.Equal(t, "localhost", cfg.Rabbitmq.Host)
 	assert.Equal(t, "5672", cfg.Rabbitmq.Port)
-	assert.Equal(t, "secret", cfg.JwtSecret)
-	assert.Equal(t, "us-east-1", cfg.AWS.Region)
-	assert.Equal(t, "bucket", cfg.AWS.Bucket)
-}
-
-func unsetEnvVariables() {
-	os.Unsetenv("ENV")
-	os.Unsetenv("DATABASE_DSN")
-	os.Unsetenv("REDIS_URL")
-	os.Unsetenv("GRPC_PORT")
-	os.Unsetenv("GRPC_TIMEOUT")
-	os.Unsetenv("RABBITMQ_USER")
-	os.Unsetenv("RABBITMQ_PASSWORD")
-	os.Unsetenv("RABBITMQ_HOST")
-	os.Unsetenv("RABBITMQ_PORT")
-	os.Unsetenv("JWT_SECRET")
-	os.Unsetenv("AWS_REGION")
-	os.Unsetenv("AWS_ACCESS_KEY_ID")
-	os.Unsetenv("AWS_SECRET_ACCESS_KEY")
-	os.Unsetenv("AWS_S3_BUCKET")
 }

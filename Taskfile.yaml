@@ -31,3 +31,6 @@ tasks:
 
   test:unit:
     cmd: go test -v ./...
+
+  test:integration:
+    cmd: go test -v ./tests/...

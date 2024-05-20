@@ -26,6 +26,8 @@ func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (
 		switch {
 		case errors.Is(err, eventservice.ErrEventNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
+		case errors.Is(err, eventservice.ErrInvalidID):
+			return nil, status.Error(codes.InvalidArgument, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")
 		}

@@ -36,6 +36,11 @@ func New(t *testing.T) (context.Context, *Suite) {
 		log.Error(fmt.Sprintf("error loading .env file: %v", err))
 	}
 
+	env := os.Getenv("ENV")
+	if env != "test" {
+		t.Skip("set ENV to test to run this test")
+	}
+
 	cfg := config.MustLoad()
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.GRPC.Timeout)

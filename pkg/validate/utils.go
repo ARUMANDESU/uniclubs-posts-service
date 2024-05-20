@@ -15,7 +15,7 @@ func user(value interface{}) error {
 		return validation.NewInternalError(errors.New("user invalid type"))
 	}
 	return validation.ValidateStruct(u,
-		validation.Field(&u.Id, validation.Required, validation.Min(0)),
+		validation.Field(&u.Id, validation.Required, validation.Min(1)),
 		validation.Field(&u.FirstName, validation.Required),
 		validation.Field(&u.LastName, validation.Required),
 		validation.Field(&u.Barcode, validation.Required),
@@ -28,7 +28,7 @@ func club(value interface{}) error {
 		return validation.NewInternalError(errors.New("club invalid type"))
 	}
 	return validation.ValidateStruct(c,
-		validation.Field(&c.Id, validation.Required, validation.Min(0)),
+		validation.Field(&c.Id, validation.Required, validation.Min(1)),
 		validation.Field(&c.Name, validation.Required),
 	)
 }

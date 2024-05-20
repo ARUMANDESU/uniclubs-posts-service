@@ -116,5 +116,7 @@ func (s *Storage) DeleteEventById(ctx context.Context, eventId string) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
+	//todo: delete invites related to the event
+
 	return nil
 }

@@ -24,7 +24,7 @@ func (s *Storage) CreateEvent(ctx context.Context, club *domain.Club, user *doma
 		OwnerId:   user.ID,
 		UpdatedAt: time.Now(),
 		CreatedAt: time.Now(),
-		Status:    domain.EventStatusDraft,
+		Status:    domain.EventStatusDraft.String(),
 	}
 
 	event.AddOrganizer(dao.OrganizerFromDomainUser(*user, club.ID))

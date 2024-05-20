@@ -2,6 +2,7 @@ package dto
 
 import (
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
+	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"testing"
@@ -32,7 +33,7 @@ func TestUpdateToDTO(t *testing.T) {
 	assert.Equal(t, event.GetUserId(), dto.UserId)
 	assert.Equal(t, event.GetTitle(), dto.Title)
 	assert.Equal(t, event.GetDescription(), dto.Description)
-	assert.Equal(t, event.GetType(), dto.Type)
+	assert.Equal(t, domain.EventType(event.GetType()), dto.Type)
 	assert.Equal(t, event.GetTags(), dto.Tags)
 	assert.Equal(t, uint32(event.GetMaxParticipants()), dto.MaxParticipants)
 	assert.Equal(t, event.GetLocationLink(), dto.LocationLink)

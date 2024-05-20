@@ -32,5 +32,9 @@ tasks:
   test:unit:
     cmd: go test -v -short ./...
 
+  test:unit:race:
+    cmd: go test -v -race -short ./...
+
+
   test:integration:
     cmd: go test -v ./tests/...

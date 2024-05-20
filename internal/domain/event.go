@@ -8,16 +8,26 @@ import (
 const timeLayout = "2006-01-02 15:04:05.999999999 -0700 MST"
 
 type EventStatus string
+type EventType string
 
 const (
-	EventStatusDraft     = "DRAFT"
-	EventStatusPublished = "PUBLISHED"
-	EventStatusCanceled  = "CANCELED"
-	EventStatusArchived  = "ARCHIVED"
+	EventStatusDraft      EventStatus = "DRAFT"
+	EventStatusPending    EventStatus = "PENDING"
+	EventStatusInProgress EventStatus = "IN_PROGRESS"
+	EventStatusFinished   EventStatus = "FINISHED"
+	EventStatusCanceled   EventStatus = "CANCELED"
+	EventStatusArchived   EventStatus = "ARCHIVED"
+
+	EventTypeUniversity EventType = "UNIVERSITY"
+	EventTypeIntraClub  EventType = "INTRA_CLUB"
 )
 
 func (s EventStatus) String() string {
 	return string(s)
+}
+
+func (t EventType) String() string {
+	return string(t)
 }
 
 type Event struct {
@@ -28,7 +38,7 @@ type Event struct {
 	Organizers         []Organizer  `json:"organizers"`
 	Title              string       `json:"title,omitempty"`
 	Description        string       `json:"description,omitempty"`
-	Type               string       `json:"type,omitempty"`
+	Type               EventType    `json:"type,omitempty"`
 	Status             EventStatus  `json:"status,omitempty"`
 	Tags               []string     `json:"tags,omitempty"`
 	MaxParticipants    uint32       `json:"max_participants,omitempty"`
@@ -148,6 +158,10 @@ func (e *Event) RemoveCollaborator(clubId int64) error {
 	return ErrCollaboratorNotFound
 }
 
+func (e *Event) ChangeStatus(status EventStatus) {
+	e.Status = status
+}
+
 func (e *Event) ToProto() *eventv1.EventObject {
 	return &eventv1.EventObject{
 		Id:                 e.ID,
@@ -157,7 +171,7 @@ func (e *Event) ToProto() *eventv1.EventObject {
 		Organizers:         OrganizersToProto(e.Organizers),
 		Title:              e.Title,
 		Description:        e.Description,
-		Type:               e.Type,
+		Type:               e.Type.String(),
 		Tags:               e.Tags,
 		Status:             e.Status.String(),
 		MaxParticipants:    e.MaxParticipants,

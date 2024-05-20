@@ -478,7 +478,7 @@ func TestEventFilter_ValidRequest(t *testing.T) {
 				Tags:     []string{"tag1", "tag2"},
 				FromDate: time.Now().Format(time.RFC3339),
 				TillDate: time.Now().Add(24 * time.Hour).Format(time.RFC3339),
-				Status:   domain.EventStatusPublished,
+				Status:   domain.EventStatusInProgress.String(),
 			},
 		},
 		{
@@ -488,7 +488,7 @@ func TestEventFilter_ValidRequest(t *testing.T) {
 				ClubId:   1,
 				FromDate: time.Now().Format(time.RFC3339),
 				TillDate: time.Now().Add(24 * time.Hour).Format(time.RFC3339),
-				Status:   domain.EventStatusPublished,
+				Status:   domain.EventStatusInProgress.String(),
 			},
 		},
 		{
@@ -497,7 +497,7 @@ func TestEventFilter_ValidRequest(t *testing.T) {
 				UserId: 1,
 				ClubId: 1,
 				Tags:   []string{"tag1", "tag2"},
-				Status: domain.EventStatusPublished,
+				Status: domain.EventStatusInProgress.String(),
 			},
 		},
 		{

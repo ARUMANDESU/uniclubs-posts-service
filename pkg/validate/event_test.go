@@ -2,6 +2,7 @@ package validate
 
 import (
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
+	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -99,7 +100,7 @@ func TestUpdateEventWithValidRequest(t *testing.T) {
 		UserId:             1,
 		Title:              "Test Title",
 		Description:        "Test Description",
-		Type:               "university",
+		Type:               domain.EventTypeUniversity.String(),
 		Tags:               []string{"tag1", "tag2"},
 		MaxParticipants:    100,
 		StartDate:          "2022-01-01T00:00:00Z",
@@ -395,6 +396,99 @@ func TestListEvents_InvalidRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ListEvents(tt.req)
 			assert.Error(t, err)
+		})
+	}
+}
+
+func TestPublishEvent_ValidRequest(t *testing.T) {
+	event := &domain.Event{
+		Status:    domain.EventStatusDraft,
+		Title:     "Test Title",
+		Type:      domain.EventTypeUniversity,
+		StartDate: time.Now(),
+		EndDate:   time.Now(),
+		CoverImages: []domain.CoverImage{
+			{
+				File: domain.File{
+					Url:  "https://example.com/image.jpg",
+					Name: "Test Image",
+					Type: "image/jpeg",
+				},
+				Position: 1,
+			},
+		},
+	}
+
+	err := PublishEvent(event)
+	assert.Nil(t, err)
+}
+
+func TestPublishEvent_InvalidType(t *testing.T) {
+	event := "Invalid Type"
+	err := PublishEvent(event)
+	assert.NotNil(t, err)
+}
+
+func TestPublishEvent_Invalid(t *testing.T) {
+	tests := []struct {
+		name  string
+		event *domain.Event
+	}{
+		{
+			name: "Invalid Status",
+			event: &domain.Event{
+				Status: "Invalid Status",
+			},
+		},
+		{
+			name: "Invalid Title",
+			event: &domain.Event{
+				Status: domain.EventStatusDraft,
+				Title:  "",
+			},
+		},
+		{
+			name: "Invalid Type",
+			event: &domain.Event{
+				Status: domain.EventStatusDraft,
+				Title:  "Test Title",
+				Type:   "Invalid Type",
+			},
+		},
+		{
+			name: "Invalid StartDate",
+			event: &domain.Event{
+				Status: domain.EventStatusDraft,
+				Title:  "Test Title",
+				Type:   domain.EventTypeUniversity,
+			},
+		},
+		{
+			name: "Invalid EndDate",
+			event: &domain.Event{
+				Status:    domain.EventStatusDraft,
+				Title:     "Test Title",
+				Type:      domain.EventTypeUniversity,
+				StartDate: time.Now(),
+			},
+		},
+		{
+			name: "Invalid CoverImages",
+			event: &domain.Event{
+				Status:      domain.EventStatusDraft,
+				Title:       "Test Title",
+				Type:        domain.EventTypeUniversity,
+				StartDate:   time.Now(),
+				EndDate:     time.Now(),
+				CoverImages: []domain.CoverImage{},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := PublishEvent(tt.event)
+			assert.NotNil(t, err)
 		})
 	}
 }

@@ -10,7 +10,7 @@ type UpdateEvent struct {
 	UserId             int64               `json:"user_id"`
 	Title              string              `json:"title"`
 	Description        string              `json:"description"`
-	Type               string              `json:"type"`
+	Type               domain.EventType    `json:"type"`
 	Tags               []string            `json:"tags"`
 	MaxParticipants    uint32              `json:"max_participants"`
 	LocationLink       string              `json:"location_link"`
@@ -48,7 +48,7 @@ func UpdateToDTO(event *eventv1.UpdateEventRequest) *UpdateEvent {
 		UserId:             event.GetUserId(),
 		Title:              event.GetTitle(),
 		Description:        event.GetDescription(),
-		Type:               event.GetType(),
+		Type:               domain.EventType(event.GetType()),
 		Tags:               event.GetTags(),
 		MaxParticipants:    uint32(event.GetMaxParticipants()),
 		LocationLink:       event.GetLocationLink(),

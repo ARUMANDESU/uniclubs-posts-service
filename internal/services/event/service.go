@@ -20,4 +20,6 @@ var (
 	ErrCollaboratorNotFound    = errors.New("collaborator not found, club is not collaborator ")
 	ErrOrganizerNotFound       = errors.New("organizer not found")
 	ErrClubMismatch            = errors.New("club mismatch")
+	ErrInvalidEventStatus      = errors.New("invalid event status")
+	ErrEventInvalidFields      = errors.New("invalid event fields")
 )

@@ -95,6 +95,13 @@ func eventFilter(value interface{}) error {
 		validation.Field(&req.Tags, validation.Each(validation.Length(MinTagsLength, MaxTagsLength))),
 		validation.Field(&req.FromDate, validation.Date(time.RFC3339)),
 		validation.Field(&req.TillDate, validation.Date(time.RFC3339)),
-		validation.Field(&req.Status, validation.In(domain.EventStatusPublished, domain.EventStatusArchived).Error("status must be PUBLISHED or ARCHIVED")),
+		validation.Field(&req.Status,
+			validation.In(
+				domain.EventStatusDraft.String(),
+				domain.EventStatusPending.String(),
+				domain.EventStatusInProgress.String(),
+				domain.EventStatusFinished.String(),
+				domain.EventStatusArchived.String(),
+			).Error("event status must be DRAFT, PENDING, IN_PROGRESS, FINISHED or ARCHIVED")),
 	)
 }

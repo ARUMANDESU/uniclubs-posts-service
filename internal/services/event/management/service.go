@@ -3,9 +3,11 @@ package management
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
+	"github.com/arumandesu/uniclubs-posts-service/pkg/validate"
 	"log/slog"
 	"time"
 
@@ -159,4 +161,48 @@ func (s Service) DeleteEvent(ctx context.Context, eventId string, userId int64) 
 	}
 
 	return event, nil
+}
+
+func (s Service) PublishEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error) {
+	const op = "services.event.management.publishEvent"
+	log := s.log.With(slog.String("op", op))
+
+	event, err := s.eventStorage.GetEvent(ctx, eventId)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrEventNotFound):
+			return nil, eventservice.ErrEventNotFound
+		case errors.Is(err, storage.ErrInvalidID):
+			return nil, eventservice.ErrInvalidID
+		default:
+			log.Error("failed to get event", logger.Err(err))
+			return nil, err
+		}
+	}
+
+	if !event.IsOwner(userId) {
+		return nil, eventservice.ErrUserIsNotEventOwner
+	}
+
+	err = validate.PublishEvent(event)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", eventservice.ErrEventInvalidFields, err)
+	}
+
+	event.ChangeStatus(domain.EventStatusPending)
+
+	updateCtx, cancel := context.WithTimeout(ctx, 7*time.Second)
+	defer cancel()
+	updatedEvent, err := s.eventStorage.UpdateEvent(updateCtx, event)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrOptimisticLockingFailed):
+			return nil, eventservice.ErrEventUpdateConflict
+		default:
+			log.Error("failed to update event", logger.Err(err))
+			return nil, err
+		}
+	}
+
+	return updatedEvent, nil
 }

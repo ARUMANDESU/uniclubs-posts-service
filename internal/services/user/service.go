@@ -1,4 +1,4 @@
-package user
+package userservice
 
 import (
 	"context"
@@ -12,10 +12,7 @@ import (
 	"log/slog"
 )
 
-var (
-	ErrUserExists   = errors.New("user already exists")
-	ErrUserNotExist = errors.New("user does not exist")
-)
+var ErrUserNotExist = errors.New("user does not exist")
 
 type Service struct {
 	log        *slog.Logger

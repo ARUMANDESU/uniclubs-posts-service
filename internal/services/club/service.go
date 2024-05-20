@@ -1,4 +1,4 @@
-package club
+package clubservice
 
 import (
 	"context"

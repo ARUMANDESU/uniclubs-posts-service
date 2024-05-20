@@ -39,3 +39,13 @@ func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
 		invitesCollection: inviteCollection,
 	}, nil
 }
+
+func (s *Storage) Close(ctx context.Context) error {
+	const op = "storage.mongodb.close"
+
+	if err := s.client.Disconnect(ctx); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}

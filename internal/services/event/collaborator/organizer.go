@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
-	eventService "github.com/arumandesu/uniclubs-posts-service/internal/services/event"
+	"github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
 	"log/slog"
@@ -21,9 +21,9 @@ func (s Service) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, eventService.ErrEventNotFound
+			return nil, eventservice.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, eventService.ErrInvalidID
+			return nil, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return nil, err
@@ -32,19 +32,19 @@ func (s Service) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 
 	// Check if the user is event owner or organizer
 	if !event.IsOrganizer(dto.UserId) {
-		return nil, eventService.ErrPermissionsDenied
+		return nil, eventservice.ErrPermissionsDenied
 	}
 
 	// Check if the target user is already an organizer
 	if event.IsOrganizer(dto.Target.ID) {
-		return nil, eventService.ErrUserAlreadyOrganizer
+		return nil, eventservice.ErrUserAlreadyOrganizer
 	}
 
 	userInvite, err := s.userInviteStorage.GetJoinRequestByUserId(ctx, dto.EventId, dto.Target.ID)
 	if err != nil && !errors.Is(err, storage.ErrInviteNotFound) {
 		switch {
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, eventService.ErrInvalidID
+			return nil, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get join request by user id", logger.Err(err))
 			return nil, err
@@ -52,16 +52,16 @@ func (s Service) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 	}
 
 	if userInvite != nil {
-		return nil, eventService.ErrInviteAlreadyExists
+		return nil, eventservice.ErrInviteAlreadyExists
 	}
 
 	organizer := event.GetOrganizerById(dto.UserId)
 	if organizer == nil {
-		return nil, eventService.ErrPermissionsDenied
+		return nil, eventservice.ErrPermissionsDenied
 	}
 
 	if organizer.ClubId != dto.TargetClubId {
-		return nil, eventService.ErrUserIsFromAnotherClub
+		return nil, eventservice.ErrUserIsFromAnotherClub
 	}
 
 	sendJoinRequestCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
@@ -70,7 +70,7 @@ func (s Service) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinReq
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, eventService.ErrInvalidID
+			return nil, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to send join request", logger.Err(err))
 			return nil, err
@@ -90,9 +90,9 @@ func (s Service) AcceptUserJoinRequest(ctx context.Context, inviteId string, use
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInviteNotFound):
-			return domain.Event{}, eventService.ErrInviteNotFound
+			return domain.Event{}, eventservice.ErrInviteNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return domain.Event{}, eventService.ErrInvalidID
+			return domain.Event{}, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get join request by id", logger.Err(err))
 			return domain.Event{}, err
@@ -100,16 +100,16 @@ func (s Service) AcceptUserJoinRequest(ctx context.Context, inviteId string, use
 	}
 
 	if !invite.IsInvited(userId) {
-		return domain.Event{}, eventService.ErrPermissionsDenied
+		return domain.Event{}, eventservice.ErrPermissionsDenied
 	}
 
 	event, err := s.eventStorage.GetEvent(ctx, invite.EventId)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return domain.Event{}, eventService.ErrEventNotFound
+			return domain.Event{}, eventservice.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return domain.Event{}, eventService.ErrInvalidID
+			return domain.Event{}, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return domain.Event{}, err
@@ -117,7 +117,7 @@ func (s Service) AcceptUserJoinRequest(ctx context.Context, inviteId string, use
 	}
 
 	if event.IsOrganizer(invite.User.ID) {
-		return domain.Event{}, eventService.ErrUserAlreadyOrganizer
+		return domain.Event{}, eventservice.ErrUserAlreadyOrganizer
 	}
 
 	var wg sync.WaitGroup
@@ -161,11 +161,11 @@ func (s Service) AcceptUserJoinRequest(ctx context.Context, inviteId string, use
 		if err != nil {
 			switch {
 			case errors.Is(err, storage.ErrInviteNotFound):
-				return domain.Event{}, eventService.ErrInviteNotFound
+				return domain.Event{}, eventservice.ErrInviteNotFound
 			case errors.Is(err, storage.ErrInvalidID):
-				return domain.Event{}, eventService.ErrInvalidID
+				return domain.Event{}, eventservice.ErrInvalidID
 			case errors.Is(err, storage.ErrOptimisticLockingFailed):
-				return domain.Event{}, eventService.ErrEventUpdateConflict
+				return domain.Event{}, eventservice.ErrEventUpdateConflict
 			default:
 				log.Error("failed to accept join request", logger.Err(err))
 				return domain.Event{}, err
@@ -183,16 +183,16 @@ func (s Service) RejectUserJoinRequest(ctx context.Context, inviteId string, use
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInviteNotFound):
-			return domain.Event{}, eventService.ErrInviteNotFound
+			return domain.Event{}, eventservice.ErrInviteNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return domain.Event{}, eventService.ErrInvalidID
+			return domain.Event{}, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get join request by id", logger.Err(err))
 			return domain.Event{}, err
 		}
 	}
 	if !invite.IsInvited(userId) {
-		return domain.Event{}, eventService.ErrPermissionsDenied
+		return domain.Event{}, eventservice.ErrPermissionsDenied
 	}
 
 	deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -202,9 +202,9 @@ func (s Service) RejectUserJoinRequest(ctx context.Context, inviteId string, use
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInviteNotFound):
-			return domain.Event{}, eventService.ErrInviteNotFound
+			return domain.Event{}, eventservice.ErrInviteNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return domain.Event{}, eventService.ErrInvalidID
+			return domain.Event{}, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to delete join request", logger.Err(err))
 			return domain.Event{}, err
@@ -222,9 +222,9 @@ func (s Service) KickOrganizer(ctx context.Context, eventId string, userId, targ
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, eventService.ErrEventNotFound
+			return nil, eventservice.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, eventService.ErrInvalidID
+			return nil, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return nil, err
@@ -232,25 +232,25 @@ func (s Service) KickOrganizer(ctx context.Context, eventId string, userId, targ
 	}
 
 	if !event.IsOrganizer(userId) {
-		return nil, eventService.ErrPermissionsDenied
+		return nil, eventservice.ErrPermissionsDenied
 	}
 
 	target := event.GetOrganizerById(targetId)
 	if target == nil {
-		return nil, eventService.ErrUserIsNotEventOrganizer
+		return nil, eventservice.ErrUserIsNotEventOrganizer
 	}
 
 	if !(target.IsByWho(userId) || event.IsOwner(userId)) {
-		return nil, eventService.ErrPermissionsDenied
+		return nil, eventservice.ErrPermissionsDenied
 	}
 
 	err = event.RemoveOrganizer(targetId)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrOrganizerNotFound):
-			return nil, eventService.ErrUserIsNotEventOrganizer
+			return nil, eventservice.ErrUserIsNotEventOrganizer
 		case errors.Is(err, domain.ErrOrganizersEmpty):
-			return nil, eventService.ErrOrganizerNotFound
+			return nil, eventservice.ErrOrganizerNotFound
 		default:
 			log.Error("failed to remove organizer", logger.Err(err))
 			return nil, err
@@ -263,7 +263,7 @@ func (s Service) KickOrganizer(ctx context.Context, eventId string, userId, targ
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrOptimisticLockingFailed):
-			return nil, eventService.ErrEventUpdateConflict
+			return nil, eventservice.ErrEventUpdateConflict
 		default:
 			log.Error("failed to update event", logger.Err(err))
 			return nil, err
@@ -281,9 +281,9 @@ func (s Service) RevokeInviteOrganizer(ctx context.Context, inviteId string, use
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInviteNotFound):
-			return eventService.ErrInviteNotFound
+			return eventservice.ErrInviteNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return eventService.ErrInvalidID
+			return eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get join request by id", logger.Err(err))
 			return err
@@ -291,7 +291,7 @@ func (s Service) RevokeInviteOrganizer(ctx context.Context, inviteId string, use
 	}
 
 	if invite.IsByWho(userId) {
-		return eventService.ErrPermissionsDenied
+		return eventservice.ErrPermissionsDenied
 	}
 
 	deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -300,7 +300,7 @@ func (s Service) RevokeInviteOrganizer(ctx context.Context, inviteId string, use
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInvalidID):
-			return eventService.ErrInvalidID
+			return eventservice.ErrInvalidID
 		default:
 			log.Error("failed to delete join request", logger.Err(err))
 			return err

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
-	eventService "github.com/arumandesu/uniclubs-posts-service/internal/services/event"
+	"github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
 	"log/slog"
@@ -34,9 +34,9 @@ func (s Service) GetEvent(ctx context.Context, eventId string, userId int64) (*d
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, eventService.ErrEventNotFound
+			return nil, eventservice.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, eventService.ErrInvalidID
+			return nil, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return nil, err
@@ -44,7 +44,7 @@ func (s Service) GetEvent(ctx context.Context, eventId string, userId int64) (*d
 	}
 
 	if !event.IsOrganizer(userId) && event.Status == domain.EventStatusDraft {
-		return nil, eventService.ErrEventNotFound
+		return nil, eventservice.ErrEventNotFound
 	}
 
 	return event, nil

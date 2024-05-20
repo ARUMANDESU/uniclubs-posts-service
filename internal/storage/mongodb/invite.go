@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func (s Storage) CreateJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.UserInvite, error) {
+func (s *Storage) CreateJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.UserInvite, error) {
 	const op = "storage.mongodb.sendJoinRequestToUser"
 
 	eventObjectId, err := primitive.ObjectIDFromHex(dto.EventId)
@@ -40,7 +40,7 @@ func (s Storage) CreateJoinRequestToUser(ctx context.Context, dto *dto.SendJoinR
 	return dao.ToDomainUserInvite(invite), nil
 }
 
-func (s Storage) GetUserJoinRequests(ctx context.Context, eventId string) ([]domain.UserInvite, error) {
+func (s *Storage) GetUserJoinRequests(ctx context.Context, eventId string) ([]domain.UserInvite, error) {
 	const op = "storage.mongodb.getJoinRequests"
 
 	find, err := s.invitesCollection.Find(ctx, bson.D{{"event_id", eventId}})
@@ -57,7 +57,7 @@ func (s Storage) GetUserJoinRequests(ctx context.Context, eventId string) ([]dom
 	return dao.ToDomainUserInvites(invites), nil
 }
 
-func (s Storage) GetJoinRequestByUserId(ctx context.Context, eventId string, userId int64) (*domain.UserInvite, error) {
+func (s *Storage) GetJoinRequestByUserId(ctx context.Context, eventId string, userId int64) (*domain.UserInvite, error) {
 	const op = "storage.mongodb.getJoinRequestByUserId"
 
 	eventObjectId, err := primitive.ObjectIDFromHex(eventId)
@@ -85,7 +85,7 @@ func (s Storage) GetJoinRequestByUserId(ctx context.Context, eventId string, use
 	return dao.ToDomainUserInvite(invite), nil
 }
 
-func (s Storage) GetJoinRequestsByUserInviteId(ctx context.Context, requestId string) (*domain.UserInvite, error) {
+func (s *Storage) GetJoinRequestsByUserInviteId(ctx context.Context, requestId string) (*domain.UserInvite, error) {
 	const op = "storage.mongodb.getJoinRequestsById"
 
 	objectID, err := primitive.ObjectIDFromHex(requestId)
@@ -108,7 +108,7 @@ func (s Storage) GetJoinRequestsByUserInviteId(ctx context.Context, requestId st
 	return dao.ToDomainUserInvite(invite), nil
 }
 
-func (s Storage) DeleteInvite(ctx context.Context, inviteId string) error {
+func (s *Storage) DeleteInvite(ctx context.Context, inviteId string) error {
 	const op = "storage.mongodb.deleteJoinRequest"
 
 	objectID, err := primitive.ObjectIDFromHex(inviteId)
@@ -133,7 +133,7 @@ Club Invite Storage
 
 */
 
-func (s Storage) CreateJoinRequestToClub(ctx context.Context, dto *dto.SendJoinRequestToClub) (*domain.Invite, error) {
+func (s *Storage) CreateJoinRequestToClub(ctx context.Context, dto *dto.SendJoinRequestToClub) (*domain.Invite, error) {
 	const op = "storage.mongodb.sendJoinRequestToClub"
 
 	eventObjectId, err := primitive.ObjectIDFromHex(dto.EventId)
@@ -158,7 +158,7 @@ func (s Storage) CreateJoinRequestToClub(ctx context.Context, dto *dto.SendJoinR
 	return dao.ToDomainInvite(invite), nil
 }
 
-func (s Storage) GetClubJoinRequests(ctx context.Context, eventId string) ([]domain.Invite, error) {
+func (s *Storage) GetClubJoinRequests(ctx context.Context, eventId string) ([]domain.Invite, error) {
 	const op = "storage.mongodb.getClubJoinRequests"
 
 	find, err := s.invitesCollection.Find(ctx, bson.D{{"event_id", eventId}})
@@ -178,7 +178,7 @@ func (s Storage) GetClubJoinRequests(ctx context.Context, eventId string) ([]dom
 	return dao.ToDomainInvites(invites), nil
 }
 
-func (s Storage) GetJoinRequestsByClubInviteId(ctx context.Context, inviteId string) (*domain.Invite, error) {
+func (s *Storage) GetJoinRequestsByClubInviteId(ctx context.Context, inviteId string) (*domain.Invite, error) {
 	const op = "storage.mongodb.getJoinRequestsById"
 
 	objectID, err := primitive.ObjectIDFromHex(inviteId)
@@ -201,7 +201,7 @@ func (s Storage) GetJoinRequestsByClubInviteId(ctx context.Context, inviteId str
 	return dao.ToDomainInvite(invite), nil
 }
 
-func (s Storage) GetJoinRequestByClubId(ctx context.Context, eventId string, clubId int64) (*domain.Invite, error) {
+func (s *Storage) GetJoinRequestByClubId(ctx context.Context, eventId string, clubId int64) (*domain.Invite, error) {
 	const op = "storage.mongodb.getJoinRequestByClubId"
 
 	eventObjectId, err := primitive.ObjectIDFromHex(eventId)

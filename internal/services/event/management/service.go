@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
-	eventService "github.com/arumandesu/uniclubs-posts-service/internal/services/event"
+	"github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"log/slog"
 	"time"
@@ -52,9 +52,9 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, eventService.ErrEventNotFound
+			return nil, eventservice.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, eventService.ErrInvalidID
+			return nil, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return nil, err
@@ -62,7 +62,7 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain
 	}
 
 	if event.OwnerId != dto.UserId {
-		return nil, eventService.ErrUserIsNotEventOwner
+		return nil, eventservice.ErrUserIsNotEventOwner
 	}
 
 	for _, path := range dto.Paths {
@@ -111,7 +111,7 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrOptimisticLockingFailed):
-			return nil, eventService.ErrEventUpdateConflict
+			return nil, eventservice.ErrEventUpdateConflict
 		default:
 			log.Error("failed to update event", logger.Err(err))
 			return nil, err
@@ -130,16 +130,16 @@ func (s Service) DeleteEvent(ctx context.Context, eventId string, userId int64) 
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, eventService.ErrEventNotFound
+			return nil, eventservice.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, eventService.ErrInvalidID
+			return nil, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return nil, err
 		}
 	}
 	if event.OwnerId != userId {
-		return nil, eventService.ErrUserIsNotEventOwner
+		return nil, eventservice.ErrUserIsNotEventOwner
 	}
 
 	deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -149,9 +149,9 @@ func (s Service) DeleteEvent(ctx context.Context, eventId string, userId int64) 
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, eventService.ErrEventNotFound
+			return nil, eventservice.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, eventService.ErrInvalidID
+			return nil, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to delete event", logger.Err(err))
 			return nil, err

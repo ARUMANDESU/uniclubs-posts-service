@@ -1,11 +1,11 @@
-package event
+package eventgrpc
 
 import (
 	"context"
 	"errors"
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
-	event2 "github.com/arumandesu/uniclubs-posts-service/internal/services/event"
+	"github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/validate"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -24,7 +24,7 @@ func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (
 	event, err := s.info.GetEvent(ctx, req.GetEventId(), req.GetUserId())
 	if err != nil {
 		switch {
-		case errors.Is(err, event2.ErrEventNotFound):
+		case errors.Is(err, eventservice.ErrEventNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")

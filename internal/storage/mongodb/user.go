@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-func (s Storage) UpdateUser(ctx context.Context, user *domain.User) error {
+func (s *Storage) UpdateUser(ctx context.Context, user *domain.User) error {
 	const op = "storage.mongodb.updateUser"
 
 	var wg sync.WaitGroup
@@ -43,7 +43,7 @@ func (s Storage) UpdateUser(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
-func (s Storage) updateUserInEventCollection(ctx context.Context, user *domain.User) error {
+func (s *Storage) updateUserInEventCollection(ctx context.Context, user *domain.User) error {
 	const op = "storage.mongodb.updateUserInEventCollection"
 
 	_, err := s.eventsCollection.UpdateMany(ctx, bson.M{"organizers._id": user.ID}, bson.M{
@@ -63,7 +63,7 @@ func (s Storage) updateUserInEventCollection(ctx context.Context, user *domain.U
 	return nil
 }
 
-func (s Storage) updateUserInInviteCollection(ctx context.Context, user *domain.User) error {
+func (s *Storage) updateUserInInviteCollection(ctx context.Context, user *domain.User) error {
 	const op = "storage.mongodb.updateUserInInviteCollection"
 
 	_, err := s.invitesCollection.UpdateMany(ctx, bson.M{"user._id": user.ID}, bson.M{

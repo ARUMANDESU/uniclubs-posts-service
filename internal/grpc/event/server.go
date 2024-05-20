@@ -1,4 +1,4 @@
-package event
+package eventgrpc
 
 import (
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"

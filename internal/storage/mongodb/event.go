@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func (s Storage) CreateEvent(ctx context.Context, club *domain.Club, user *domain.User) (*domain.Event, error) {
+func (s *Storage) CreateEvent(ctx context.Context, club *domain.Club, user *domain.User) (*domain.Event, error) {
 	const op = "storage.mongodb.event.createEvent"
 
 	event := dao.Event{
@@ -47,7 +47,7 @@ func (s Storage) CreateEvent(ctx context.Context, club *domain.Club, user *domai
 	return dao.ToDomainEvent(event), nil
 }
 
-func (s Storage) GetEvent(ctx context.Context, id string) (*domain.Event, error) {
+func (s *Storage) GetEvent(ctx context.Context, id string) (*domain.Event, error) {
 	const op = "storage.mongodb.event.getEvent"
 
 	objectID, err := primitive.ObjectIDFromHex(id)
@@ -70,7 +70,7 @@ func (s Storage) GetEvent(ctx context.Context, id string) (*domain.Event, error)
 	return dao.ToDomainEvent(event), nil
 }
 
-func (s Storage) UpdateEvent(ctx context.Context, event *domain.Event) (*domain.Event, error) {
+func (s *Storage) UpdateEvent(ctx context.Context, event *domain.Event) (*domain.Event, error) {
 	const op = "storage.mongodb.event.updateEvent"
 
 	eventModel := dao.EventToModel(event)
@@ -97,7 +97,7 @@ func (s Storage) UpdateEvent(ctx context.Context, event *domain.Event) (*domain.
 	return dao.ToDomainEvent(eventModel), nil
 }
 
-func (s Storage) DeleteEventById(ctx context.Context, eventId string) error {
+func (s *Storage) DeleteEventById(ctx context.Context, eventId string) error {
 	const op = "storage.mongodb.event.deleteEventById"
 
 	objectId, err := primitive.ObjectIDFromHex(eventId)

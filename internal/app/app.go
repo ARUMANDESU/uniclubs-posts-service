@@ -15,11 +15,14 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage/mongodb"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
 	"log/slog"
+	"time"
 )
 
 type App struct {
+	log     *slog.Logger
 	GRPCSrv *grpcapp.App
 	AMQPApp *amqpapp.App
+	mongoDB *mongodb.Storage
 }
 
 func New(log *slog.Logger, cfg *config.Config) *App {
@@ -33,28 +36,49 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 	}
 	l.Info("connected to mongodb")
 
-	userService := user.New(l, mongoDB)
-	clubService := club.New(l, mongoDB)
-
-	rmq, err := rabbitmq.New(cfg.Rabbitmq, l)
+	rmq, err := rabbitmq.New(cfg.Rabbitmq, log)
 	if err != nil {
 		l.Error("failed to connect to rabbitmq", logger.Err(err))
 		panic(err)
 	}
+	l.Info("connected to rabbitmq")
 
-	eventCollaboratorService := eventCollaborator.New(l, mongoDB, mongoDB, mongoDB, mongoDB)
+	userService := userservice.New(log, mongoDB)
+	clubService := clubservice.New(log, mongoDB)
+	eventCollaboratorService := eventCollaborator.New(log, mongoDB, mongoDB, mongoDB, mongoDB)
 
-	services := event.NewServices(
-		eventManagement.New(l, mongoDB),
+	services := eventgrpc.NewServices(
+		eventManagement.New(log, mongoDB),
 		eventCollaboratorService,
 		eventCollaboratorService,
-		eventInfo.New(l, mongoDB),
+		eventInfo.New(log, mongoDB),
 	)
-	grpcApp := grpcapp.New(l, cfg.GRPC.Port, services)
 
-	amqpApp := amqpapp.New(l, userService, clubService, rmq)
+	grpcApp := grpcapp.New(log, cfg.GRPC.Port, services)
+	amqpApp := amqpapp.New(log, userService, clubService, rmq)
 	return &App{
+		log:     log,
 		GRPCSrv: grpcApp,
 		AMQPApp: amqpApp,
+		mongoDB: mongoDB,
+	}
+}
+
+func (a *App) Stop() {
+	const op = "app.stop"
+	log := a.log.With(slog.String("op", op))
+
+	a.GRPCSrv.Stop()
+
+	err := a.AMQPApp.Shutdown()
+	if err != nil {
+		log.Error("failed to shutdown amqp app", logger.Err(err))
+	}
+
+	mongoCtx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	err = a.mongoDB.Close(mongoCtx)
+	if err != nil {
+		log.Error("failed to close mongodb connection", logger.Err(err))
 	}
 }

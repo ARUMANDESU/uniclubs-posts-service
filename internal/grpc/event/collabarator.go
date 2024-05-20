@@ -1,4 +1,4 @@
-package event
+package eventgrpc
 
 import (
 	"context"
@@ -39,13 +39,13 @@ func (s serverApi) AddCollaborator(ctx context.Context, req *eventv1.AddCollabor
 	_, err = s.collaborator.SendJoinRequestToClub(ctx, dto.AddCollaboratorRequestToClubToDTO(req))
 	if err != nil {
 		switch {
-		case errors.Is(err, event.ErrEventNotFound):
+		case errors.Is(err, eventservice.ErrEventNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, event.ErrInvalidID):
+		case errors.Is(err, eventservice.ErrInvalidID):
 			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, event.ErrPermissionsDenied):
+		case errors.Is(err, eventservice.ErrPermissionsDenied):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
-		case errors.Is(err, event.ErrInviteAlreadyExists), errors.Is(err, event.ErrClubAlreadyCollaborator):
+		case errors.Is(err, eventservice.ErrInviteAlreadyExists), errors.Is(err, eventservice.ErrClubAlreadyCollaborator):
 			return nil, status.Error(codes.AlreadyExists, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")
@@ -61,23 +61,23 @@ func (s serverApi) RemoveCollaborator(ctx context.Context, req *eventv1.RemoveCo
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	res, err := s.collaborator.KickClub(ctx, req.GetEventId(), req.GetUserId(), req.GetClubId())
+	event, err := s.collaborator.KickClub(ctx, req.GetEventId(), req.GetUserId(), req.GetClubId())
 	if err != nil {
 		switch {
-		case errors.Is(err, event.ErrInviteNotFound), errors.Is(err, event.ErrCollaboratorNotFound):
+		case errors.Is(err, eventservice.ErrInviteNotFound), errors.Is(err, eventservice.ErrCollaboratorNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, event.ErrInvalidID), errors.Is(err, event.ErrClubMismatch):
+		case errors.Is(err, eventservice.ErrInvalidID), errors.Is(err, eventservice.ErrClubMismatch):
 			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, event.ErrPermissionsDenied), errors.Is(err, event.ErrClubIsEventOwner):
+		case errors.Is(err, eventservice.ErrPermissionsDenied), errors.Is(err, eventservice.ErrClubIsEventOwner):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
-		case errors.Is(err, event.ErrEventUpdateConflict):
+		case errors.Is(err, eventservice.ErrEventUpdateConflict):
 			return nil, status.Error(codes.FailedPrecondition, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")
 		}
 	}
 
-	return res.ToProto(), nil
+	return event.ToProto(), nil
 }
 
 func (s serverApi) HandleInviteClub(ctx context.Context, req *eventv1.HandleInviteClubRequest) (*eventv1.EventObject, error) {
@@ -86,29 +86,29 @@ func (s serverApi) HandleInviteClub(ctx context.Context, req *eventv1.HandleInvi
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	var res domain.Event
+	var event domain.Event
 	if req.GetAction() == eventv1.HandleInvite_Action_ACCEPT {
-		res, err = s.collaborator.AcceptClubJoinRequest(ctx, dto.AcceptJoinRequestClubToDTO(req))
+		event, err = s.collaborator.AcceptClubJoinRequest(ctx, dto.AcceptJoinRequestClubToDTO(req))
 	} else if req.GetAction() == eventv1.HandleInvite_Action_REJECT {
-		res, err = s.collaborator.RejectClubJoinRequest(ctx, req.InviteId, req.ClubId)
+		event, err = s.collaborator.RejectClubJoinRequest(ctx, req.InviteId, req.ClubId)
 	}
 
 	if err != nil {
 		switch {
-		case errors.Is(err, event.ErrInviteNotFound):
+		case errors.Is(err, eventservice.ErrInviteNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, event.ErrInvalidID), errors.Is(err, event.ErrClubMismatch):
+		case errors.Is(err, eventservice.ErrInvalidID), errors.Is(err, eventservice.ErrClubMismatch):
 			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, event.ErrPermissionsDenied):
+		case errors.Is(err, eventservice.ErrPermissionsDenied):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
-		case errors.Is(err, event.ErrEventUpdateConflict):
+		case errors.Is(err, eventservice.ErrEventUpdateConflict):
 			return nil, status.Error(codes.FailedPrecondition, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")
 		}
 	}
 
-	return res.ToProto(), nil
+	return event.ToProto(), nil
 }
 
 func (s serverApi) RevokeInviteClub(ctx context.Context, req *eventv1.RevokeInviteRequest) (*emptypb.Empty, error) {
@@ -120,11 +120,11 @@ func (s serverApi) RevokeInviteClub(ctx context.Context, req *eventv1.RevokeInvi
 	err = s.collaborator.RevokeInviteClub(ctx, req.GetInviteId(), req.GetUserId())
 	if err != nil {
 		switch {
-		case errors.Is(err, event.ErrEventNotFound), errors.Is(err, event.ErrInviteNotFound):
+		case errors.Is(err, eventservice.ErrEventNotFound), errors.Is(err, eventservice.ErrInviteNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, event.ErrInvalidID):
+		case errors.Is(err, eventservice.ErrInvalidID):
 			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, event.ErrPermissionsDenied), errors.Is(err, event.ErrUserIsEventOwner):
+		case errors.Is(err, eventservice.ErrPermissionsDenied), errors.Is(err, eventservice.ErrUserIsEventOwner):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")
@@ -143,15 +143,15 @@ func (s serverApi) AddOrganizer(ctx context.Context, req *eventv1.AddOrganizerRe
 	_, err = s.organizer.SendJoinRequestToUser(ctx, dto.AddOrganizerRequestToUserToDTO(req))
 	if err != nil {
 		switch {
-		case errors.Is(err, event.ErrEventNotFound):
+		case errors.Is(err, eventservice.ErrEventNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, event.ErrInvalidID):
+		case errors.Is(err, eventservice.ErrInvalidID):
 			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, event.ErrPermissionsDenied):
+		case errors.Is(err, eventservice.ErrPermissionsDenied):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
-		case errors.Is(err, event.ErrInviteAlreadyExists):
+		case errors.Is(err, eventservice.ErrInviteAlreadyExists):
 			return nil, status.Error(codes.AlreadyExists, err.Error())
-		case errors.Is(err, event.ErrUserIsFromAnotherClub):
+		case errors.Is(err, eventservice.ErrUserIsFromAnotherClub):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")
@@ -167,25 +167,25 @@ func (s serverApi) RemoveOrganizer(ctx context.Context, req *eventv1.RemoveOrgan
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	res, err := s.organizer.KickOrganizer(ctx, req.GetEventId(), req.GetUserId(), req.GetOrganizerId())
+	event, err := s.organizer.KickOrganizer(ctx, req.GetEventId(), req.GetUserId(), req.GetOrganizerId())
 	if err != nil {
 		switch {
-		case errors.Is(err, event.ErrEventNotFound),
-			errors.Is(err, event.ErrUserIsNotEventOrganizer),
-			errors.Is(err, event.ErrOrganizerNotFound):
+		case errors.Is(err, eventservice.ErrEventNotFound),
+			errors.Is(err, eventservice.ErrUserIsNotEventOrganizer),
+			errors.Is(err, eventservice.ErrOrganizerNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, event.ErrInvalidID):
+		case errors.Is(err, eventservice.ErrInvalidID):
 			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, event.ErrPermissionsDenied), errors.Is(err, event.ErrUserIsEventOwner):
+		case errors.Is(err, eventservice.ErrPermissionsDenied), errors.Is(err, eventservice.ErrUserIsEventOwner):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
-		case errors.Is(err, event.ErrEventUpdateConflict):
+		case errors.Is(err, eventservice.ErrEventUpdateConflict):
 			return nil, status.Error(codes.FailedPrecondition, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")
 		}
 	}
 
-	return res.ToProto(), nil
+	return event.ToProto(), nil
 }
 
 func (s serverApi) HandleInviteUser(ctx context.Context, req *eventv1.HandleInviteUserRequest) (*eventv1.EventObject, error) {
@@ -194,31 +194,31 @@ func (s serverApi) HandleInviteUser(ctx context.Context, req *eventv1.HandleInvi
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	var res domain.Event
+	var event domain.Event
 	if req.GetAction() == eventv1.HandleInvite_Action_ACCEPT {
-		res, err = s.organizer.AcceptUserJoinRequest(ctx, req.InviteId, req.UserId)
+		event, err = s.organizer.AcceptUserJoinRequest(ctx, req.InviteId, req.UserId)
 	} else if req.GetAction() == eventv1.HandleInvite_Action_REJECT {
-		res, err = s.organizer.RejectUserJoinRequest(ctx, req.InviteId, req.UserId)
+		event, err = s.organizer.RejectUserJoinRequest(ctx, req.InviteId, req.UserId)
 	}
 
 	if err != nil {
 		switch {
-		case errors.Is(err, event.ErrInviteNotFound):
+		case errors.Is(err, eventservice.ErrInviteNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, event.ErrInvalidID):
+		case errors.Is(err, eventservice.ErrInvalidID):
 			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, event.ErrPermissionsDenied):
+		case errors.Is(err, eventservice.ErrPermissionsDenied):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
-		case errors.Is(err, event.ErrUserAlreadyOrganizer):
+		case errors.Is(err, eventservice.ErrUserAlreadyOrganizer):
 			return nil, status.Error(codes.AlreadyExists, err.Error())
-		case errors.Is(err, event.ErrEventUpdateConflict):
+		case errors.Is(err, eventservice.ErrEventUpdateConflict):
 			return nil, status.Error(codes.FailedPrecondition, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")
 		}
 	}
 
-	return res.ToProto(), nil
+	return event.ToProto(), nil
 }
 
 func (s serverApi) RevokeInviteUser(ctx context.Context, req *eventv1.RevokeInviteRequest) (*emptypb.Empty, error) {
@@ -230,11 +230,11 @@ func (s serverApi) RevokeInviteUser(ctx context.Context, req *eventv1.RevokeInvi
 	err = s.organizer.RevokeInviteOrganizer(ctx, req.GetInviteId(), req.GetUserId())
 	if err != nil {
 		switch {
-		case errors.Is(err, event.ErrEventNotFound):
+		case errors.Is(err, eventservice.ErrEventNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, event.ErrInvalidID):
+		case errors.Is(err, eventservice.ErrInvalidID):
 			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, event.ErrPermissionsDenied), errors.Is(err, event.ErrUserIsEventOwner):
+		case errors.Is(err, eventservice.ErrPermissionsDenied), errors.Is(err, eventservice.ErrUserIsEventOwner):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")

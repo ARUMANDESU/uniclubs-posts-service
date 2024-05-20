@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
-	eventService "github.com/arumandesu/uniclubs-posts-service/internal/services/event"
+	"github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
 	"log/slog"
@@ -22,9 +22,9 @@ func (s Service) SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinReq
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, eventService.ErrEventNotFound
+			return nil, eventservice.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, eventService.ErrInvalidID
+			return nil, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return nil, err
@@ -32,18 +32,18 @@ func (s Service) SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinReq
 	}
 
 	if !event.IsOwner(dto.UserId) {
-		return nil, eventService.ErrPermissionsDenied
+		return nil, eventservice.ErrPermissionsDenied
 	}
 
 	if event.IsCollaborator(dto.Club.ID) {
-		return nil, eventService.ErrClubAlreadyCollaborator
+		return nil, eventservice.ErrClubAlreadyCollaborator
 	}
 
 	invite, err := s.clubInviteStorage.GetJoinRequestByClubId(ctx, dto.EventId, dto.Club.ID)
 	if err != nil && !errors.Is(err, storage.ErrInviteNotFound) {
 		switch {
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, eventService.ErrInvalidID
+			return nil, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get join request by club id", logger.Err(err))
 			return nil, err
@@ -51,7 +51,7 @@ func (s Service) SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinReq
 	}
 
 	if invite != nil {
-		return nil, eventService.ErrInviteAlreadyExists
+		return nil, eventservice.ErrInviteAlreadyExists
 	}
 
 	createCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -60,7 +60,7 @@ func (s Service) SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinReq
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, eventService.ErrInvalidID
+			return nil, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get join request by club id", logger.Err(err))
 			return nil, err
@@ -78,9 +78,9 @@ func (s Service) AcceptClubJoinRequest(ctx context.Context, dto *dto.AcceptJoinR
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInvalidID):
-			return domain.Event{}, eventService.ErrInvalidID
+			return domain.Event{}, eventservice.ErrInvalidID
 		case errors.Is(err, storage.ErrInviteNotFound):
-			return domain.Event{}, eventService.ErrInviteNotFound
+			return domain.Event{}, eventservice.ErrInviteNotFound
 		default:
 			log.Error("failed to get join requests by club invite id", logger.Err(err))
 			return domain.Event{}, err
@@ -88,16 +88,16 @@ func (s Service) AcceptClubJoinRequest(ctx context.Context, dto *dto.AcceptJoinR
 	}
 
 	if invite.Club.ID != dto.ClubId {
-		return domain.Event{}, fmt.Errorf("%w got %d", eventService.ErrClubMismatch, dto.ClubId)
+		return domain.Event{}, fmt.Errorf("%w got %d", eventservice.ErrClubMismatch, dto.ClubId)
 	}
 
 	event, err := s.eventStorage.GetEvent(ctx, invite.EventId)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return domain.Event{}, eventService.ErrEventNotFound
+			return domain.Event{}, eventservice.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return domain.Event{}, eventService.ErrInvalidID
+			return domain.Event{}, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return domain.Event{}, err
@@ -105,7 +105,7 @@ func (s Service) AcceptClubJoinRequest(ctx context.Context, dto *dto.AcceptJoinR
 	}
 
 	if event.IsCollaborator(dto.ClubId) {
-		return domain.Event{}, eventService.ErrClubAlreadyCollaborator
+		return domain.Event{}, eventservice.ErrClubAlreadyCollaborator
 	}
 
 	var wg sync.WaitGroup
@@ -146,11 +146,11 @@ func (s Service) AcceptClubJoinRequest(ctx context.Context, dto *dto.AcceptJoinR
 		if err != nil {
 			switch {
 			case errors.Is(err, storage.ErrInviteNotFound):
-				return domain.Event{}, eventService.ErrInviteNotFound
+				return domain.Event{}, eventservice.ErrInviteNotFound
 			case errors.Is(err, storage.ErrInvalidID):
-				return domain.Event{}, eventService.ErrInvalidID
+				return domain.Event{}, eventservice.ErrInvalidID
 			case errors.Is(err, storage.ErrOptimisticLockingFailed):
-				return domain.Event{}, eventService.ErrEventUpdateConflict
+				return domain.Event{}, eventservice.ErrEventUpdateConflict
 			default:
 				log.Error("failed to accept join request", logger.Err(err))
 				return domain.Event{}, err
@@ -169,9 +169,9 @@ func (s Service) RejectClubJoinRequest(ctx context.Context, inviteId string, clu
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInvalidID):
-			return domain.Event{}, eventService.ErrInvalidID
+			return domain.Event{}, eventservice.ErrInvalidID
 		case errors.Is(err, storage.ErrInviteNotFound):
-			return domain.Event{}, eventService.ErrInviteNotFound
+			return domain.Event{}, eventservice.ErrInviteNotFound
 		default:
 			log.Error("failed to get join requests by club invite id", logger.Err(err))
 			return domain.Event{}, err
@@ -179,13 +179,13 @@ func (s Service) RejectClubJoinRequest(ctx context.Context, inviteId string, clu
 	}
 
 	if invite.Club.ID != clubId {
-		return domain.Event{}, fmt.Errorf("%w got %d", eventService.ErrClubMismatch, clubId)
+		return domain.Event{}, fmt.Errorf("%w got %d", eventservice.ErrClubMismatch, clubId)
 	}
 
 	err = s.inviteDeleter.DeleteInvite(ctx, inviteId)
 	if err != nil {
 		if errors.Is(err, storage.ErrInvalidID) {
-			return domain.Event{}, eventService.ErrInvalidID
+			return domain.Event{}, eventservice.ErrInvalidID
 		}
 		log.Error("failed to delete invite", logger.Err(err))
 		return domain.Event{}, err
@@ -202,9 +202,9 @@ func (s Service) KickClub(ctx context.Context, eventId string, userId, clubId in
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, eventService.ErrEventNotFound
+			return nil, eventservice.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return nil, eventService.ErrInvalidID
+			return nil, eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return nil, err
@@ -212,25 +212,25 @@ func (s Service) KickClub(ctx context.Context, eventId string, userId, clubId in
 	}
 
 	if !event.IsOwner(userId) {
-		return nil, eventService.ErrPermissionsDenied
+		return nil, eventservice.ErrPermissionsDenied
 	}
 
 	if !event.IsCollaborator(clubId) {
-		return nil, eventService.ErrCollaboratorNotFound
+		return nil, eventservice.ErrCollaboratorNotFound
 	}
 
 	club := event.GetCollaboratorById(clubId)
 	if club == nil {
-		return nil, eventService.ErrCollaboratorNotFound
+		return nil, eventservice.ErrCollaboratorNotFound
 	}
 
 	err = event.RemoveCollaborator(clubId)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrClubIsEventOwner):
-			return nil, eventService.ErrClubIsEventOwner
+			return nil, eventservice.ErrClubIsEventOwner
 		case errors.Is(err, domain.ErrCollaboratorsEmpty), errors.Is(err, domain.ErrCollaboratorNotFound):
-			return nil, eventService.ErrCollaboratorNotFound
+			return nil, eventservice.ErrCollaboratorNotFound
 		default:
 			log.Error("failed to remove collaborator", logger.Err(err))
 			return nil, err
@@ -242,9 +242,9 @@ func (s Service) KickClub(ctx context.Context, eventId string, userId, clubId in
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrOrganizerNotFound):
-			return nil, eventService.ErrOrganizerNotFound
+			return nil, eventservice.ErrOrganizerNotFound
 		case errors.Is(err, domain.ErrUserIsEventOwner):
-			return nil, eventService.ErrUserIsEventOwner
+			return nil, eventservice.ErrUserIsEventOwner
 		default:
 			log.Error(fmt.Sprintf("failed to remove organizers with club id: %d", clubId), logger.Err(err))
 			return nil, err
@@ -257,7 +257,7 @@ func (s Service) KickClub(ctx context.Context, eventId string, userId, clubId in
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrOptimisticLockingFailed):
-			return nil, eventService.ErrEventUpdateConflict
+			return nil, eventservice.ErrEventUpdateConflict
 		default:
 			log.Error("failed to update event", logger.Err(err))
 			return nil, err
@@ -275,9 +275,9 @@ func (s Service) RevokeInviteClub(ctx context.Context, inviteId string, userId i
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrInvalidID):
-			return eventService.ErrInvalidID
+			return eventservice.ErrInvalidID
 		case errors.Is(err, storage.ErrInviteNotFound):
-			return eventService.ErrInviteNotFound
+			return eventservice.ErrInviteNotFound
 		default:
 			log.Error("failed to get join requests by club invite id", logger.Err(err))
 			return err
@@ -288,9 +288,9 @@ func (s Service) RevokeInviteClub(ctx context.Context, inviteId string, userId i
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
-			return eventService.ErrEventNotFound
+			return eventservice.ErrEventNotFound
 		case errors.Is(err, storage.ErrInvalidID):
-			return eventService.ErrInvalidID
+			return eventservice.ErrInvalidID
 		default:
 			log.Error("failed to get event", logger.Err(err))
 			return err
@@ -298,13 +298,13 @@ func (s Service) RevokeInviteClub(ctx context.Context, inviteId string, userId i
 	}
 
 	if !event.IsOwner(userId) {
-		return eventService.ErrPermissionsDenied
+		return eventservice.ErrPermissionsDenied
 	}
 
 	err = s.inviteDeleter.DeleteInvite(ctx, inviteId)
 	if err != nil {
 		if errors.Is(err, storage.ErrInvalidID) {
-			return eventService.ErrInvalidID
+			return eventservice.ErrInvalidID
 		}
 		log.Error("failed to delete invite", logger.Err(err))
 		return err

@@ -1,6 +1,7 @@
 package amqpapp
 
 import (
+	"fmt"
 	"github.com/arumandesu/uniclubs-posts-service/internal/rabbitmq"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
 	"github.com/rabbitmq/amqp091-go"
@@ -53,8 +54,13 @@ func (a *App) consumeMessages(queue, routingKey string, handler rabbitmq.Handler
 	}()
 }
 
-func (a *App) Shutdown() {
-	// Add your cleanup logic here
-	// For example, close the RabbitMQ connection
-	a.amqp.Close()
+func (a *App) Shutdown() error {
+	const op = "amqp.app.shutdown"
+
+	a.log.With(slog.String("op", op)).Info("shutting down amqp app")
+	err := a.amqp.Close()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
 }

@@ -1,4 +1,4 @@
-package event
+package eventgrpc
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
-	event2 "github.com/arumandesu/uniclubs-posts-service/internal/services/event"
+	"github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/validate"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"google.golang.org/grpc/codes"
@@ -28,7 +28,7 @@ func (s serverApi) CreateEvent(ctx context.Context, req *eventv1.CreateEventRequ
 	event, err := s.management.CreateEvent(ctx, domain.ClubFromProto(req.GetClub()), domain.UserFromProto(req.GetUser()))
 	if err != nil {
 		switch {
-		case errors.Is(err, event2.ErrEventNotFound):
+		case errors.Is(err, eventservice.ErrEventNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, err.Error())
@@ -47,11 +47,11 @@ func (s serverApi) UpdateEvent(ctx context.Context, req *eventv1.UpdateEventRequ
 	event, err := s.management.UpdateEvent(ctx, dto.UpdateToDTO(req))
 	if err != nil {
 		switch {
-		case errors.Is(err, event2.ErrEventNotFound):
+		case errors.Is(err, eventservice.ErrEventNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, event2.ErrEventUpdateConflict):
+		case errors.Is(err, eventservice.ErrEventUpdateConflict):
 			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case errors.Is(err, event2.ErrUserIsNotEventOwner):
+		case errors.Is(err, eventservice.ErrUserIsNotEventOwner):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")
@@ -73,11 +73,11 @@ func (s serverApi) DeleteEvent(ctx context.Context, req *eventv1.DeleteEventRequ
 	event, err := s.management.DeleteEvent(ctx, req.GetEventId(), req.GetUserId())
 	if err != nil {
 		switch {
-		case errors.Is(err, event2.ErrEventNotFound):
+		case errors.Is(err, eventservice.ErrEventNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, event2.ErrInvalidID):
+		case errors.Is(err, eventservice.ErrInvalidID):
 			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, event2.ErrUserIsNotEventOwner):
+		case errors.Is(err, eventservice.ErrUserIsNotEventOwner):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")

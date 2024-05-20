@@ -458,3 +458,23 @@ func TestCoverImages_InvalidRequest(t *testing.T) {
 		})
 	}
 }
+
+func newUser(t *testing.T) *eventv1.UserObject {
+	t.Helper()
+	return &eventv1.UserObject{
+		Id:        1,
+		FirstName: "FirstName",
+		LastName:  "LastName",
+		Barcode:   "Barcode",
+		AvatarUrl: "AvatarUrl",
+	}
+}
+
+func newClub(t *testing.T) *eventv1.ClubObject {
+	t.Helper()
+	return &eventv1.ClubObject{
+		Id:      1,
+		Name:    "Test Club",
+		LogoUrl: "https://test.com/logo.jpg",
+	}
+}

@@ -30,8 +30,8 @@ func CreateEvent(value interface{}) error {
 		return validation.NewInternalError(errors.New("create event invalid type"))
 	}
 	return validation.ValidateStruct(req,
-		validation.Field(&req.Club, validation.By(club)),
-		validation.Field(&req.User, validation.By(user)),
+		validation.Field(&req.Club, validation.Required, validation.By(club)),
+		validation.Field(&req.User, validation.Required, validation.By(user)),
 	)
 }
 

@@ -111,7 +111,7 @@ func (s *Storage) DeleteEventById(ctx context.Context, eventId string) error {
 	_, err = s.eventsCollection.DeleteOne(ctx, bson.M{"_id": objectId})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return fmt.Errorf("%s: %w", storage.ErrEventNotFound)
+			return fmt.Errorf("%s: %w", op, storage.ErrEventNotFound)
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}

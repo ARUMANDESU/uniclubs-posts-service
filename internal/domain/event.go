@@ -90,17 +90,14 @@ func (e *Event) RemoveOrganizersByClubId(clubId int64) error {
 	if len(e.Organizers) == 0 {
 		return ErrOrganizersEmpty
 	}
-
-	for i, organizer := range e.Organizers {
-		if organizer.ID == e.OwnerId {
-			continue
-		}
-
-		if organizer.ClubId == clubId {
-			e.Organizers = append(e.Organizers[:i], e.Organizers[i+1:]...)
+	var newOrganizers []Organizer
+	for _, organizer := range e.Organizers {
+		if organizer.ID == e.OwnerId || organizer.ClubId != clubId {
+			newOrganizers = append(newOrganizers, organizer)
 		}
 	}
 
+	e.Organizers = newOrganizers
 	return nil
 }
 

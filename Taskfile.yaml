@@ -22,7 +22,7 @@ tasks:
     cmd: docker build -t arumandesu/posts-service -t arumandesu/posts-service:0.0.6 . && docker push arumandesu/posts-service -a
 
   test:coverage:
-    cmd: go test -coverprofile=./tests/c.out ./... || go tool cover -html="./tests/c.out"
+    cmd: go test -coverprofile=./tests/c.out ./... && go tool cover -html="./tests/c.out"
 
   test:unit:
     cmd: go test -v ./...

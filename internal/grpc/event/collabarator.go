@@ -103,6 +103,8 @@ func (s serverApi) HandleInviteClub(ctx context.Context, req *eventv1.HandleInvi
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		case errors.Is(err, eventservice.ErrEventUpdateConflict):
 			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		case errors.Is(err, eventservice.ErrUserAlreadyOrganizer):
+			return nil, status.Error(codes.AlreadyExists, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")
 		}

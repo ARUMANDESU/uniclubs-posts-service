@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"strings"
 	"time"
 )
@@ -119,4 +120,69 @@ func (s *Storage) DeleteEventById(ctx context.Context, eventId string) error {
 	//todo: delete invites related to the event
 
 	return nil
+}
+
+func (s *Storage) ListEvents(ctx context.Context, filters domain.Filters) ([]domain.Event, *domain.PaginationMetadata, error) {
+	const op = "storage.mongodb.event.listEvents"
+
+	var filter bson.M
+	if filters.Query != "" {
+		filter = bson.M{"$text": bson.M{"$search": filters.Query}}
+	} else {
+		filter = bson.M{}
+	}
+
+	if filters.ClubId != 0 {
+		filter["club_id"] = filters.ClubId
+	}
+
+	if filters.UserId != 0 {
+		filter["$or"] = []bson.M{
+			{"owner_id": filters.UserId},
+			{"organizers.id": filters.UserId},
+		}
+	}
+
+	if filters.Tags != nil && len(filters.Tags) > 0 {
+		filter["tags"] = bson.M{"$in": filters.Tags}
+	}
+
+	if !filters.FromDate.IsZero() {
+		filter["created_at"] = bson.M{"$gte": filters.FromDate}
+	}
+
+	if !filters.ToDate.IsZero() {
+		filter["created_at"] = bson.M{"$lte": filters.ToDate}
+	}
+
+	if filters.Status != "" {
+		filter["status"] = filters.Status
+	}
+
+	totalRecords, err := s.eventsCollection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	opts := options.Find()
+	opts.SetSkip(int64(filters.Offset()))
+	opts.SetLimit(int64(filters.Limit()))
+
+	cursor, err := s.eventsCollection.Find(ctx, filter, opts)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil, fmt.Errorf("%s: %w", op, storage.ErrEventNotFound)
+		}
+		return nil, nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var events []dao.Event
+	if err = cursor.All(ctx, &events); err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	paginationMetadata := domain.CalculatePaginationMetadata(int32(totalRecords), filters.Page, filters.PageSize)
+
+	return dao.ToDomainEvents(events), &paginationMetadata, nil
+
 }

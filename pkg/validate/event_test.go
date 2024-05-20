@@ -291,3 +291,110 @@ func TestUpdateEvent_Invalid(t *testing.T) {
 		})
 	}
 }
+
+func TestListEvents_ValidRequest(t *testing.T) {
+	tests := []struct {
+		name string
+		req  *eventv1.ListEventsRequest
+	}{
+		{
+			name: "Empty Request, except page number and page size",
+			req: &eventv1.ListEventsRequest{
+				PageNumber: 1,
+				PageSize:   10,
+			},
+		},
+		{
+			name: "Full",
+			req: &eventv1.ListEventsRequest{
+				Query:      "test",
+				SortBy:     "date",
+				SortOrder:  "asc",
+				PageNumber: 1,
+				PageSize:   10,
+				Filter:     &eventv1.EventFilter{UserId: 1},
+			},
+		},
+		{
+			name: "No Filter",
+			req: &eventv1.ListEventsRequest{
+				Query:      "test",
+				SortBy:     "date",
+				SortOrder:  "asc",
+				PageNumber: 1,
+				PageSize:   10,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ListEvents(tt.req)
+			assert.Nil(t, err)
+		})
+
+	}
+}
+
+func TestListEvents_InvalidRequest(t *testing.T) {
+	tests := []struct {
+		name string
+		req  *eventv1.ListEventsRequest
+	}{
+		{
+			name: "Invalid Query Length",
+			req: &eventv1.ListEventsRequest{
+				Query:      gofakeit.Paragraph(1, 1, 1001, ""),
+				PageNumber: 1,
+				PageSize:   10,
+			},
+		},
+		{
+			name: "Invalid SortBy Value",
+			req: &eventv1.ListEventsRequest{
+				SortBy:     "invalid",
+				SortOrder:  "asc",
+				PageNumber: 1,
+				PageSize:   10,
+			},
+		},
+		{
+			name: "Invalid SortOrder Value",
+			req: &eventv1.ListEventsRequest{
+				SortBy:     "date",
+				SortOrder:  "invalid",
+				PageNumber: 1,
+				PageSize:   10,
+			},
+		},
+		{
+			name: "Missing PageNumber",
+			req: &eventv1.ListEventsRequest{
+				SortBy:    "date",
+				SortOrder: "asc",
+				PageSize:  10,
+			},
+		},
+		{
+			name: "Missing PageSize",
+			req: &eventv1.ListEventsRequest{
+				PageNumber: 1,
+			},
+		},
+		{
+			name: "Sort order is empty when sort by is set",
+			req: &eventv1.ListEventsRequest{
+				SortBy:     "date",
+				PageNumber: 1,
+				PageSize:   10,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ListEvents(tt.req)
+			assert.Error(t, err)
+		})
+	}
+}

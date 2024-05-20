@@ -108,6 +108,10 @@ func (s Service) AcceptClubJoinRequest(ctx context.Context, dto *dto.AcceptJoinR
 		return domain.Event{}, eventservice.ErrClubAlreadyCollaborator
 	}
 
+	if event.IsOrganizer(dto.User.ID) {
+		return domain.Event{}, eventservice.ErrUserAlreadyOrganizer
+	}
+
 	var wg sync.WaitGroup
 	errCh := make(chan error, 2)
 

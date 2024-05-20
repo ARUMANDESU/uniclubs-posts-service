@@ -5,7 +5,9 @@ import (
 	"time"
 )
 
-const timeLayout = "2006-01-02T15:04:05.000Z"
+const timeLayout = "2006-01-02 15:04:05.999999999 -0700 MST"
+
+type EventStatus string
 
 const (
 	EventStatusDraft     = "DRAFT"
@@ -13,6 +15,10 @@ const (
 	EventStatusCanceled  = "CANCELED"
 	EventStatusArchived  = "ARCHIVED"
 )
+
+func (s EventStatus) String() string {
+	return string(s)
+}
 
 type Event struct {
 	ID                 string       `json:"id"`
@@ -23,7 +29,7 @@ type Event struct {
 	Title              string       `json:"title,omitempty"`
 	Description        string       `json:"description,omitempty"`
 	Type               string       `json:"type,omitempty"`
-	Status             string       `json:"status,omitempty"`
+	Status             EventStatus  `json:"status,omitempty"`
 	Tags               []string     `json:"tags,omitempty"`
 	MaxParticipants    uint32       `json:"max_participants,omitempty"`
 	ParticipantsCount  uint32       `json:"participants_count,omitempty"`
@@ -153,7 +159,7 @@ func (e *Event) ToProto() *eventv1.EventObject {
 		Description:        e.Description,
 		Type:               e.Type,
 		Tags:               e.Tags,
-		Status:             e.Status,
+		Status:             e.Status.String(),
 		MaxParticipants:    e.MaxParticipants,
 		ParticipantsCount:  e.ParticipantsCount,
 		LocationLink:       e.LocationLink,
@@ -167,4 +173,12 @@ func (e *Event) ToProto() *eventv1.EventObject {
 		UpdatedAt:          e.UpdatedAt.Format(timeLayout),
 		DeletedAt:          e.DeletedAt.Format(timeLayout),
 	}
+}
+
+func EventsToProto(events []Event) []*eventv1.EventObject {
+	result := make([]*eventv1.EventObject, 0, len(events))
+	for _, event := range events {
+		result = append(result, event.ToProto())
+	}
+	return result
 }

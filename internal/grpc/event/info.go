@@ -13,6 +13,7 @@ import (
 
 type InfoService interface {
 	GetEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
+	ListEvents(ctx context.Context, filters domain.Filters) ([]domain.Event, *domain.PaginationMetadata, error)
 }
 
 func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (*eventv1.EventObject, error) {
@@ -37,6 +38,24 @@ func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (
 }
 
 func (s serverApi) ListEvents(ctx context.Context, req *eventv1.ListEventsRequest) (*eventv1.ListEventsResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	err := validate.ListEvents(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	filters := domain.ProtoToFilers(req)
+	events, pagination, err := s.info.ListEvents(ctx, filters)
+	if err != nil {
+		switch {
+		case errors.Is(err, eventservice.ErrEventNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
+		}
+	}
+
+	return &eventv1.ListEventsResponse{
+		Events:   domain.EventsToProto(events),
+		Metadata: pagination.ToProto(),
+	}, nil
 }

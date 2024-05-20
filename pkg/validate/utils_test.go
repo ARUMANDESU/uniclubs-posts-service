@@ -2,9 +2,11 @@ package validate
 
 import (
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
+	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 func TestUser_ValidRequest(t *testing.T) {
@@ -454,6 +456,129 @@ func TestCoverImages_InvalidRequest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := coverImages(tt.req)
+			assert.Error(t, err)
+		})
+	}
+}
+
+func TestEventFilter_ValidRequest(t *testing.T) {
+	tests := []struct {
+		name string
+		req  *eventv1.EventFilter
+	}{
+		{
+			name: "Empty Request",
+			req:  &eventv1.EventFilter{},
+		},
+		{
+			name: "Valid Request",
+			req: &eventv1.EventFilter{
+				UserId:   1,
+				ClubId:   1,
+				Tags:     []string{"tag1", "tag2"},
+				FromDate: time.Now().Format(time.RFC3339),
+				TillDate: time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+				Status:   domain.EventStatusPublished,
+			},
+		},
+		{
+			name: "Valid Request with empty tags",
+			req: &eventv1.EventFilter{
+				UserId:   1,
+				ClubId:   1,
+				FromDate: time.Now().Format(time.RFC3339),
+				TillDate: time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+				Status:   domain.EventStatusPublished,
+			},
+		},
+		{
+			name: "Valid Request with empty dates",
+			req: &eventv1.EventFilter{
+				UserId: 1,
+				ClubId: 1,
+				Tags:   []string{"tag1", "tag2"},
+				Status: domain.EventStatusPublished,
+			},
+		},
+		{
+			name: "Valid Request with empty status",
+			req: &eventv1.EventFilter{
+				UserId:   1,
+				ClubId:   1,
+				Tags:     []string{"tag1", "tag2"},
+				FromDate: time.Now().Format(time.RFC3339),
+				TillDate: time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := eventFilter(tt.req)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestEventFilter_InvalidRequest(t *testing.T) {
+	tests := []struct {
+		name string
+		req  *eventv1.EventFilter
+	}{
+		{
+			name: "Invalid UserId",
+			req: &eventv1.EventFilter{
+				UserId: -1,
+				ClubId: 1,
+			},
+		},
+		{
+			name: "Invalid ClubId",
+			req: &eventv1.EventFilter{
+				UserId: 1,
+				ClubId: -1,
+			},
+		},
+		{
+			name: "Invalid Status",
+			req: &eventv1.EventFilter{
+				UserId: 1,
+				ClubId: 1,
+				Status: "INVALID_STATUS",
+			},
+		},
+		{
+			name: "Invalid FromDate",
+			req: &eventv1.EventFilter{
+				UserId:   1,
+				ClubId:   1,
+				FromDate: "INVALID_DATE",
+			},
+		},
+		{
+			name: "Invalid TillDate",
+			req: &eventv1.EventFilter{
+				UserId:   1,
+				ClubId:   1,
+				TillDate: "INVALID_DATE",
+			},
+		},
+		{
+			name: "Invalid Tags",
+			req: &eventv1.EventFilter{
+				UserId: 1,
+				ClubId: 1,
+				Tags: []string{
+					gofakeit.Paragraph(1, 1, 76, " "),
+					"valid tag",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := eventFilter(tt.req)
 			assert.Error(t, err)
 		})
 	}

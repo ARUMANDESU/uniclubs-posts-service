@@ -14,6 +14,9 @@ import (
 )
 
 func TestManagement_CreateEvent(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	ctx, st := suite.New(t)
 
 	req := &eventv1.CreateEventRequest{
@@ -41,6 +44,9 @@ func TestManagement_CreateEvent(t *testing.T) {
 }
 
 func TestManagement_CreateEvent_Invalid(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	ctx, st := suite.New(t)
 
 	tests := []struct {
@@ -93,6 +99,9 @@ func TestManagement_CreateEvent_Invalid(t *testing.T) {
 }
 
 func TestManagement_Create_UpdateEvent(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	ctx, st := suite.New(t)
 
 	// Create an event
@@ -128,6 +137,9 @@ func TestManagement_Create_UpdateEvent(t *testing.T) {
 }
 
 func TestManagement_DeleteEvent(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	ctx, st := suite.New(t)
 
 	createReq := &eventv1.CreateEventRequest{

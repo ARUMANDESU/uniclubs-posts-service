@@ -37,6 +37,7 @@ func New(t *testing.T) (context.Context, *Suite) {
 	}
 
 	env := os.Getenv("ENV")
+	t.Logf("ENV: %s", env)
 	if env != "test" {
 		t.Skip("set ENV to test to run this test")
 	}

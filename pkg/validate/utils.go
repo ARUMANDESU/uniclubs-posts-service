@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
+	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
+	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
 	"log"
+	"time"
 )
 
 func user(value interface{}) error {
@@ -75,4 +78,23 @@ func coverImages(value interface{}) error {
 	}
 
 	return nil
+}
+
+func eventFilter(value interface{}) error {
+	req, ok := value.(*eventv1.EventFilter)
+	if !ok {
+		return validation.NewInternalError(errors.New("list events filter invalid type"))
+	}
+	if req == nil {
+		return nil
+	}
+
+	return validation.ValidateStruct(req,
+		validation.Field(&req.UserId, validation.Min(0)),
+		validation.Field(&req.ClubId, validation.Min(0)),
+		validation.Field(&req.Tags, validation.Each(validation.Length(MinTagsLength, MaxTagsLength))),
+		validation.Field(&req.FromDate, validation.Date(time.RFC3339)),
+		validation.Field(&req.TillDate, validation.Date(time.RFC3339)),
+		validation.Field(&req.Status, validation.In(domain.EventStatusPublished, domain.EventStatusArchived).Error("status must be PUBLISHED or ARCHIVED")),
+	)
 }

@@ -17,6 +17,7 @@ type Service struct {
 
 type EventProvider interface {
 	GetEvent(ctx context.Context, eventId string) (*domain.Event, error)
+	ListEvents(ctx context.Context, filters domain.Filters) ([]domain.Event, *domain.PaginationMetadata, error)
 }
 
 func New(log *slog.Logger, eventProvider EventProvider) Service {
@@ -48,4 +49,22 @@ func (s Service) GetEvent(ctx context.Context, eventId string, userId int64) (*d
 	}
 
 	return event, nil
+}
+
+func (s Service) ListEvents(ctx context.Context, filters domain.Filters) ([]domain.Event, *domain.PaginationMetadata, error) {
+	const op = "services.event.management.listEvents"
+	log := s.log.With(slog.String("op", op))
+
+	events, pagination, err := s.eventProvider.ListEvents(ctx, filters)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrEventNotFound):
+			return nil, nil, eventservice.ErrEventNotFound
+		default:
+			log.Error("failed to list events", logger.Err(err))
+			return nil, nil, err
+		}
+	}
+
+	return events, pagination, nil
 }

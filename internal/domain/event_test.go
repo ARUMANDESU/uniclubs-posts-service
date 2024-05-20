@@ -227,7 +227,7 @@ func TestEventToProto(t *testing.T) {
 	assert.Equal(t, event.Title, protoEvent.GetTitle())
 	assert.Equal(t, event.Description, protoEvent.GetDescription())
 	assert.Equal(t, event.Type, protoEvent.GetType())
-	assert.Equal(t, event.Status, protoEvent.GetStatus())
+	assert.Equal(t, event.Status, EventStatus(protoEvent.GetStatus()))
 	assert.Equal(t, len(event.Tags), len(protoEvent.GetTags()))
 	assert.Equal(t, event.MaxParticipants, protoEvent.GetMaxParticipants())
 	assert.Equal(t, event.ParticipantsCount, protoEvent.GetParticipantsCount())

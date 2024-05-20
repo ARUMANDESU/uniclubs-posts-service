@@ -3,25 +3,31 @@ package validate
 import (
 	"errors"
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
-	validation "github.com/go-ozzo/ozzo-validation"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"time"
 )
 
 const (
-	MinTitleLength            = 0
-	MaxTitleLength            = 500
-	MinDescriptionLength      = 0
-	MaxDescriptionLength      = 35000
-	MinTagsLength             = 2
-	MaxTagsLength             = 75
-	MinLocationLink           = 0
-	MaxLocationLink           = 2500
-	MinLocationUniversity     = 0
-	MaxLocationUniversity     = 250
+	MinTitleLength = 0
+	MaxTitleLength = 500
+
+	MinDescriptionLength = 0
+	MaxDescriptionLength = 35000
+
+	MinTagsLength = 2
+	MaxTagsLength = 75
+
+	MinLocationLink = 0
+	MaxLocationLink = 2500
+
+	MinLocationUniversity = 0
+	MaxLocationUniversity = 250
+
 	MinAttachedFileNameLength = 0
 	MaxAttachedFileNameLength = 250
-	MaxPosition               = 20
-	MaxParticipantsNumber     = 100000
+
+	MaxPosition           = 20
+	MaxParticipantsNumber = 100000
 )
 
 func CreateEvent(value interface{}) error {
@@ -75,5 +81,24 @@ func UpdateEvent(value interface{}) error {
 		validation.Field(&req.CoverImages, validation.By(coverImages)),
 		validation.Field(&req.AttachedImages, validation.By(attachedFiles)),
 		validation.Field(&req.AttachedFiles, validation.By(attachedFiles)),
+	)
+}
+
+func ListEvents(value interface{}) error {
+	req, ok := value.(*eventv1.ListEventsRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("list events invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.Query, validation.Length(0, 1000)),
+		validation.Field(&req.SortBy, validation.In("date", "participants", "type")),
+		validation.Field(&req.SortOrder,
+			validation.Required.
+				When(req.SortBy != "").
+				Error("sort order is required when sort by is set"),
+			validation.In("asc", "desc")),
+		validation.Field(&req.PageNumber, validation.Required),
+		validation.Field(&req.PageSize, validation.Required),
+		validation.Field(&req.Filter, validation.By(eventFilter)),
 	)
 }

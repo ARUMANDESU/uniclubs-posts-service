@@ -20,11 +20,12 @@ type ManagementService interface {
 	PublishEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
 	SendToReview(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
 	RevokeReview(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
+	ApproveEvent(ctx context.Context, eventId string, user domain.User) (*domain.Event, error)
+	RejectEvent(ctx context.Context, dto *dtos.RejectEvent) (*domain.Event, error)
 }
 
 func (s serverApi) CreateEvent(ctx context.Context, req *eventv1.CreateEventRequest) (*eventv1.EventObject, error) {
-	err := validate.CreateEvent(req)
-	if err != nil {
+	if err := validate.CreateEvent(req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
@@ -42,23 +43,13 @@ func (s serverApi) CreateEvent(ctx context.Context, req *eventv1.CreateEventRequ
 }
 
 func (s serverApi) UpdateEvent(ctx context.Context, req *eventv1.UpdateEventRequest) (*eventv1.EventObject, error) {
-	err := validate.UpdateEvent(req)
-	if err != nil {
+	if err := validate.UpdateEvent(req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	event, err := s.management.UpdateEvent(ctx, dtos.UpdateToDTO(req))
 	if err != nil {
-		switch {
-		case errors.Is(err, eventservice.ErrEventNotFound):
-			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, eventservice.ErrEventUpdateConflict):
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case errors.Is(err, eventservice.ErrUserIsNotEventOwner):
-			return nil, status.Error(codes.PermissionDenied, err.Error())
-		default:
-			return nil, status.Error(codes.Internal, "internal error")
-		}
+		return nil, handleError(err)
 	}
 
 	return event.ToProto(), nil
@@ -75,41 +66,21 @@ func (s serverApi) DeleteEvent(ctx context.Context, req *eventv1.DeleteEventRequ
 
 	event, err := s.management.DeleteEvent(ctx, req.GetEventId(), req.GetUserId())
 	if err != nil {
-		switch {
-		case errors.Is(err, eventservice.ErrEventNotFound):
-			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, eventservice.ErrInvalidID):
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, eventservice.ErrUserIsNotEventOwner):
-			return nil, status.Error(codes.PermissionDenied, err.Error())
-		default:
-			return nil, status.Error(codes.Internal, "internal error")
-		}
+		return nil, handleError(err)
 	}
 
 	return event.ToProto(), nil
 }
 
 func (s serverApi) PublishEvent(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
-	err := validate.EventActionRequest(req)
-	if err != nil {
+
+	if err := validate.EventActionRequest(req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	event, err := s.management.PublishEvent(ctx, req.GetEventId(), req.GetUserId())
 	if err != nil {
-		switch {
-		case errors.Is(err, eventservice.ErrEventNotFound):
-			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, eventservice.ErrInvalidID), errors.Is(err, eventservice.ErrEventInvalidFields):
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, eventservice.ErrUserIsNotEventOwner):
-			return nil, status.Error(codes.PermissionDenied, err.Error())
-		case errors.Is(err, eventservice.ErrInvalidEventStatus), errors.Is(err, eventservice.ErrEventUpdateConflict):
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		default:
-			return nil, status.Error(codes.Internal, "internal error")
-		}
+		return nil, handleError(err)
 	}
 
 	return event.ToProto(), nil
@@ -120,62 +91,70 @@ func (s serverApi) UnpublishEvent(ctx context.Context, req *eventv1.EventActionR
 	panic("implement me")
 }
 
-func (s serverApi) ApproveEvent(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
+func (s serverApi) ApproveEvent(ctx context.Context, req *eventv1.ApproveEventRequest) (*eventv1.EventObject, error) {
+	if err := validate.ApproveEventRequest(req); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	event, err := s.management.ApproveEvent(ctx, req.GetEventId(), domain.UserFromProto(req.GetUser()))
+	if err != nil {
+		return nil, handleError(err)
+	}
+
+	return event.ToProto(), nil
 }
 
-func (s serverApi) RejectEvent(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
+func (s serverApi) RejectEvent(ctx context.Context, req *eventv1.RejectEventRequest) (*eventv1.EventObject, error) {
+	if err := validate.RejectEventRequest(req); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	event, err := s.management.RejectEvent(ctx, dtos.RejectEventToDTO(req))
+	if err != nil {
+		return nil, handleError(err)
+	}
+
+	return event.ToProto(), nil
 }
 
 func (s serverApi) SendToReview(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
-	err := validate.EventActionRequest(req)
-	if err != nil {
+
+	if err := validate.EventActionRequest(req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	event, err := s.management.SendToReview(ctx, req.GetEventId(), req.GetUserId())
 	if err != nil {
-		switch {
-		case errors.Is(err, eventservice.ErrEventNotFound):
-			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, eventservice.ErrInvalidID), errors.Is(err, eventservice.ErrEventInvalidFields):
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, eventservice.ErrUserIsNotEventOwner):
-			return nil, status.Error(codes.PermissionDenied, err.Error())
-		case errors.Is(err, eventservice.ErrInvalidEventStatus), errors.Is(err, eventservice.ErrEventUpdateConflict):
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		default:
-			return nil, status.Error(codes.Internal, "internal error")
-		}
+		return nil, handleError(err)
 	}
 
 	return event.ToProto(), nil
 }
 
 func (s serverApi) RevokeReview(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
-	err := validate.EventActionRequest(req)
-	if err != nil {
+	if err := validate.EventActionRequest(req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	event, err := s.management.RevokeReview(ctx, req.GetEventId(), req.GetUserId())
 	if err != nil {
-		switch {
-		case errors.Is(err, eventservice.ErrEventNotFound):
-			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, eventservice.ErrInvalidID), errors.Is(err, eventservice.ErrEventInvalidFields):
-			return nil, status.Error(codes.InvalidArgument, err.Error())
-		case errors.Is(err, eventservice.ErrUserIsNotEventOwner):
-			return nil, status.Error(codes.PermissionDenied, err.Error())
-		case errors.Is(err, eventservice.ErrInvalidEventStatus), errors.Is(err, eventservice.ErrEventUpdateConflict):
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		default:
-			return nil, status.Error(codes.Internal, "internal error")
-		}
+		return nil, handleError(err)
 	}
 
 	return event.ToProto(), nil
+}
+
+func handleError(err error) error {
+	switch {
+	case errors.Is(err, eventservice.ErrEventNotFound):
+		return status.Error(codes.NotFound, err.Error())
+	case errors.Is(err, eventservice.ErrInvalidID), errors.Is(err, eventservice.ErrEventInvalidFields):
+		return status.Error(codes.InvalidArgument, err.Error())
+	case errors.Is(err, eventservice.ErrUserIsNotEventOwner):
+		return status.Error(codes.PermissionDenied, err.Error())
+	case errors.Is(err, eventservice.ErrInvalidEventStatus), errors.Is(err, eventservice.ErrEventUpdateConflict):
+		return status.Error(codes.FailedPrecondition, err.Error())
+	default:
+		return status.Error(codes.Internal, "internal error")
+	}
 }

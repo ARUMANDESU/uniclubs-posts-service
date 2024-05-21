@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const timeLayout = "2006-01-02 15:04:05.999999999 -0700 MST"
+const TimeLayout = "2006-01-02 15:04:05.999999999 -0700 MST"
 
 type EventStatus string
 type EventType string
@@ -34,28 +34,31 @@ func (t EventType) String() string {
 }
 
 type Event struct {
-	ID                 string       `json:"id"`
-	ClubId             int64        `json:"club_id"`
-	OwnerId            int64        `json:"owner_id"`
-	CollaboratorClubs  []Club       `json:"collaborator_clubs"`
-	Organizers         []Organizer  `json:"organizers"`
-	Title              string       `json:"title,omitempty"`
-	Description        string       `json:"description,omitempty"`
-	Type               EventType    `json:"type,omitempty"`
-	Status             EventStatus  `json:"status,omitempty"`
-	Tags               []string     `json:"tags,omitempty"`
-	MaxParticipants    uint32       `json:"max_participants,omitempty"`
-	ParticipantsCount  uint32       `json:"participants_count,omitempty"`
-	LocationLink       string       `json:"location_link,omitempty"`
-	LocationUniversity string       `json:"location_university,omitempty"`
-	StartDate          time.Time    `json:"start_date"`
-	EndDate            time.Time    `json:"end_date"`
-	CoverImages        []CoverImage `json:"cover_images,omitempty"`
-	AttachedImages     []File       `json:"attached_images,omitempty"`
-	AttachedFiles      []File       `json:"attached_files,omitempty"`
-	CreatedAt          time.Time    `json:"created_at"`
-	UpdatedAt          time.Time    `json:"updated_at"`
-	DeletedAt          time.Time    `json:"deleted_at"`
+	ID                 string          `json:"id"`
+	ClubId             int64           `json:"club_id"`
+	OwnerId            int64           `json:"owner_id"`
+	CollaboratorClubs  []Club          `json:"collaborator_clubs"`
+	Organizers         []Organizer     `json:"organizers"`
+	Title              string          `json:"title,omitempty"`
+	Description        string          `json:"description,omitempty"`
+	Type               EventType       `json:"type,omitempty"`
+	Status             EventStatus     `json:"status,omitempty"`
+	Tags               []string        `json:"tags,omitempty"`
+	MaxParticipants    uint32          `json:"max_participants,omitempty"`
+	ParticipantsCount  uint32          `json:"participants_count,omitempty"`
+	LocationLink       string          `json:"location_link,omitempty"`
+	LocationUniversity string          `json:"location_university,omitempty"`
+	StartDate          time.Time       `json:"start_date"`
+	EndDate            time.Time       `json:"end_date"`
+	CoverImages        []CoverImage    `json:"cover_images,omitempty"`
+	AttachedImages     []File          `json:"attached_images,omitempty"`
+	AttachedFiles      []File          `json:"attached_files,omitempty"`
+	CreatedAt          time.Time       `json:"created_at"`
+	UpdatedAt          time.Time       `json:"updated_at"`
+	DeletedAt          time.Time       `json:"deleted_at"`
+	PublishedAt        time.Time       `json:"published_at"`
+	ApproveMetadata    ApproveMetadata `json:"approve_metadata"`
+	RejectMetadata     RejectMetadata  `json:"reject_metadata"`
 }
 
 func (e *Event) IsOwner(userId int64) bool {
@@ -182,6 +185,7 @@ func (e *Event) Publish() error {
 	}
 
 	e.ChangeStatus(EventStatusInProgress)
+	e.PublishedAt = time.Now()
 	return nil
 }
 
@@ -216,6 +220,33 @@ func (e *Event) RevokeReview() error {
 	return nil
 }
 
+func (e *Event) Approve(user User) error {
+	if e.Status != EventStatusPending {
+		return fmt.Errorf("event is not in review status")
+	}
+
+	e.ChangeStatus(EventStatusApproved)
+	e.ApproveMetadata = ApproveMetadata{
+		ApprovedBy: user,
+		ApprovedAt: time.Now(),
+	}
+	return nil
+}
+
+func (e *Event) Reject(user User, reason string) error {
+	if e.Status != EventStatusPending {
+		return fmt.Errorf("event is not in review status")
+	}
+
+	e.ChangeStatus(EventStatusRejected)
+	e.RejectMetadata = RejectMetadata{
+		RejectedBy: user,
+		RejectedAt: time.Now(),
+		Reason:     reason,
+	}
+	return nil
+}
+
 func (e *Event) ToProto() *eventv1.EventObject {
 	return &eventv1.EventObject{
 		Id:                 e.ID,
@@ -232,14 +263,17 @@ func (e *Event) ToProto() *eventv1.EventObject {
 		ParticipantsCount:  e.ParticipantsCount,
 		LocationLink:       e.LocationLink,
 		LocationUniversity: e.LocationUniversity,
-		StartDate:          e.StartDate.Format(timeLayout),
-		EndDate:            e.EndDate.Format(timeLayout),
+		StartDate:          e.StartDate.Format(TimeLayout),
+		EndDate:            e.EndDate.Format(TimeLayout),
 		CoverImages:        CoverImagesToProto(e.CoverImages),
 		AttachedImages:     FilesToProto(e.AttachedImages),
 		AttachedFiles:      FilesToProto(e.AttachedFiles),
-		CreatedAt:          e.CreatedAt.Format(timeLayout),
-		UpdatedAt:          e.UpdatedAt.Format(timeLayout),
-		DeletedAt:          e.DeletedAt.Format(timeLayout),
+		CreatedAt:          e.CreatedAt.Format(TimeLayout),
+		UpdatedAt:          e.UpdatedAt.Format(TimeLayout),
+		DeletedAt:          e.DeletedAt.Format(TimeLayout),
+		//PublishedAt:        e.PublishedAt.Format(TimeLayout),
+		ApproveMetadata: e.ApproveMetadata.ToProto(),
+		RejectMetadata:  e.RejectMetadata.ToProto(),
 	}
 }
 

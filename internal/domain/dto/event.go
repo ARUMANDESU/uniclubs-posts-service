@@ -42,6 +42,12 @@ type AcceptJoinRequestClub struct {
 	User     domain.User `json:"user"`
 }
 
+type RejectEvent struct {
+	EventId string      `json:"event_id"`
+	User    domain.User `json:"user"`
+	Reason  string      `json:"reason"`
+}
+
 func UpdateToDTO(event *eventv1.UpdateEventRequest) *UpdateEvent {
 	return &UpdateEvent{
 		EventId:            event.GetEventId(),
@@ -84,5 +90,13 @@ func AcceptJoinRequestClubToDTO(event *eventv1.HandleInviteClubRequest) *AcceptJ
 		InviteId: event.GetInviteId(),
 		ClubId:   event.GetClubId(),
 		User:     domain.UserFromProto(event.GetUser()),
+	}
+}
+
+func RejectEventToDTO(event *eventv1.RejectEventRequest) *RejectEvent {
+	return &RejectEvent{
+		EventId: event.GetEventId(),
+		User:    domain.UserFromProto(event.GetUser()),
+		Reason:  event.GetReason(),
 	}
 }

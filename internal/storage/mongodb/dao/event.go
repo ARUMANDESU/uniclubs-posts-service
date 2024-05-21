@@ -29,7 +29,10 @@ type Event struct {
 	AttachedFiles      []FileMongo        `bson:"attached_files,omitempty"`
 	CreatedAt          time.Time          `bson:"created_at"`
 	UpdatedAt          time.Time          `bson:"updated_at"`
-	DeletedAt          time.Time          `bson:"deleted_at"`
+	DeletedAt          time.Time          `bson:"deleted_at,omitempty"`
+	PublishedAt        time.Time          `bson:"published_at,omitempty"`
+	ApproveMetadata    ApproveMetadata    `json:"approve_metadata,omitempty"`
+	RejectMetadata     RejectMetadata     `json:"reject_metadata,omitempty"`
 }
 
 func (e *Event) AddOrganizer(organizer Organizer) {
@@ -69,6 +72,9 @@ func ToDomainEvent(
 		CreatedAt:          e.CreatedAt,
 		UpdatedAt:          e.UpdatedAt,
 		DeletedAt:          e.DeletedAt,
+		PublishedAt:        e.PublishedAt,
+		ApproveMetadata:    e.ApproveMetadata.ToDomain(),
+		RejectMetadata:     e.RejectMetadata.ToDomain(),
 	}
 }
 
@@ -98,6 +104,9 @@ func EventToModel(event *domain.Event) Event {
 		CreatedAt:          event.CreatedAt,
 		UpdatedAt:          event.UpdatedAt,
 		DeletedAt:          event.DeletedAt,
+		PublishedAt:        event.PublishedAt,
+		ApproveMetadata:    ToApproveMetadata(event.ApproveMetadata),
+		RejectMetadata:     ToRejectMetadata(event.RejectMetadata),
 	}
 }
 

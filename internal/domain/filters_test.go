@@ -144,8 +144,8 @@ func TestProtoToFilers_ValidRequest(t *testing.T) {
 			UserId:   1,
 			ClubId:   1,
 			Tags:     []string{"tag1", "tag2"},
-			FromDate: now.Format(timeLayout),
-			TillDate: now.Add(24 * time.Hour).Format(timeLayout),
+			FromDate: now.Format(TimeLayout),
+			TillDate: now.Add(24 * time.Hour).Format(TimeLayout),
 			Status:   "PUBLISHED",
 		},
 		FilterMask: &field_mask.FieldMask{
@@ -153,8 +153,8 @@ func TestProtoToFilers_ValidRequest(t *testing.T) {
 		},
 	}
 
-	fromDate, _ := time.Parse(timeLayout, req.GetFilter().GetFromDate())
-	tillDate, _ := time.Parse(timeLayout, req.GetFilter().GetTillDate())
+	fromDate, _ := time.Parse(TimeLayout, req.GetFilter().GetFromDate())
+	tillDate, _ := time.Parse(TimeLayout, req.GetFilter().GetTillDate())
 	expectedFilters := Filters{
 		Page:      req.GetPageNumber(),
 		PageSize:  req.GetPageSize(),
@@ -173,26 +173,4 @@ func TestProtoToFilers_ValidRequest(t *testing.T) {
 	filters := ProtoToFilers(req)
 
 	assert.Equal(t, expectedFilters, filters)
-}
-
-func TestPaginationMetadata_ToProto(t *testing.T) {
-	metadata := PaginationMetadata{
-		CurrentPage:  1,
-		PageSize:     10,
-		FirstPage:    1,
-		LastPage:     2,
-		TotalRecords: 20,
-	}
-
-	expectedProto := &eventv1.PaginationMetadata{
-		CurrentPage:  metadata.CurrentPage,
-		PageSize:     metadata.PageSize,
-		FirstPage:    metadata.FirstPage,
-		LastPage:     metadata.LastPage,
-		TotalRecords: metadata.TotalRecords,
-	}
-
-	proto := metadata.ToProto()
-
-	assert.Equal(t, expectedProto, proto)
 }

@@ -23,7 +23,7 @@ type Suite struct {
 
 const (
 	grpcHost = "localhost"
-	dotEnv   = "../../.env.test"
+	dotEnv   = "../../../.env.test"
 )
 
 func New(t *testing.T) (context.Context, *Suite) {
@@ -34,12 +34,6 @@ func New(t *testing.T) (context.Context, *Suite) {
 	if err != nil {
 		log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 		log.Error(fmt.Sprintf("error loading .env file: %v", err))
-	}
-
-	env := os.Getenv("ENV")
-	t.Logf("ENV: %s", env)
-	if env != "test" {
-		t.Skip("set ENV to test to run this test")
 	}
 
 	cfg := config.MustLoad()

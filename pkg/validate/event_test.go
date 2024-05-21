@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func TestCreateEvent_ValidRequest(t *testing.T) {
+func TestCreateEvent_HappyPath(t *testing.T) {
 	req := &eventv1.CreateEventRequest{
 		Club: newClub(t),
 		User: newUser(t),
@@ -55,7 +55,7 @@ func TestCreateEvent_Invalid(t *testing.T) {
 	}
 }
 
-func TestGetEvent_ValidRequest(t *testing.T) {
+func TestGetEvent_HappyPath(t *testing.T) {
 	req := &eventv1.GetEventRequest{
 		EventId: "Test Event",
 		UserId:  1,
@@ -95,7 +95,7 @@ func TestGetEvent_Invalid(t *testing.T) {
 	}
 }
 
-func TestUpdateEventWithValidRequest(t *testing.T) {
+func TestUpdateEvent_HappyPath(t *testing.T) {
 	req := &eventv1.UpdateEventRequest{
 		EventId:            gofakeit.UUID(),
 		UserId:             1,
@@ -104,8 +104,8 @@ func TestUpdateEventWithValidRequest(t *testing.T) {
 		Type:               domain.EventTypeUniversity.String(),
 		Tags:               []string{"tag1", "tag2"},
 		MaxParticipants:    100,
-		StartDate:          "2022-01-01T00:00:00Z",
-		EndDate:            "2022-12-31T23:59:59Z",
+		StartDate:          time.Now().Format(domain.TimeLayout),
+		EndDate:            time.Now().AddDate(0, 1, 0).Format(domain.TimeLayout),
 		LocationLink:       gofakeit.URL(),
 		LocationUniversity: "Test University",
 		CoverImages: []*eventv1.CoverImage{
@@ -158,7 +158,7 @@ func TestUpdateEvent_InvalidType(t *testing.T) {
 }
 
 func TestUpdateEvent_Invalid(t *testing.T) {
-	tenYearsFromNow := time.Now().AddDate(10, 1, 0).Format(time.RFC3339)
+	tenYearsFromNow := time.Now().AddDate(10, 1, 0).Format(domain.TimeLayout)
 
 	tests := []struct {
 		name string

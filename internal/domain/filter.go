@@ -2,7 +2,6 @@ package domain
 
 import (
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
-	"math"
 	"time"
 )
 
@@ -41,8 +40,8 @@ func (f Filters) Offset() int32 {
 }
 
 func ProtoToFilers(req *eventv1.ListEventsRequest) Filters {
-	fromDate, _ := time.Parse(timeLayout, req.GetFilter().GetFromDate())
-	tillDate, _ := time.Parse(timeLayout, req.GetFilter().GetTillDate())
+	fromDate, _ := time.Parse(TimeLayout, req.GetFilter().GetFromDate())
+	tillDate, _ := time.Parse(TimeLayout, req.GetFilter().GetTillDate())
 
 	return Filters{
 		Page:      req.GetPageNumber(),
@@ -57,37 +56,5 @@ func ProtoToFilers(req *eventv1.ListEventsRequest) Filters {
 		ToDate:    tillDate,
 		Status:    EventStatus(req.GetFilter().GetStatus()),
 		Paths:     req.GetFilterMask().GetPaths(),
-	}
-}
-
-type PaginationMetadata struct {
-	CurrentPage  int32
-	PageSize     int32
-	FirstPage    int32
-	LastPage     int32
-	TotalRecords int32
-}
-
-func CalculatePaginationMetadata(totalRecords, page, pageSize int32) PaginationMetadata {
-	if totalRecords == 0 {
-		// Note that we return an empty Metadata struct if there are no records.
-		return PaginationMetadata{}
-	}
-	return PaginationMetadata{
-		CurrentPage:  page,
-		PageSize:     pageSize,
-		FirstPage:    1,
-		LastPage:     int32(math.Ceil(float64(totalRecords) / float64(pageSize))),
-		TotalRecords: totalRecords,
-	}
-}
-
-func (m PaginationMetadata) ToProto() *eventv1.PaginationMetadata {
-	return &eventv1.PaginationMetadata{
-		CurrentPage:  m.CurrentPage,
-		PageSize:     m.PageSize,
-		FirstPage:    m.FirstPage,
-		LastPage:     m.LastPage,
-		TotalRecords: m.TotalRecords,
 	}
 }

@@ -29,6 +29,8 @@ const (
 
 	MaxPosition           = 20
 	MaxParticipantsNumber = 100000
+
+	MaxReasonLength = 2000
 )
 
 func CreateEvent(value interface{}) error {
@@ -60,10 +62,10 @@ func UpdateEvent(value interface{}) error {
 	}
 	base := time.Now()
 
-	startDateValidation := validation.Date(time.RFC3339).
+	startDateValidation := validation.Date(domain.TimeLayout).
 		Max(base.AddDate(10, 0, 0)).
 		Min(base.AddDate(-6, 0, 0))
-	endDateValidation := validation.Date(time.RFC3339).
+	endDateValidation := validation.Date(domain.TimeLayout).
 		Max(base.AddDate(10, 0, 0)).
 		Min(base.AddDate(-6, 0, 0))
 
@@ -169,5 +171,28 @@ func SendToReview(value interface{}) error {
 			validation.Required.Error("cover image is required"),
 			validation.Length(1, 100).Error("cover image is required, add at least one image"),
 		),
+	)
+}
+
+func ApproveEventRequest(value interface{}) error {
+	req, ok := value.(*eventv1.ApproveEventRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("approve event invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.EventId, validation.Required),
+		validation.Field(&req.User, validation.Required, validation.By(user)),
+	)
+}
+
+func RejectEventRequest(value interface{}) error {
+	req, ok := value.(*eventv1.RejectEventRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("reject event invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.EventId, validation.Required),
+		validation.Field(&req.User, validation.Required, validation.By(user)),
+		validation.Field(&req.Reason, validation.Required, validation.Length(0, MaxReasonLength)),
 	)
 }

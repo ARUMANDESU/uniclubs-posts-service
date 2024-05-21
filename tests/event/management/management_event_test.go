@@ -1,4 +1,4 @@
-package event
+package management
 
 import (
 	"fmt"
@@ -166,4 +166,44 @@ func TestManagement_DeleteEvent(t *testing.T) {
 	resp, err := st.EventClient.DeleteEvent(ctx, req)
 	require.NoError(t, err, fmt.Sprintf("DeleteEvent failed, error: %v", err))
 	assert.NotEqual(t, "", resp.GetId(), "DeleteEvent failed: event ID is zero")
+}
+
+func TestManagement_DeleteEvent_Invalid(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
+	ctx, st := suite.New(t)
+
+	tests := []struct {
+		name string
+		req  *eventv1.DeleteEventRequest
+		code codes.Code
+	}{
+		{
+			name: "empty event ID",
+			req: &eventv1.DeleteEventRequest{
+				EventId: "",
+				UserId:  gofakeit.Int64(),
+			},
+			code: codes.InvalidArgument,
+		},
+		{
+			name: "empty user ID",
+			req: &eventv1.DeleteEventRequest{
+				EventId: gofakeit.UUID(),
+				UserId:  0,
+			},
+			code: codes.InvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := st.EventClient.DeleteEvent(ctx, tt.req)
+			require.Error(t, err)
+			assert.Equal(t, tt.code, status.Code(err), fmt.Sprintf("expected code %v, got %v", tt.code, status.Code(err)))
+		})
+
+	}
 }

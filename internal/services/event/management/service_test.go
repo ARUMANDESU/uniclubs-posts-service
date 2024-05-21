@@ -90,8 +90,8 @@ func TestService_UpdateEvent_HappyPath(t *testing.T) {
 		MaxParticipants:    100,
 		LocationLink:       "updated location link",
 		LocationUniversity: "updated location university",
-		StartDate:          "2006-01-02T15:04:05Z",
-		EndDate:            "2006-01-02T15:04:05Z",
+		StartDate:          time.Now().Format(domain.TimeLayout),
+		EndDate:            time.Now().AddDate(0, 0, 20).Format(domain.TimeLayout),
 		CoverImages: []domain.CoverImage{
 			{
 				File: domain.File{
@@ -117,9 +117,9 @@ func TestService_UpdateEvent_HappyPath(t *testing.T) {
 			},
 		},
 	}
-	updateStartDate, err := time.Parse(time.RFC3339, dto.StartDate)
+	updateStartDate, err := time.Parse(domain.TimeLayout, dto.StartDate)
 	require.NoError(t, err)
-	updateEndDate, err := time.Parse(time.RFC3339, dto.EndDate)
+	updateEndDate, err := time.Parse(domain.TimeLayout, dto.EndDate)
 	require.NoError(t, err)
 	oldEvent := &domain.Event{
 		ID:                 "event_id",
@@ -597,15 +597,17 @@ func TestService_PublishEvent_HappyPath(t *testing.T) {
 			},
 		}
 
-		updatedEvent := *onGetEvent
-		updatedEvent.Status = domain.EventStatusInProgress
 		suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(onGetEvent, nil)
-		suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), &updatedEvent).Return(&updatedEvent, nil)
+		suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("*domain.Event")).Return(
+			func(ctx context.Context, event *domain.Event) (*domain.Event, error) {
+				return event, nil
+			},
+		)
 
 		event, err := suite.ManagementService.PublishEvent(ctx, eventId, userId)
 		require.NoError(t, err)
 		assert.NotNil(t, event)
-		assert.ObjectsAreEqual(updatedEvent, event)
+		assert.Equal(t, domain.EventStatusInProgress, event.Status)
 
 		suite.mockStorage.AssertExpectations(t)
 	})
@@ -636,15 +638,17 @@ func TestService_PublishEvent_HappyPath(t *testing.T) {
 			},
 		}
 
-		updatedEvent := *onGetEvent
-		updatedEvent.Status = domain.EventStatusInProgress
 		suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(onGetEvent, nil)
-		suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), &updatedEvent).Return(&updatedEvent, nil)
+		suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("*domain.Event")).Return(
+			func(ctx context.Context, event *domain.Event) (*domain.Event, error) {
+				return event, nil
+			},
+		)
 
 		event, err := suite.ManagementService.PublishEvent(ctx, eventId, userId)
 		require.NoError(t, err)
 		assert.NotNil(t, event)
-		assert.ObjectsAreEqual(updatedEvent, event)
+		assert.Equal(t, domain.EventStatusInProgress, event.Status)
 
 		suite.mockStorage.AssertExpectations(t)
 	})
@@ -680,15 +684,18 @@ func TestService_PublishEvent_HappyPath(t *testing.T) {
 						},
 					},
 				}
-				updatedEvent := *onGetEvent
-				updatedEvent.Status = domain.EventStatusInProgress
+
 				suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(onGetEvent, nil)
-				suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), &updatedEvent).Return(&updatedEvent, nil)
+				suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("*domain.Event")).Return(
+					func(ctx context.Context, event *domain.Event) (*domain.Event, error) {
+						return event, nil
+					},
+				)
 
 				event, err := suite.ManagementService.PublishEvent(ctx, eventId, userId)
 				require.NoError(t, err)
 				assert.NotNil(t, event)
-				assert.ObjectsAreEqual(updatedEvent, event)
+				assert.Equal(t, domain.EventStatusInProgress, event.Status)
 
 				suite.mockStorage.AssertExpectations(t)
 			})
@@ -786,15 +793,17 @@ func TestService_SendToReview_HappyPath(t *testing.T) {
 		},
 	}
 
-	updatedEvent := *onGetEvent
-	updatedEvent.Status = domain.EventStatusPending
 	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(onGetEvent, nil)
-	suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), &updatedEvent).Return(&updatedEvent, nil)
+	suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("*domain.Event")).Return(
+		func(ctx context.Context, event *domain.Event) (*domain.Event, error) {
+			return event, nil
+		},
+	)
 
 	event, err := suite.ManagementService.SendToReview(ctx, eventId, userId)
 	require.NoError(t, err)
 	assert.NotNil(t, event)
-	assert.ObjectsAreEqual(updatedEvent, event)
+	assert.Equal(t, domain.EventStatusPending, event.Status)
 
 	suite.mockStorage.AssertExpectations(t)
 }
@@ -914,15 +923,17 @@ func TestService_RevokeReview_HappyPath(t *testing.T) {
 		Status:  domain.EventStatusPending,
 	}
 
-	updatedEvent := *onGetEvent
-	updatedEvent.Status = domain.EventStatusDraft
 	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(onGetEvent, nil)
-	suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), &updatedEvent).Return(&updatedEvent, nil)
+	suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("*domain.Event")).Return(
+		func(ctx context.Context, event *domain.Event) (*domain.Event, error) {
+			return event, nil
+		},
+	)
 
 	event, err := suite.ManagementService.RevokeReview(ctx, eventId, userId)
 	require.NoError(t, err)
 	assert.NotNil(t, event)
-	assert.ObjectsAreEqual(updatedEvent, event)
+	assert.Equal(t, domain.EventStatusDraft, event.Status)
 
 	suite.mockStorage.AssertExpectations(t)
 }
@@ -978,6 +989,171 @@ func TestService_RevokeReview_FailPath(t *testing.T) {
 			suite.mockStorage.On("GetEvent", mock.Anything, tt.eventId).Return(tt.onGetEvent, tt.onGetErr)
 
 			_, err := suite.ManagementService.RevokeReview(context.Background(), tt.eventId, userId)
+			require.ErrorIs(t, err, tt.wantErr)
+
+			suite.mockStorage.AssertExpectations(t)
+		})
+	}
+}
+
+func TestService_ApproveEvent_HappyPath(t *testing.T) {
+	suite := newSuite(t)
+	ctx := context.Background()
+	eventId := "event_id"
+	user := domain.User{
+		ID:        1,
+		FirstName: "first_name",
+		LastName:  "last_name",
+		Barcode:   "barcode",
+		AvatarURL: "url",
+	}
+
+	onGetEvent := &domain.Event{
+		ID:      eventId,
+		OwnerId: 1,
+		Status:  domain.EventStatusPending,
+	}
+
+	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(onGetEvent, nil)
+	suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("*domain.Event")).Return(
+		func(ctx context.Context, event *domain.Event) (*domain.Event, error) {
+			return event, nil
+		},
+	)
+
+	event, err := suite.ManagementService.ApproveEvent(ctx, eventId, user)
+	require.NoError(t, err)
+	assert.NotNil(t, event)
+	assert.NotNil(t, event.ApproveMetadata)
+
+	suite.mockStorage.AssertExpectations(t)
+}
+
+func TestService_ApproveEvent_FailPath(t *testing.T) {
+	var userId int64 = 1
+	tests := []struct {
+		name       string
+		eventId    string
+		onGetEvent *domain.Event
+		onGetErr   error
+		wantErr    error
+	}{
+		{
+			name:    "ApproveEvent returns error when event is not found",
+			eventId: "nonexistent",
+			onGetEvent: &domain.Event{
+				ID:      "nonexistent",
+				OwnerId: 1,
+				Status:  domain.EventStatusPending,
+			},
+			onGetErr: storage.ErrEventNotFound,
+			wantErr:  eventservice.ErrEventNotFound,
+		},
+		{
+			name:    "ApproveEvent returns error when event status is not pending",
+			eventId: "event1",
+			onGetEvent: &domain.Event{
+				ID:      "event1",
+				OwnerId: 1,
+				Status:  domain.EventStatusApproved,
+			},
+			onGetErr: nil,
+			wantErr:  eventservice.ErrInvalidEventStatus,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			suite := newSuite(t)
+
+			suite.mockStorage.On("GetEvent", mock.Anything, tt.eventId).Return(tt.onGetEvent, tt.onGetErr)
+
+			_, err := suite.ManagementService.ApproveEvent(context.Background(), tt.eventId, domain.User{ID: userId})
+			require.ErrorIs(t, err, tt.wantErr)
+
+			suite.mockStorage.AssertExpectations(t)
+		})
+	}
+}
+
+func TestService_RejectEvent_HappyPath(t *testing.T) {
+	suite := newSuite(t)
+	ctx := context.Background()
+	eventId := "event_id"
+	dto := dtos.RejectEvent{
+		EventId: eventId,
+		User: domain.User{
+			ID:        1,
+			FirstName: "first_name",
+			LastName:  "last_name",
+			Barcode:   "barcode",
+			AvatarURL: "url",
+		},
+		Reason: "reason",
+	}
+
+	onGetEvent := &domain.Event{
+		ID:      eventId,
+		OwnerId: 1,
+		Status:  domain.EventStatusPending,
+	}
+
+	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(onGetEvent, nil)
+	suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("*domain.Event")).Return(
+		func(ctx context.Context, event *domain.Event) (*domain.Event, error) {
+			return event, nil
+		},
+	)
+
+	event, err := suite.ManagementService.RejectEvent(ctx, &dto)
+	require.NoError(t, err)
+	assert.NotNil(t, event)
+	assert.NotNil(t, event.RejectMetadata)
+	assert.Equal(t, domain.EventStatusRejected, event.Status)
+
+	suite.mockStorage.AssertExpectations(t)
+}
+
+func TestService_RejectEvent_FailPath(t *testing.T) {
+	var userId int64 = 1
+	tests := []struct {
+		name       string
+		eventId    string
+		onGetEvent *domain.Event
+		onGetErr   error
+		wantErr    error
+	}{
+		{
+			name:    "RejectEvent returns error when event is not found",
+			eventId: "nonexistent",
+			onGetEvent: &domain.Event{
+				ID:      "nonexistent",
+				OwnerId: 1,
+				Status:  domain.EventStatusPending,
+			},
+			onGetErr: storage.ErrEventNotFound,
+			wantErr:  eventservice.ErrEventNotFound,
+		},
+		{
+			name:    "RejectEvent returns error when event status is not pending",
+			eventId: "event1",
+			onGetEvent: &domain.Event{
+				ID:      "event1",
+				OwnerId: 1,
+				Status:  domain.EventStatusApproved,
+			},
+			onGetErr: nil,
+			wantErr:  eventservice.ErrInvalidEventStatus,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			suite := newSuite(t)
+
+			suite.mockStorage.On("GetEvent", mock.Anything, tt.eventId).Return(tt.onGetEvent, tt.onGetErr)
+
+			_, err := suite.ManagementService.RejectEvent(context.Background(), &dtos.RejectEvent{EventId: tt.eventId, User: domain.User{ID: userId}})
 			require.ErrorIs(t, err, tt.wantErr)
 
 			suite.mockStorage.AssertExpectations(t)

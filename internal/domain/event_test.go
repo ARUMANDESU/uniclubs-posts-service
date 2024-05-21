@@ -216,6 +216,16 @@ func TestEventToProto(t *testing.T) {
 		CreatedAt:          time.Now(),
 		UpdatedAt:          time.Now(),
 		DeletedAt:          time.Now(),
+		PublishedAt:        time.Time{},
+		ApproveMetadata: ApproveMetadata{
+			ApprovedBy: User{ID: 1},
+			ApprovedAt: time.Now(),
+		},
+		RejectMetadata: RejectMetadata{
+			RejectedBy: User{ID: 1},
+			RejectedAt: time.Now(),
+			Reason:     "Test Reason",
+		},
 	}
 
 	protoEvent := event.ToProto()
@@ -234,14 +244,20 @@ func TestEventToProto(t *testing.T) {
 	assert.Equal(t, event.ParticipantsCount, protoEvent.GetParticipantsCount())
 	assert.Equal(t, event.LocationLink, protoEvent.GetLocationLink())
 	assert.Equal(t, event.LocationUniversity, protoEvent.GetLocationUniversity())
-	assert.Equal(t, event.StartDate.Format(timeLayout), protoEvent.GetStartDate())
-	assert.Equal(t, event.EndDate.Format(timeLayout), protoEvent.GetEndDate())
+	assert.Equal(t, event.StartDate.Format(TimeLayout), protoEvent.GetStartDate())
+	assert.Equal(t, event.EndDate.Format(TimeLayout), protoEvent.GetEndDate())
 	assert.Equal(t, len(event.CoverImages), len(protoEvent.GetCoverImages()))
 	assert.Equal(t, len(event.AttachedImages), len(protoEvent.GetAttachedImages()))
 	assert.Equal(t, len(event.AttachedFiles), len(protoEvent.GetAttachedFiles()))
-	assert.Equal(t, event.CreatedAt.Format(timeLayout), protoEvent.GetCreatedAt())
-	assert.Equal(t, event.UpdatedAt.Format(timeLayout), protoEvent.GetUpdatedAt())
-	assert.Equal(t, event.DeletedAt.Format(timeLayout), protoEvent.GetDeletedAt())
+	assert.Equal(t, event.CreatedAt.Format(TimeLayout), protoEvent.GetCreatedAt())
+	assert.Equal(t, event.UpdatedAt.Format(TimeLayout), protoEvent.GetUpdatedAt())
+	assert.Equal(t, event.DeletedAt.Format(TimeLayout), protoEvent.GetDeletedAt())
+	//assert.Equal(t, event.PublishedAt.Format(TimeLayout), protoEvent.GetPublishedAt())
+	assert.Equal(t, event.ApproveMetadata.ApprovedBy.ID, protoEvent.GetApproveMetadata().GetApprovedBy().GetId())
+	assert.Equal(t, event.ApproveMetadata.ApprovedAt.Format(TimeLayout), protoEvent.GetApproveMetadata().GetApprovedAt())
+	assert.Equal(t, event.RejectMetadata.RejectedBy.ID, protoEvent.GetRejectMetadata().GetRejectedBy().GetId())
+	assert.Equal(t, event.RejectMetadata.RejectedAt.Format(TimeLayout), protoEvent.GetRejectMetadata().GetRejectedAt())
+	assert.Equal(t, event.RejectMetadata.Reason, protoEvent.GetRejectMetadata().GetReason())
 }
 
 func TestEventCanPublish(t *testing.T) {

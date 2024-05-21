@@ -9,7 +9,6 @@ import (
 	"github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
 	"log"
-	"time"
 )
 
 func user(value interface{}) error {
@@ -93,8 +92,8 @@ func eventFilter(value interface{}) error {
 		validation.Field(&req.UserId, validation.Min(0)),
 		validation.Field(&req.ClubId, validation.Min(0)),
 		validation.Field(&req.Tags, validation.Each(validation.Length(MinTagsLength, MaxTagsLength))),
-		validation.Field(&req.FromDate, validation.Date(time.RFC3339)),
-		validation.Field(&req.TillDate, validation.Date(time.RFC3339)),
+		validation.Field(&req.FromDate, validation.Date(domain.TimeLayout)),
+		validation.Field(&req.TillDate, validation.Date(domain.TimeLayout)),
 		validation.Field(&req.Status,
 			validation.In(
 				domain.EventStatusDraft.String(),

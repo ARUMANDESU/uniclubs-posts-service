@@ -3,9 +3,12 @@ package eventmanagement
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
+	eventservice "github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/management/mocks"
+	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -425,6 +428,314 @@ func TestService_UpdateEvent_HappyPath(t *testing.T) {
 			require.NoError(t, err)
 			assert.NotNil(t, event)
 			assert.ObjectsAreEqual(tt.expectedEvent, event)
+
+			suite.mockStorage.AssertExpectations(t)
+		})
+	}
+
+}
+
+func TestService_UpdateEvent_GetEventError(t *testing.T) {
+	suite := newSuite(t)
+	ctx := context.Background()
+	dto := &dtos.UpdateEvent{
+		EventId: "event_id",
+		UserId:  1,
+	}
+
+	expectedErr := errors.New("get event error")
+	suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(nil, expectedErr)
+
+	_, err := suite.ManagementService.UpdateEvent(ctx, dto)
+	require.ErrorIs(t, err, expectedErr)
+
+	suite.mockStorage.AssertExpectations(t)
+}
+
+func TestService_UpdateEvent_UserIsNotEventOwner(t *testing.T) {
+	suite := newSuite(t)
+	ctx := context.Background()
+	dto := &dtos.UpdateEvent{
+		EventId: "event_id",
+		UserId:  1,
+	}
+
+	oldEvent := &domain.Event{
+		ID:      dto.EventId,
+		OwnerId: dto.UserId + 1, // Different user
+	}
+
+	suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(oldEvent, nil)
+
+	_, err := suite.ManagementService.UpdateEvent(ctx, dto)
+	require.ErrorIs(t, err, eventservice.ErrUserIsNotEventOwner)
+
+	suite.mockStorage.AssertExpectations(t)
+}
+
+func TestService_UpdateEvent_UpdateEventError(t *testing.T) {
+	suite := newSuite(t)
+	ctx := context.Background()
+	dto := &dtos.UpdateEvent{
+		EventId: "event_id",
+		UserId:  1,
+	}
+
+	oldEvent := &domain.Event{
+		ID:      dto.EventId,
+		OwnerId: dto.UserId,
+	}
+
+	expectedErr := errors.New("update event error")
+	suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(oldEvent, nil)
+	suite.mockStorage.On("UpdateEvent", mock.Anything, oldEvent).Return(nil, expectedErr)
+
+	_, err := suite.ManagementService.UpdateEvent(ctx, dto)
+	require.ErrorIs(t, err, expectedErr)
+
+	suite.mockStorage.AssertExpectations(t)
+}
+
+func TestService_DeleteEvent_HappyPath(t *testing.T) {
+	suite := newSuite(t)
+	ctx := context.Background()
+	eventId := "event_id"
+	userId := int64(1)
+
+	oldEvent := &domain.Event{
+		ID:      eventId,
+		OwnerId: userId,
+	}
+
+	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(oldEvent, nil)
+	suite.mockStorage.On("DeleteEventById", mock.Anything, eventId).Return(nil)
+
+	event, err := suite.ManagementService.DeleteEvent(ctx, eventId, userId)
+	require.NoError(t, err)
+	assert.NotNil(t, event)
+
+	suite.mockStorage.AssertExpectations(t)
+}
+
+func TestService_DeleteEvent_EventNotFound(t *testing.T) {
+	suite := newSuite(t)
+	ctx := context.Background()
+	eventId := "event_id"
+	userId := int64(1)
+
+	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(nil, storage.ErrEventNotFound)
+
+	_, err := suite.ManagementService.DeleteEvent(ctx, eventId, userId)
+	require.ErrorIs(t, err, eventservice.ErrEventNotFound)
+
+	suite.mockStorage.AssertExpectations(t)
+}
+
+func TestService_DeleteEvent_UserIsNotEventOwner(t *testing.T) {
+	suite := newSuite(t)
+	ctx := context.Background()
+	eventId := "event_id"
+	userId := int64(1)
+
+	oldEvent := &domain.Event{
+		ID:      eventId,
+		OwnerId: userId + 1, // Different user
+	}
+
+	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(oldEvent, nil)
+
+	_, err := suite.ManagementService.DeleteEvent(ctx, eventId, userId)
+	require.ErrorIs(t, err, eventservice.ErrUserIsNotEventOwner)
+
+	suite.mockStorage.AssertExpectations(t)
+}
+
+func TestService_DeleteEvent_DeleteEventByIdError(t *testing.T) {
+	suite := newSuite(t)
+	ctx := context.Background()
+	eventId := "event_id"
+	userId := int64(1)
+
+	oldEvent := &domain.Event{
+		ID:      eventId,
+		OwnerId: userId,
+	}
+
+	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(oldEvent, nil)
+	suite.mockStorage.On("DeleteEventById", mock.Anything, eventId).Return(errors.New("delete error"))
+
+	_, err := suite.ManagementService.DeleteEvent(ctx, eventId, userId)
+	require.Error(t, err)
+
+	suite.mockStorage.AssertExpectations(t)
+}
+
+func TestService_PublishEvent_HappyPath(t *testing.T) {
+	t.Run("University Scope event", func(t *testing.T) {
+		suite := newSuite(t)
+		ctx := context.Background()
+		eventId := "event_id"
+		userId := int64(1)
+
+		onGetEvent := &domain.Event{
+			ID:        eventId,
+			OwnerId:   userId,
+			Type:      domain.EventTypeUniversity,
+			Status:    domain.EventStatusApproved,
+			Title:     "old title",
+			StartDate: time.Now(),
+			EndDate:   time.Now(),
+			CoverImages: []domain.CoverImage{
+				{
+					File: domain.File{
+						Name: "old cover image",
+						Url:  "old cover image url",
+						Type: "image",
+					},
+					Position: 1,
+				},
+			},
+		}
+
+		updatedEvent := *onGetEvent
+		updatedEvent.Status = domain.EventStatusInProgress
+		suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(onGetEvent, nil)
+		suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), &updatedEvent).Return(&updatedEvent, nil)
+
+		event, err := suite.ManagementService.PublishEvent(ctx, eventId, userId)
+		require.NoError(t, err)
+		assert.NotNil(t, event)
+		assert.ObjectsAreEqual(updatedEvent, event)
+
+		suite.mockStorage.AssertExpectations(t)
+	})
+
+	t.Run("Club Scope event when status is draft", func(t *testing.T) {
+		suite := newSuite(t)
+		ctx := context.Background()
+		eventId := "event_id"
+		userId := int64(1)
+
+		onGetEvent := &domain.Event{
+			ID:        eventId,
+			OwnerId:   userId,
+			Type:      domain.EventTypeIntraClub,
+			Status:    domain.EventStatusDraft,
+			Title:     "old title",
+			StartDate: time.Now(),
+			EndDate:   time.Now(),
+			CoverImages: []domain.CoverImage{
+				{
+					File: domain.File{
+						Name: "old cover image",
+						Url:  "old cover image url",
+						Type: "image",
+					},
+					Position: 1,
+				},
+			},
+		}
+
+		updatedEvent := *onGetEvent
+		updatedEvent.Status = domain.EventStatusInProgress
+		suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(onGetEvent, nil)
+		suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), &updatedEvent).Return(&updatedEvent, nil)
+
+		event, err := suite.ManagementService.PublishEvent(ctx, eventId, userId)
+		require.NoError(t, err)
+		assert.NotNil(t, event)
+		assert.ObjectsAreEqual(updatedEvent, event)
+
+		suite.mockStorage.AssertExpectations(t)
+	})
+	t.Run("Club Scope event when status is approved", func(t *testing.T) {
+		ctx := context.Background()
+		eventId := "event_id"
+		userId := int64(1)
+
+		status := []domain.EventStatus{
+			domain.EventStatusApproved,
+			domain.EventStatusDraft,
+		}
+
+		for _, s := range status {
+			t.Run(fmt.Sprintf("Status: %s", s), func(t *testing.T) {
+				suite := newSuite(t)
+				onGetEvent := &domain.Event{
+					ID:        eventId,
+					OwnerId:   userId,
+					Type:      domain.EventTypeIntraClub,
+					Status:    s,
+					Title:     "old title",
+					StartDate: time.Now(),
+					EndDate:   time.Now(),
+					CoverImages: []domain.CoverImage{
+						{
+							File: domain.File{
+								Name: "old cover image",
+								Url:  "old cover image url",
+								Type: "image",
+							},
+							Position: 1,
+						},
+					},
+				}
+				updatedEvent := *onGetEvent
+				updatedEvent.Status = domain.EventStatusInProgress
+				suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(onGetEvent, nil)
+				suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), &updatedEvent).Return(&updatedEvent, nil)
+
+				event, err := suite.ManagementService.PublishEvent(ctx, eventId, userId)
+				require.NoError(t, err)
+				assert.NotNil(t, event)
+				assert.ObjectsAreEqual(updatedEvent, event)
+
+				suite.mockStorage.AssertExpectations(t)
+			})
+		}
+
+	})
+}
+
+func TestService_PublishEvent_FailPath(t *testing.T) {
+
+	ctx := context.Background()
+	eventId := "event_id"
+	userId := int64(1)
+
+	tests := []struct {
+		name          string
+		onGetEvent    *domain.Event
+		onGetEventErr error
+		expectedError error
+	}{
+		{
+			name:          "Event Not Found",
+			onGetEvent:    &domain.Event{},
+			onGetEventErr: storage.ErrEventNotFound,
+			expectedError: eventservice.ErrEventNotFound,
+		},
+		{
+			name:          "User Is Not Event Owner",
+			onGetEvent:    &domain.Event{ID: eventId, OwnerId: userId + 1},
+			onGetEventErr: nil,
+			expectedError: eventservice.ErrUserIsNotEventOwner,
+		},
+		{
+			name:          "Event Is Not Approved",
+			onGetEvent:    &domain.Event{ID: eventId, OwnerId: userId, Status: domain.EventStatusPending, Type: domain.EventTypeUniversity},
+			onGetEventErr: nil,
+			expectedError: eventservice.ErrEventInvalidFields,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			suite := newSuite(t)
+			suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(tt.onGetEvent, tt.onGetEventErr)
+
+			_, err := suite.ManagementService.PublishEvent(ctx, eventId, userId)
+			require.ErrorIs(t, err, tt.expectedError)
 
 			suite.mockStorage.AssertExpectations(t)
 		})

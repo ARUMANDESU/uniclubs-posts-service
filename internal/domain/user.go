@@ -51,7 +51,7 @@ func (o Organizer) ToProto() *eventv1.OrganizerObject {
 		LastName:  o.LastName,
 		AvatarUrl: o.AvatarURL,
 		ClubId:    o.ClubId,
-		//todo add by who id
+		ByWhoId:   o.ByWhoId,
 	}
 }
 

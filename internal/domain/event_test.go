@@ -242,3 +242,86 @@ func TestEventToProto(t *testing.T) {
 	assert.Equal(t, event.UpdatedAt.Format(timeLayout), protoEvent.GetUpdatedAt())
 	assert.Equal(t, event.DeletedAt.Format(timeLayout), protoEvent.GetDeletedAt())
 }
+
+func TestEventCanPublish(t *testing.T) {
+	tests := []struct {
+		name    string
+		event   *Event
+		wantErr error
+	}{
+		{
+			name: "Can publish when status is approved",
+			event: &Event{
+				Status: EventStatusApproved,
+			},
+			wantErr: nil,
+		},
+		{
+			name: "Can publish when type is intra club",
+			event: &Event{
+				Type: EventTypeIntraClub,
+			},
+			wantErr: nil,
+		},
+		{
+			name: "Cannot publish when status is not approved and type is not intra club",
+			event: &Event{
+				Status: EventStatusDraft,
+				Type:   EventTypeUniversity,
+			},
+			wantErr: ErrEventIsNotApproved,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.event.canPublish()
+			assert.ErrorIs(t, tt.wantErr, err)
+		})
+	}
+}
+
+func TestEventPublish(t *testing.T) {
+	tests := []struct {
+		name    string
+		event   *Event
+		wantErr error
+	}{
+		{
+			name: "Publish changes status to in progress when can publish",
+			event: &Event{
+				Status: EventStatusApproved,
+				Type:   EventTypeUniversity,
+			},
+			wantErr: nil,
+		},
+		{
+			name: "Publish returns error when cannot publish",
+			event: &Event{
+				Status: EventStatusDraft,
+				Type:   EventTypeUniversity,
+			},
+			wantErr: ErrEventIsNotApproved,
+		},
+		{
+			name: "Publish changes status to in progress when can publish",
+			event: &Event{
+				Status: EventStatusDraft,
+				Type:   EventTypeIntraClub,
+			},
+			wantErr: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.event.Publish(); err != tt.wantErr {
+				t.Errorf("Event.Publish() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if tt.wantErr == nil && tt.event.Status != EventStatusInProgress {
+				t.Errorf("Event.Publish() status = %v, wantStatus %v", tt.event.Status, EventStatusInProgress)
+			}
+		})
+	}
+}

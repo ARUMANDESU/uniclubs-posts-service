@@ -190,7 +190,14 @@ func (s Service) PublishEvent(ctx context.Context, eventId string, userId int64)
 		return nil, fmt.Errorf("%w: %w", eventservice.ErrEventInvalidFields, err)
 	}
 
-	event.ChangeStatus(domain.EventStatusPending)
+	err = event.Publish()
+	if err != nil {
+		if errors.Is(err, domain.ErrEventIsNotApproved) {
+			return nil, eventservice.ErrEventIsNotApproved
+		}
+		log.Error("failed to check if event can be published", logger.Err(err))
+		return nil, err
+	}
 
 	updateCtx, cancel := context.WithTimeout(ctx, 7*time.Second)
 	defer cancel()

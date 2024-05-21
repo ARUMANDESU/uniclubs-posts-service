@@ -22,4 +22,5 @@ var (
 	ErrClubMismatch            = errors.New("club mismatch")
 	ErrInvalidEventStatus      = errors.New("invalid event status")
 	ErrEventInvalidFields      = errors.New("invalid event fields")
+	ErrEventIsNotApproved      = errors.New("event is not approved")
 )

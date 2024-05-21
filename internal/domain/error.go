@@ -9,4 +9,5 @@ var (
 	ErrCollaboratorsEmpty   = errors.New("there is no collaborators")
 	ErrOrganizersEmpty      = errors.New("there is no organizers")
 	ErrCollaboratorNotFound = errors.New("collaborator not found")
+	ErrEventIsNotApproved   = errors.New("event is not approved")
 )

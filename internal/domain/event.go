@@ -13,6 +13,8 @@ type EventType string
 const (
 	EventStatusDraft      EventStatus = "DRAFT"
 	EventStatusPending    EventStatus = "PENDING"
+	EventStatusApproved   EventStatus = "APPROVED"
+	EventStatusRejected   EventStatus = "REJECTED"
 	EventStatusInProgress EventStatus = "IN_PROGRESS"
 	EventStatusFinished   EventStatus = "FINISHED"
 	EventStatusCanceled   EventStatus = "CANCELED"
@@ -160,6 +162,26 @@ func (e *Event) RemoveCollaborator(clubId int64) error {
 
 func (e *Event) ChangeStatus(status EventStatus) {
 	e.Status = status
+}
+
+func (e *Event) canPublish() error {
+	if e.Status == EventStatusApproved {
+		return nil
+	}
+	if e.Type == EventTypeIntraClub {
+		return nil
+	}
+
+	return ErrEventIsNotApproved
+}
+
+func (e *Event) Publish() error {
+	if err := e.canPublish(); err != nil {
+		return err
+	}
+
+	e.ChangeStatus(EventStatusInProgress)
+	return nil
 }
 
 func (e *Event) ToProto() *eventv1.EventObject {

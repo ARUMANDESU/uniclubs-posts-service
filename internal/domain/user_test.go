@@ -108,6 +108,7 @@ func TestOrganizers_ToProto(t *testing.T) {
 		assert.Equal(t, organizers[i].LastName, protoOrganizer.GetLastName())
 		assert.Equal(t, organizers[i].AvatarURL, protoOrganizer.GetAvatarUrl())
 		assert.Equal(t, organizers[i].ClubId, protoOrganizer.GetClubId())
+		assert.Equal(t, organizers[i].ByWhoId, protoOrganizer.GetByWhoId())
 	}
 }
 

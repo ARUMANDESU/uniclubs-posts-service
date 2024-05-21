@@ -121,7 +121,17 @@ func PublishEvent(value interface{}) error {
 		return validation.NewInternalError(errors.New("publish event invalid type"))
 	}
 	return validation.ValidateStruct(req,
-		validation.Field(&req.Status, validation.Required, validation.In(domain.EventStatusDraft).Error("event status must be DRAFT, maybe it already published")),
+		validation.Field(&req.Status,
+			validation.Required,
+			validation.When(
+				req.Type == domain.EventTypeUniversity,
+				validation.In(domain.EventStatusApproved).Error("event status must be APPROVED"),
+			),
+			validation.When(
+				req.Type == domain.EventTypeIntraClub,
+				validation.In(domain.EventStatusApproved, domain.EventStatusDraft).Error("event status must be APPROVED or DRAFT"),
+			),
+		),
 		validation.Field(&req.Title,
 			validation.Required.Error("event title is required"),
 			validation.Length(3, MaxTitleLength).Error("event title must be between 3 and 500 characters"),

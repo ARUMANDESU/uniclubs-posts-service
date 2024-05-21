@@ -401,26 +401,52 @@ func TestListEvents_InvalidRequest(t *testing.T) {
 }
 
 func TestPublishEvent_ValidRequest(t *testing.T) {
-	event := &domain.Event{
-		Status:    domain.EventStatusDraft,
-		Title:     "Test Title",
-		Type:      domain.EventTypeUniversity,
-		StartDate: time.Now(),
-		EndDate:   time.Now(),
-		CoverImages: []domain.CoverImage{
-			{
-				File: domain.File{
-					Url:  "https://example.com/image.jpg",
-					Name: "Test Image",
-					Type: "image/jpeg",
+	t.Run("University Scope Event", func(t *testing.T) {
+		event := &domain.Event{
+			Status:    domain.EventStatusApproved,
+			Title:     "Test Title",
+			Type:      domain.EventTypeUniversity,
+			StartDate: time.Now(),
+			EndDate:   time.Now(),
+			CoverImages: []domain.CoverImage{
+				{
+					File: domain.File{
+						Url:  "https://example.com/image.jpg",
+						Name: "Test Image",
+						Type: "image/jpeg",
+					},
+					Position: 1,
 				},
-				Position: 1,
 			},
-		},
-	}
+		}
 
-	err := PublishEvent(event)
-	assert.Nil(t, err)
+		err := PublishEvent(event)
+		assert.Nil(t, err)
+	})
+
+	t.Run("Club Scope Event", func(t *testing.T) {
+		event := &domain.Event{
+			Status:    domain.EventStatusDraft,
+			Title:     "Test Title",
+			Type:      domain.EventTypeIntraClub,
+			StartDate: time.Now(),
+			EndDate:   time.Now(),
+			CoverImages: []domain.CoverImage{
+				{
+					File: domain.File{
+						Url:  "https://example.com/image.jpg",
+						Name: "Test Image",
+						Type: "image/jpeg",
+					},
+					Position: 1,
+				},
+			},
+		}
+
+		err := PublishEvent(event)
+		assert.Nil(t, err)
+	})
+
 }
 
 func TestPublishEvent_InvalidType(t *testing.T) {
@@ -488,6 +514,118 @@ func TestPublishEvent_Invalid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := PublishEvent(tt.event)
+			assert.NotNil(t, err)
+		})
+	}
+}
+
+func TestPublishEvent_UniversityEvent_InvalidStatus(t *testing.T) {
+	event := &domain.Event{
+		Title:     "Test Title",
+		Type:      domain.EventTypeUniversity,
+		StartDate: time.Now(),
+		EndDate:   time.Now(),
+		CoverImages: []domain.CoverImage{
+			{
+				File: domain.File{
+					Url:  "https://example.com/image.jpg",
+					Name: "Test Image",
+					Type: "image/jpeg",
+				},
+				Position: 1,
+			},
+		},
+	}
+
+	tests := []struct {
+		name   string
+		status domain.EventStatus
+	}{
+		{
+			name:   "University Event with Draft Status",
+			status: domain.EventStatusDraft,
+		},
+		{
+			name:   "University Event with Pending Status",
+			status: domain.EventStatusPending,
+		},
+		{
+			name:   "University Event with In Progress Status",
+			status: domain.EventStatusInProgress,
+		},
+		{
+			name:   "University Event with Finished Status",
+			status: domain.EventStatusFinished,
+		},
+		{
+			name:   "University Event with Canceled Status",
+			status: domain.EventStatusCanceled,
+		},
+		{
+			name:   "University Event with Rejected Status",
+			status: domain.EventStatusRejected,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			event := event
+			event.Status = tt.status
+			err := PublishEvent(event)
+			assert.NotNil(t, err)
+		})
+	}
+}
+
+func TestPublishEvent_IntraClubEvent_InvalidStatus(t *testing.T) {
+	event := &domain.Event{
+		Title:     "Test Title",
+		Type:      domain.EventTypeIntraClub,
+		StartDate: time.Now(),
+		EndDate:   time.Now(),
+		CoverImages: []domain.CoverImage{
+			{
+				File: domain.File{
+					Url:  "https://example.com/image.jpg",
+					Name: "Test Image",
+					Type: "image/jpeg",
+				},
+				Position: 1,
+			},
+		},
+	}
+
+	tests := []struct {
+		name   string
+		status domain.EventStatus
+	}{
+		{
+			name:   "Club scope with Pending Status",
+			status: domain.EventStatusPending,
+		},
+		{
+			name:   "Club scope with In Progress Status",
+			status: domain.EventStatusInProgress,
+		},
+		{
+			name:   "Club scope with Finished Status",
+			status: domain.EventStatusFinished,
+		},
+		{
+			name:   "Club scope with Canceled Status",
+			status: domain.EventStatusCanceled,
+		},
+		{
+			name:   "Club scope with Rejected Status",
+			status: domain.EventStatusRejected,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			event := event
+			event.Status = tt.status
+			err := PublishEvent(event)
 			assert.NotNil(t, err)
 		})
 	}

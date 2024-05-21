@@ -88,7 +88,7 @@ func (s serverApi) DeleteEvent(ctx context.Context, req *eventv1.DeleteEventRequ
 	return event.ToProto(), nil
 }
 
-func (s serverApi) PublishEvent(ctx context.Context, req *eventv1.PublishEventRequest) (*eventv1.EventObject, error) {
+func (s serverApi) PublishEvent(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
 	err := validate.PublishEventRequest(req)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -113,17 +113,27 @@ func (s serverApi) PublishEvent(ctx context.Context, req *eventv1.PublishEventRe
 	return event.ToProto(), nil
 }
 
-func (s serverApi) UnpublishEvent(ctx context.Context, req *eventv1.PublishEventRequest) (*eventv1.EventObject, error) {
+func (s serverApi) UnpublishEvent(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s serverApi) ApproveEvent(ctx context.Context, req *eventv1.HandleEventRequest) (*eventv1.EventObject, error) {
+func (s serverApi) ApproveEvent(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s serverApi) RejectEvent(ctx context.Context, req *eventv1.HandleEventRequest) (*eventv1.EventObject, error) {
+func (s serverApi) RejectEvent(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s serverApi) SendToReview(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s serverApi) RevokeReview(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
 	//TODO implement me
 	panic("implement me")
 }

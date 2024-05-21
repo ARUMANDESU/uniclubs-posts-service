@@ -8,9 +8,9 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/internal/grpc/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/rabbitmq"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/club"
-	eventCollaborator "github.com/arumandesu/uniclubs-posts-service/internal/services/event/collaborator"
-	eventInfo "github.com/arumandesu/uniclubs-posts-service/internal/services/event/info"
-	eventManagement "github.com/arumandesu/uniclubs-posts-service/internal/services/event/management"
+	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/collaborator"
+	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/info"
+	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/management"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/user"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage/mongodb"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
@@ -45,13 +45,13 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 
 	userService := userservice.New(log, mongoDB)
 	clubService := clubservice.New(log, mongoDB)
-	eventCollaboratorService := eventCollaborator.New(log, mongoDB, mongoDB, mongoDB, mongoDB)
+	eventCollaboratorService := eventcollab.New(log, mongoDB, mongoDB, mongoDB, mongoDB)
 
 	services := eventgrpc.NewServices(
-		eventManagement.New(log, mongoDB),
+		eventmanagement.New(log, mongoDB),
 		eventCollaboratorService,
 		eventCollaboratorService,
-		eventInfo.New(log, mongoDB),
+		eventinfo.New(log, mongoDB),
 	)
 
 	grpcApp := grpcapp.New(log, cfg.GRPC.Port, services)

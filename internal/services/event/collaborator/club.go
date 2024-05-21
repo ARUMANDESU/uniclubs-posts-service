@@ -1,4 +1,4 @@
-package collaborator
+package eventcollab
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func (s Service) SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinRequestToClub) (*domain.Event, error) {
+func (s Service) SendJoinRequestToClub(ctx context.Context, dto *dtos.SendJoinRequestToClub) (*domain.Event, error) {
 	const op = "services.event.collaborator.sendJoinRequestToClub"
 	log := s.log.With(slog.String("op", op))
 
@@ -70,7 +70,7 @@ func (s Service) SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinReq
 	return event, nil
 }
 
-func (s Service) AcceptClubJoinRequest(ctx context.Context, dto *dto.AcceptJoinRequestClub) (domain.Event, error) {
+func (s Service) AcceptClubJoinRequest(ctx context.Context, dto *dtos.AcceptJoinRequestClub) (domain.Event, error) {
 	const op = "services.event.collaborator.acceptClubJoinRequest"
 	log := s.log.With(slog.String("op", op))
 

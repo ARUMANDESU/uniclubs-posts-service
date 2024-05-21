@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func (s *Storage) CreateEvent(ctx context.Context, club *domain.Club, user *domain.User) (*domain.Event, error) {
+func (s *Storage) CreateEvent(ctx context.Context, club domain.Club, user domain.User) (*domain.Event, error) {
 	const op = "storage.mongodb.event.createEvent"
 
 	event := dao.Event{
@@ -27,8 +27,8 @@ func (s *Storage) CreateEvent(ctx context.Context, club *domain.Club, user *doma
 		Status:    domain.EventStatusDraft.String(),
 	}
 
-	event.AddOrganizer(dao.OrganizerFromDomainUser(*user, club.ID))
-	event.AddCollaboratorClub(dao.ClubFromDomainClub(*club))
+	event.AddOrganizer(dao.OrganizerFromDomainUser(user, club.ID))
+	event.AddCollaboratorClub(dao.ClubFromDomainClub(club))
 
 	insertResult, err := s.eventsCollection.InsertOne(ctx, event)
 	if err != nil {

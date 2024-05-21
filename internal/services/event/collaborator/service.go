@@ -1,4 +1,4 @@
-package collaborator
+package eventcollab
 
 import (
 	"context"
@@ -21,14 +21,14 @@ type EventStorage interface {
 }
 
 type OrganizerInviteStorage interface {
-	CreateJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.UserInvite, error)
+	CreateJoinRequestToUser(ctx context.Context, dto *dtos.SendJoinRequestToUser) (*domain.UserInvite, error)
 	GetUserJoinRequests(ctx context.Context, eventId string) ([]domain.UserInvite, error)
 	GetJoinRequestsByUserInviteId(ctx context.Context, inviteId string) (*domain.UserInvite, error)
 	GetJoinRequestByUserId(ctx context.Context, eventId string, userId int64) (*domain.UserInvite, error)
 }
 
 type ClubInviteStorage interface {
-	CreateJoinRequestToClub(ctx context.Context, dto *dto.SendJoinRequestToClub) (*domain.Invite, error)
+	CreateJoinRequestToClub(ctx context.Context, dto *dtos.SendJoinRequestToClub) (*domain.Invite, error)
 	GetClubJoinRequests(ctx context.Context, eventId string) ([]domain.Invite, error)
 	GetJoinRequestsByClubInviteId(ctx context.Context, inviteId string) (*domain.Invite, error)
 	GetJoinRequestByClubId(ctx context.Context, eventId string, clubId int64) (*domain.Invite, error)

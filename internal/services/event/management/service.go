@@ -1,10 +1,10 @@
-package management
+package eventmanagement
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
+	dtos "github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/validate"
@@ -20,8 +20,9 @@ type Service struct {
 	eventStorage EventStorage
 }
 
+//go:generate mockery --name EventStorage
 type EventStorage interface {
-	CreateEvent(ctx context.Context, club *domain.Club, user *domain.User) (*domain.Event, error)
+	CreateEvent(ctx context.Context, club domain.Club, user domain.User) (*domain.Event, error)
 	GetEvent(ctx context.Context, id string) (*domain.Event, error)
 	UpdateEvent(ctx context.Context, event *domain.Event) (*domain.Event, error)
 	DeleteEventById(ctx context.Context, eventId string) error
@@ -37,7 +38,7 @@ func (s Service) CreateEvent(ctx context.Context, club domain.Club, user domain.
 
 	createCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	event, err := s.eventStorage.CreateEvent(createCtx, &club, &user)
+	event, err := s.eventStorage.CreateEvent(createCtx, club, user)
 	if err != nil {
 		log.Error("failed to create event", logger.Err(err))
 		return nil, err
@@ -46,7 +47,7 @@ func (s Service) CreateEvent(ctx context.Context, club domain.Club, user domain.
 	return event, nil
 }
 
-func (s Service) UpdateEvent(ctx context.Context, dto *dto.UpdateEvent) (*domain.Event, error) {
+func (s Service) UpdateEvent(ctx context.Context, dto *dtos.UpdateEvent) (*domain.Event, error) {
 	const op = "services.event.management.updateEvent"
 	log := s.log.With(slog.String("op", op))
 

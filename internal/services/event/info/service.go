@@ -1,4 +1,4 @@
-package info
+package eventinfo
 
 import (
 	"context"

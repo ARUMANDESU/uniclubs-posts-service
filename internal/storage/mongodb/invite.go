@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func (s *Storage) CreateJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.UserInvite, error) {
+func (s *Storage) CreateJoinRequestToUser(ctx context.Context, dto *dtos.SendJoinRequestToUser) (*domain.UserInvite, error) {
 	const op = "storage.mongodb.sendJoinRequestToUser"
 
 	eventObjectId, err := primitive.ObjectIDFromHex(dto.EventId)
@@ -133,7 +133,7 @@ Club Invite Storage
 
 */
 
-func (s *Storage) CreateJoinRequestToClub(ctx context.Context, dto *dto.SendJoinRequestToClub) (*domain.Invite, error) {
+func (s *Storage) CreateJoinRequestToClub(ctx context.Context, dto *dtos.SendJoinRequestToClub) (*domain.Invite, error) {
 	const op = "storage.mongodb.sendJoinRequestToClub"
 
 	eventObjectId, err := primitive.ObjectIDFromHex(dto.EventId)

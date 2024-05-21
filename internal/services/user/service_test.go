@@ -13,35 +13,35 @@ import (
 	"testing"
 )
 
-type Suite struct {
+type suite struct {
 	UserService *Service
-	*MockStorage
+	*mockStorage
 }
 
-type MockStorage struct {
+type mockStorage struct {
 	mock.Mock
 }
 
-func (m *MockStorage) UpdateUser(ctx context.Context, user *domain.User) error {
+func (m *mockStorage) UpdateUser(ctx context.Context, user *domain.User) error {
 	args := m.Called(ctx, user)
 	return args.Error(0)
 }
 
-func Setup(t *testing.T) *Suite {
+func setupSuite(t *testing.T) *suite {
 	t.Helper()
 
-	mockStorage := &MockStorage{}
+	mockStorage := &mockStorage{}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	userService := New(log, mockStorage)
 
-	return &Suite{
+	return &suite{
 		UserService: userService,
-		MockStorage: mockStorage,
+		mockStorage: mockStorage,
 	}
 }
 
 func TestService_HandleUpdateUser(t *testing.T) {
-	suite := Setup(t)
+	suite := setupSuite(t)
 	defer suite.AssertExpectations(t)
 
 	t.Run("success", func(t *testing.T) {
@@ -52,7 +52,7 @@ func TestService_HandleUpdateUser(t *testing.T) {
 		}
 		newDelivery := amqp.Delivery{Body: []byte(`{"id":1,"first_name":"John Doe"}`)}
 
-		suite.MockStorage.On("UpdateUser", mock.Anything, user).Return(nil)
+		suite.mockStorage.On("UpdateUser", mock.Anything, user).Return(nil)
 
 		err := suite.UserService.HandleUpdateUser(newDelivery)
 		assert.NoError(t, err)
@@ -66,7 +66,7 @@ func TestService_HandleUpdateUser(t *testing.T) {
 		}
 		newDelivery := amqp.Delivery{Body: []byte(`{"id":3,"first_name":"John Doe"}`)}
 
-		suite.MockStorage.On("UpdateUser", mock.Anything, user).Return(storage.ErrUserNotExists)
+		suite.mockStorage.On("UpdateUser", mock.Anything, user).Return(storage.ErrUserNotExists)
 
 		err := suite.UserService.HandleUpdateUser(newDelivery)
 		t.Logf("err: %v, want: %v", err, ErrUserNotExist)

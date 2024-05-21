@@ -15,7 +15,7 @@ import (
 )
 
 type OrganizerService interface {
-	SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.Event, error)
+	SendJoinRequestToUser(ctx context.Context, dto *dtos.SendJoinRequestToUser) (*domain.Event, error)
 	AcceptUserJoinRequest(ctx context.Context, inviteId string, userId int64) (domain.Event, error)
 	RejectUserJoinRequest(ctx context.Context, inviteId string, userId int64) (domain.Event, error)
 	KickOrganizer(ctx context.Context, eventId string, userId, targetId int64) (*domain.Event, error)
@@ -23,8 +23,8 @@ type OrganizerService interface {
 }
 
 type CollaboratorService interface {
-	SendJoinRequestToClub(ctx context.Context, dto *dto.SendJoinRequestToClub) (*domain.Event, error)
-	AcceptClubJoinRequest(ctx context.Context, dto *dto.AcceptJoinRequestClub) (domain.Event, error)
+	SendJoinRequestToClub(ctx context.Context, dto *dtos.SendJoinRequestToClub) (*domain.Event, error)
+	AcceptClubJoinRequest(ctx context.Context, dto *dtos.AcceptJoinRequestClub) (domain.Event, error)
 	RejectClubJoinRequest(ctx context.Context, inviteId string, clubId int64) (domain.Event, error)
 	KickClub(ctx context.Context, eventId string, userId, clubId int64) (*domain.Event, error)
 	RevokeInviteClub(ctx context.Context, inviteId string, userId int64) error
@@ -36,7 +36,7 @@ func (s serverApi) AddCollaborator(ctx context.Context, req *eventv1.AddCollabor
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	_, err = s.collaborator.SendJoinRequestToClub(ctx, dto.AddCollaboratorRequestToClubToDTO(req))
+	_, err = s.collaborator.SendJoinRequestToClub(ctx, dtos.AddCollaboratorRequestToClubToDTO(req))
 	if err != nil {
 		switch {
 		case errors.Is(err, eventservice.ErrEventNotFound):
@@ -88,7 +88,7 @@ func (s serverApi) HandleInviteClub(ctx context.Context, req *eventv1.HandleInvi
 
 	var event domain.Event
 	if req.GetAction() == eventv1.HandleInvite_Action_ACCEPT {
-		event, err = s.collaborator.AcceptClubJoinRequest(ctx, dto.AcceptJoinRequestClubToDTO(req))
+		event, err = s.collaborator.AcceptClubJoinRequest(ctx, dtos.AcceptJoinRequestClubToDTO(req))
 	} else if req.GetAction() == eventv1.HandleInvite_Action_REJECT {
 		event, err = s.collaborator.RejectClubJoinRequest(ctx, req.InviteId, req.ClubId)
 	}
@@ -142,7 +142,7 @@ func (s serverApi) AddOrganizer(ctx context.Context, req *eventv1.AddOrganizerRe
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	_, err = s.organizer.SendJoinRequestToUser(ctx, dto.AddOrganizerRequestToUserToDTO(req))
+	_, err = s.organizer.SendJoinRequestToUser(ctx, dtos.AddOrganizerRequestToUserToDTO(req))
 	if err != nil {
 		switch {
 		case errors.Is(err, eventservice.ErrEventNotFound):

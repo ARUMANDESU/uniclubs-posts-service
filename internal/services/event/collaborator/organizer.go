@@ -1,4 +1,4 @@
-package collaborator
+package eventcollab
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func (s Service) SendJoinRequestToUser(ctx context.Context, dto *dto.SendJoinRequestToUser) (*domain.Event, error) {
+func (s Service) SendJoinRequestToUser(ctx context.Context, dto *dtos.SendJoinRequestToUser) (*domain.Event, error) {
 	const op = "services.event.management.sendJoinRequestToUser"
 	log := s.log.With(slog.String("op", op))
 

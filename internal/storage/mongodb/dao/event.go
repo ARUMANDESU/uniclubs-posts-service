@@ -16,7 +16,6 @@ type Event struct {
 	Description        string             `bson:"description,omitempty"`
 	Type               string             `bson:"type,omitempty"`
 	Status             string             `bson:"status,omitempty"`
-	IsApprove          bool               `bson:"is_approve"`
 	Tags               []string           `bson:"tags,omitempty"`
 	ParticipantIds     []int64            `bson:"participant_ids,omitempty"`
 	MaxParticipants    uint32             `bson:"max_participants,omitempty"`

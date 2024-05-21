@@ -1,5 +1,5 @@
 version: '3.8'
-name: 'usms-posts-test'
+name: 'ucms-posts-test'
 
 services:
   mongo:

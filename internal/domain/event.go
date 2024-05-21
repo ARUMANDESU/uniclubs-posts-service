@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"time"
 )
@@ -181,6 +182,28 @@ func (e *Event) Publish() error {
 	}
 
 	e.ChangeStatus(EventStatusInProgress)
+	return nil
+}
+
+func (e *Event) SendToReview() error {
+	statusErrors := map[EventStatus]error{
+		EventStatusPending:    fmt.Errorf("event already in review status"),
+		EventStatusInProgress: fmt.Errorf("event already in progress"),
+		EventStatusApproved:   fmt.Errorf("event already approved"),
+		EventStatusArchived:   fmt.Errorf("event archived"),
+		EventStatusCanceled:   fmt.Errorf("event canceled"),
+		EventStatusFinished:   fmt.Errorf("event finished"),
+	}
+
+	if e.Type == EventTypeIntraClub {
+		return fmt.Errorf("intra club events do not need review")
+	}
+
+	if err, ok := statusErrors[e.Status]; ok {
+		return err
+	}
+
+	e.ChangeStatus(EventStatusPending)
 	return nil
 }
 

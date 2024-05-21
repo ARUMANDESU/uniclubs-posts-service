@@ -18,6 +18,8 @@ type ManagementService interface {
 	UpdateEvent(ctx context.Context, dto *dtos.UpdateEvent) (*domain.Event, error)
 	DeleteEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
 	PublishEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
+	SendToReview(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
+	RevokeReview(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
 }
 
 func (s serverApi) CreateEvent(ctx context.Context, req *eventv1.CreateEventRequest) (*eventv1.EventObject, error) {
@@ -89,7 +91,7 @@ func (s serverApi) DeleteEvent(ctx context.Context, req *eventv1.DeleteEventRequ
 }
 
 func (s serverApi) PublishEvent(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
-	err := validate.PublishEventRequest(req)
+	err := validate.EventActionRequest(req)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
@@ -129,8 +131,28 @@ func (s serverApi) RejectEvent(ctx context.Context, req *eventv1.EventActionRequ
 }
 
 func (s serverApi) SendToReview(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
+	err := validate.EventActionRequest(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	event, err := s.management.SendToReview(ctx, req.GetEventId(), req.GetUserId())
+	if err != nil {
+		switch {
+		case errors.Is(err, eventservice.ErrEventNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		case errors.Is(err, eventservice.ErrInvalidID), errors.Is(err, eventservice.ErrEventInvalidFields):
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		case errors.Is(err, eventservice.ErrUserIsNotEventOwner):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		case errors.Is(err, eventservice.ErrInvalidEventStatus), errors.Is(err, eventservice.ErrEventUpdateConflict):
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
+		}
+	}
+
+	return event.ToProto(), nil
 }
 
 func (s serverApi) RevokeReview(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {

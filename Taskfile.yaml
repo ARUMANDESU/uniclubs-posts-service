@@ -24,7 +24,7 @@ tasks:
   test:coverage:
     aliases:
       - t:c
-    cmd: go test short -coverprofile=./tests/c.out ./... && go tool cover -html="./tests/c.out"
+    cmd: go test -short -coverprofile=./tests/c.out ./... && go tool cover -html="./tests/c.out"
 
   test:unit:
     aliases:

@@ -104,10 +104,10 @@ func ListEvents(value interface{}) error {
 	)
 }
 
-func PublishEventRequest(value interface{}) error {
-	req, ok := value.(*eventv1.PublishEventRequest)
+func EventActionRequest(value interface{}) error {
+	req, ok := value.(*eventv1.EventActionRequest)
 	if !ok {
-		return validation.NewInternalError(errors.New("publish event invalid type"))
+		return validation.NewInternalError(errors.New("event invalid type"))
 	}
 	return validation.ValidateStruct(req,
 		validation.Field(&req.EventId, validation.Required),
@@ -125,13 +125,36 @@ func PublishEvent(value interface{}) error {
 			validation.Required,
 			validation.When(
 				req.Type == domain.EventTypeUniversity,
-				validation.In(domain.EventStatusApproved).Error("event status must be APPROVED"),
+				validation.In(domain.EventStatusApproved).Error("event must be APPROVED"),
 			),
 			validation.When(
 				req.Type == domain.EventTypeIntraClub,
 				validation.In(domain.EventStatusApproved, domain.EventStatusDraft).Error("event status must be APPROVED or DRAFT"),
 			),
 		),
+		validation.Field(&req.Title,
+			validation.Required.Error("event title is required"),
+			validation.Length(3, MaxTitleLength).Error("event title must be between 3 and 500 characters"),
+		),
+		validation.Field(&req.Type,
+			validation.Required.Error("event type is required"),
+			validation.In(domain.EventTypeUniversity, domain.EventTypeIntraClub),
+		),
+		validation.Field(&req.StartDate, validation.Required.Error("start date is required")),
+		validation.Field(&req.EndDate, validation.Required.Error("end date is required")),
+		validation.Field(&req.CoverImages,
+			validation.Required.Error("cover image is required"),
+			validation.Length(1, 100).Error("cover image is required, add at least one image"),
+		),
+	)
+}
+
+func SendToReview(value interface{}) error {
+	req, ok := value.(*domain.Event)
+	if !ok {
+		return validation.NewInternalError(errors.New("event invalid type"))
+	}
+	return validation.ValidateStruct(req,
 		validation.Field(&req.Title,
 			validation.Required.Error("event title is required"),
 			validation.Length(3, MaxTitleLength).Error("event title must be between 3 and 500 characters"),

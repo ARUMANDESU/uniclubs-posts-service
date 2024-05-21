@@ -5,6 +5,7 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 	"time"
 )
@@ -627,6 +628,146 @@ func TestPublishEvent_IntraClubEvent_InvalidStatus(t *testing.T) {
 			event.Status = tt.status
 			err := PublishEvent(event)
 			assert.NotNil(t, err)
+		})
+	}
+}
+
+func TestSendToReview_HappyPath(t *testing.T) {
+	tests := []struct {
+		name    string
+		event   *domain.Event
+		wantErr bool
+	}{
+		{
+			name: "ValidEvent",
+			event: &domain.Event{
+				Title:       "Test Title",
+				Type:        domain.EventTypeUniversity,
+				StartDate:   time.Now(),
+				EndDate:     time.Now().Add(24 * time.Hour),
+				CoverImages: []domain.CoverImage{{}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "InvalidType",
+			event: &domain.Event{
+				Title:       "Test Title",
+				Type:        "Invalid Type",
+				StartDate:   time.Now(),
+				EndDate:     time.Now().Add(24 * time.Hour),
+				CoverImages: []domain.CoverImage{{}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "NoCoverImages",
+			event: &domain.Event{
+				Title:     "Test Title",
+				Type:      domain.EventTypeUniversity,
+				StartDate: time.Now(),
+				EndDate:   time.Now().Add(24 * time.Hour),
+			},
+			wantErr: true,
+		},
+		{
+			name: "TitleTooShort",
+			event: &domain.Event{
+				Title:       "T",
+				Type:        domain.EventTypeUniversity,
+				StartDate:   time.Now(),
+				EndDate:     time.Now().Add(24 * time.Hour),
+				CoverImages: []domain.CoverImage{{}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "TitleTooLong",
+			event: &domain.Event{
+				Title:       strings.Repeat("a", 501),
+				Type:        domain.EventTypeUniversity,
+				StartDate:   time.Now(),
+				EndDate:     time.Now().Add(24 * time.Hour),
+				CoverImages: []domain.CoverImage{{}},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := SendToReview(tt.event)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SendToReview() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSendToReview_FailPath(t *testing.T) {
+	tests := []struct {
+		name    string
+		event   *domain.Event
+		wantErr bool
+	}{
+		{
+			name: "MissingTitle",
+			event: &domain.Event{
+				Type:        domain.EventTypeUniversity,
+				StartDate:   time.Now(),
+				EndDate:     time.Now().Add(24 * time.Hour),
+				CoverImages: []domain.CoverImage{{}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "MissingType",
+			event: &domain.Event{
+				Title:       "Test Title",
+				StartDate:   time.Now(),
+				EndDate:     time.Now().Add(24 * time.Hour),
+				CoverImages: []domain.CoverImage{{}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "MissingStartDate",
+			event: &domain.Event{
+				Title:       "Test Title",
+				Type:        domain.EventTypeUniversity,
+				EndDate:     time.Now().Add(24 * time.Hour),
+				CoverImages: []domain.CoverImage{{}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "MissingEndDate",
+			event: &domain.Event{
+				Title:       "Test Title",
+				Type:        domain.EventTypeUniversity,
+				StartDate:   time.Now(),
+				CoverImages: []domain.CoverImage{{}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "MissingCoverImages",
+			event: &domain.Event{
+				Title:     "Test Title",
+				Type:      domain.EventTypeUniversity,
+				StartDate: time.Now(),
+				EndDate:   time.Now().Add(24 * time.Hour),
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := SendToReview(tt.event)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SendToReview() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }

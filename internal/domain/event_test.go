@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -321,6 +322,77 @@ func TestEventPublish(t *testing.T) {
 
 			if tt.wantErr == nil && tt.event.Status != EventStatusInProgress {
 				t.Errorf("Event.Publish() status = %v, wantStatus %v", tt.event.Status, EventStatusInProgress)
+			}
+		})
+	}
+}
+
+func TestEventSendToReview(t *testing.T) {
+	tests := []struct {
+		name    string
+		event   *Event
+		wantErr error
+	}{
+		{
+			name: "SendToReview returns error when event type is intra club",
+			event: &Event{
+				Type: EventTypeIntraClub,
+			},
+			wantErr: fmt.Errorf("intra club events do not need review"),
+		},
+		{
+			name: "SendToReview returns error when event status is pending",
+			event: &Event{
+				Status: EventStatusPending,
+			},
+			wantErr: fmt.Errorf("event already in review status"),
+		},
+		{
+			name: "SendToReview returns error when event status is approved",
+			event: &Event{
+				Status: EventStatusApproved,
+			},
+			wantErr: fmt.Errorf("event already approved"),
+		},
+		{
+			name: "SendToReview returns error when event status is archived",
+			event: &Event{
+				Status: EventStatusArchived,
+			},
+			wantErr: fmt.Errorf("event archived"),
+		},
+		{
+			name: "SendToReview returns error when event status is canceled",
+			event: &Event{
+				Status: EventStatusCanceled,
+			},
+			wantErr: fmt.Errorf("event canceled"),
+		},
+		{
+			name: "SendToReview returns error when event status is finished",
+			event: &Event{
+				Status: EventStatusFinished,
+			},
+			wantErr: fmt.Errorf("event finished"),
+		},
+		{
+			name: "SendToReview changes status to pending when event status is draft",
+			event: &Event{
+				Status: EventStatusDraft,
+			},
+			wantErr: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.event.SendToReview()
+			if err != nil {
+				if tt.wantErr == nil || err.Error() != tt.wantErr.Error() {
+					t.Errorf("Event.SendToReview() error = %v, wantErr %v", err, tt.wantErr)
+				}
+			} else if tt.event.Status != EventStatusPending {
+				t.Errorf("Event.SendToReview() status = %v, wantStatus %v", tt.event.Status, EventStatusPending)
 			}
 		})
 	}

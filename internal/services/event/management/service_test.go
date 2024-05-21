@@ -722,8 +722,25 @@ func TestService_PublishEvent_FailPath(t *testing.T) {
 			expectedError: eventservice.ErrUserIsNotEventOwner,
 		},
 		{
-			name:          "Event Is Not Approved",
+			name:          "Event have no cover image, title, start date, end date",
 			onGetEvent:    &domain.Event{ID: eventId, OwnerId: userId, Status: domain.EventStatusPending, Type: domain.EventTypeUniversity},
+			onGetEventErr: nil,
+			expectedError: eventservice.ErrEventInvalidFields,
+		},
+		{
+			name: "Event is not approved",
+			onGetEvent: &domain.Event{
+				ID:        eventId,
+				OwnerId:   userId,
+				Status:    domain.EventStatusPending,
+				Type:      domain.EventTypeUniversity,
+				Title:     "title",
+				StartDate: time.Now(),
+				EndDate:   time.Now(),
+				CoverImages: []domain.CoverImage{
+					{File: domain.File{Name: "cover image", Url: "cover image url", Type: "image"}, Position: 1},
+				},
+			},
 			onGetEventErr: nil,
 			expectedError: eventservice.ErrEventInvalidFields,
 		},
@@ -739,6 +756,148 @@ func TestService_PublishEvent_FailPath(t *testing.T) {
 
 			suite.mockStorage.AssertExpectations(t)
 		})
+	}
+
+}
+
+func TestService_SendToReview_HappyPath(t *testing.T) {
+	suite := newSuite(t)
+	ctx := context.Background()
+	eventId := "event_id"
+	userId := int64(1)
+
+	onGetEvent := &domain.Event{
+		ID:        eventId,
+		OwnerId:   userId,
+		Type:      domain.EventTypeUniversity,
+		Status:    domain.EventStatusDraft,
+		Title:     "old title",
+		StartDate: time.Now(),
+		EndDate:   time.Now(),
+		CoverImages: []domain.CoverImage{
+			{
+				File: domain.File{
+					Name: "old cover image",
+					Url:  "old cover image url",
+					Type: "image",
+				},
+				Position: 1,
+			},
+		},
+	}
+
+	updatedEvent := *onGetEvent
+	updatedEvent.Status = domain.EventStatusPending
+	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(onGetEvent, nil)
+	suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), &updatedEvent).Return(&updatedEvent, nil)
+
+	event, err := suite.ManagementService.SendToReview(ctx, eventId, userId)
+	require.NoError(t, err)
+	assert.NotNil(t, event)
+	assert.ObjectsAreEqual(updatedEvent, event)
+
+	suite.mockStorage.AssertExpectations(t)
+}
+
+func TestService_SendToReview_FailPath(t *testing.T) {
+	eventId := "event_id"
+	userId := int64(1)
+
+	tests := []struct {
+		name          string
+		onGetEvent    *domain.Event
+		onGetEventErr error
+		expectedError error
+	}{
+		{
+			name:          "Event Not Found",
+			onGetEvent:    &domain.Event{},
+			onGetEventErr: storage.ErrEventNotFound,
+			expectedError: eventservice.ErrEventNotFound,
+		},
+		{
+			name:          "User Is Not Event Owner",
+			onGetEvent:    &domain.Event{ID: eventId, OwnerId: userId + 1},
+			onGetEventErr: nil,
+			expectedError: eventservice.ErrUserIsNotEventOwner,
+		},
+		{
+			name:          "Event Is Not Draft",
+			onGetEvent:    &domain.Event{ID: eventId, OwnerId: userId, Status: domain.EventStatusPending, Type: domain.EventTypeUniversity},
+			onGetEventErr: nil,
+			expectedError: eventservice.ErrEventInvalidFields,
+		},
+		{
+			name: "Event Is already sent to review",
+			onGetEvent: &domain.Event{
+				ID:        eventId,
+				OwnerId:   userId,
+				Status:    domain.EventStatusPending,
+				Type:      domain.EventTypeUniversity,
+				Title:     "title",
+				StartDate: time.Now(),
+				EndDate:   time.Now(),
+				CoverImages: []domain.CoverImage{
+					{File: domain.File{Name: "cover image", Url: "cover image url", Type: "image"}, Position: 1},
+				},
+			},
+			onGetEventErr: nil,
+			expectedError: eventservice.ErrInvalidEventStatus,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			suite := newSuite(t)
+			suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(tt.onGetEvent, tt.onGetEventErr)
+
+			_, err := suite.ManagementService.SendToReview(ctx, eventId, userId)
+			require.ErrorIs(t, err, tt.expectedError)
+
+			suite.mockStorage.AssertExpectations(t)
+		})
+	}
+
+}
+
+func TestService_SendToReview_InvalidStatus(t *testing.T) {
+	eventId := "event_id"
+	userId := int64(1)
+
+	status := []domain.EventStatus{
+		domain.EventStatusPending,
+		domain.EventStatusApproved,
+		domain.EventStatusInProgress,
+		domain.EventStatusFinished,
+		domain.EventStatusCanceled,
+		domain.EventStatusArchived,
+	}
+
+	for _, s := range status {
+		t.Run(fmt.Sprintf("Status: %s", s), func(t *testing.T) {
+			suite := newSuite(t)
+			ctx := context.Background()
+			onGetEvent := &domain.Event{
+				ID:        eventId,
+				OwnerId:   userId,
+				Status:    s,
+				Type:      domain.EventTypeUniversity,
+				Title:     "title",
+				StartDate: time.Now(),
+				EndDate:   time.Now(),
+				CoverImages: []domain.CoverImage{
+					{File: domain.File{Name: "cover image", Url: "cover image url", Type: "image"}, Position: 1},
+				},
+			}
+			suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(onGetEvent, nil)
+
+			_, err := suite.ManagementService.SendToReview(ctx, eventId, userId)
+			require.ErrorIs(t, err, eventservice.ErrInvalidEventStatus)
+
+			suite.mockStorage.AssertExpectations(t)
+		})
+
 	}
 
 }

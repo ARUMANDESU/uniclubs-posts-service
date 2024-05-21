@@ -156,6 +156,26 @@ func (s serverApi) SendToReview(ctx context.Context, req *eventv1.EventActionReq
 }
 
 func (s serverApi) RevokeReview(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
+	err := validate.EventActionRequest(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	event, err := s.management.RevokeReview(ctx, req.GetEventId(), req.GetUserId())
+	if err != nil {
+		switch {
+		case errors.Is(err, eventservice.ErrEventNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		case errors.Is(err, eventservice.ErrInvalidID), errors.Is(err, eventservice.ErrEventInvalidFields):
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		case errors.Is(err, eventservice.ErrUserIsNotEventOwner):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		case errors.Is(err, eventservice.ErrInvalidEventStatus), errors.Is(err, eventservice.ErrEventUpdateConflict):
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
+		}
+	}
+
+	return event.ToProto(), nil
 }

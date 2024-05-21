@@ -263,6 +263,43 @@ func (s Service) SendToReview(ctx context.Context, eventId string, userId int64)
 }
 
 func (s Service) RevokeReview(ctx context.Context, eventId string, userId int64) (*domain.Event, error) {
-	//todo implement
-	panic("not implemented")
+	const op = "services.event.management.revokeReview"
+	log := s.log.With(slog.String("op", op))
+
+	event, err := s.eventStorage.GetEvent(ctx, eventId)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrEventNotFound):
+			return nil, eventservice.ErrEventNotFound
+		case errors.Is(err, storage.ErrInvalidID):
+			return nil, eventservice.ErrInvalidID
+		default:
+			log.Error("failed to get event", logger.Err(err))
+			return nil, err
+		}
+	}
+
+	if !event.IsOwner(userId) {
+		return nil, eventservice.ErrUserIsNotEventOwner
+	}
+
+	err = event.RevokeReview()
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", eventservice.ErrInvalidEventStatus, err)
+	}
+
+	updateCtx, cancel := context.WithTimeout(ctx, 7*time.Second)
+	defer cancel()
+	updatedEvent, err := s.eventStorage.UpdateEvent(updateCtx, event)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrOptimisticLockingFailed):
+			return nil, eventservice.ErrEventUpdateConflict
+		default:
+			log.Error("failed to update event", logger.Err(err))
+			return nil, err
+		}
+	}
+
+	return updatedEvent, nil
 }

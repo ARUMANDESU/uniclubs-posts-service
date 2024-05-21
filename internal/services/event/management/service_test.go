@@ -901,3 +901,86 @@ func TestService_SendToReview_InvalidStatus(t *testing.T) {
 	}
 
 }
+
+func TestService_RevokeReview_HappyPath(t *testing.T) {
+	suite := newSuite(t)
+	ctx := context.Background()
+	eventId := "event_id"
+	userId := int64(1)
+
+	onGetEvent := &domain.Event{
+		ID:      eventId,
+		OwnerId: userId,
+		Status:  domain.EventStatusPending,
+	}
+
+	updatedEvent := *onGetEvent
+	updatedEvent.Status = domain.EventStatusDraft
+	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(onGetEvent, nil)
+	suite.mockStorage.On("UpdateEvent", mock.AnythingOfType("*context.timerCtx"), &updatedEvent).Return(&updatedEvent, nil)
+
+	event, err := suite.ManagementService.RevokeReview(ctx, eventId, userId)
+	require.NoError(t, err)
+	assert.NotNil(t, event)
+	assert.ObjectsAreEqual(updatedEvent, event)
+
+	suite.mockStorage.AssertExpectations(t)
+}
+
+func TestService_RevokeReview_FailPath(t *testing.T) {
+	var userId int64 = 1
+	tests := []struct {
+		name       string
+		eventId    string
+		onGetEvent *domain.Event
+		onGetErr   error
+		wantErr    error
+	}{
+		{
+			name:    "RevokeReview returns error when event is not found",
+			eventId: "nonexistent",
+			onGetEvent: &domain.Event{
+				ID:      "nonexistent",
+				OwnerId: 1,
+				Status:  domain.EventStatusPending,
+			},
+			onGetErr: storage.ErrEventNotFound,
+			wantErr:  eventservice.ErrEventNotFound,
+		},
+		{
+			name:    "RevokeReview returns error when user is not the owner",
+			eventId: "event1",
+			onGetEvent: &domain.Event{
+				ID:      "event1",
+				OwnerId: 2,
+				Status:  domain.EventStatusPending,
+			},
+			onGetErr: nil,
+			wantErr:  eventservice.ErrUserIsNotEventOwner,
+		},
+		{
+			name:    "RevokeReview returns error when event status is not pending",
+			eventId: "event1",
+			onGetEvent: &domain.Event{
+				ID:      "event1",
+				OwnerId: 1,
+				Status:  domain.EventStatusApproved,
+			},
+			onGetErr: nil,
+			wantErr:  eventservice.ErrInvalidEventStatus,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			suite := newSuite(t)
+
+			suite.mockStorage.On("GetEvent", mock.Anything, tt.eventId).Return(tt.onGetEvent, tt.onGetErr)
+
+			_, err := suite.ManagementService.RevokeReview(context.Background(), tt.eventId, userId)
+			require.ErrorIs(t, err, tt.wantErr)
+
+			suite.mockStorage.AssertExpectations(t)
+		})
+	}
+}

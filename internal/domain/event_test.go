@@ -397,3 +397,53 @@ func TestEventSendToReview(t *testing.T) {
 		})
 	}
 }
+
+func TestEventRevokeReview(t *testing.T) {
+	tests := []struct {
+		name    string
+		event   *Event
+		wantErr error
+	}{
+		{
+			name: "RevokeReview returns error when event status is not pending",
+			event: &Event{
+				Status: EventStatusApproved,
+			},
+			wantErr: fmt.Errorf("event is not in review status"),
+		},
+		{
+			name: "event status is draft",
+			event: &Event{
+				Status: EventStatusDraft,
+			},
+			wantErr: fmt.Errorf("event is not in review status"),
+		},
+		{
+			name: " event status is progress",
+			event: &Event{
+				Status: EventStatusInProgress,
+			},
+			wantErr: fmt.Errorf("event is not in review status"),
+		},
+		{
+			name: "RevokeReview changes status to draft when event status is pending",
+			event: &Event{
+				Status: EventStatusPending,
+			},
+			wantErr: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.event.RevokeReview()
+			if err != nil {
+				if tt.wantErr == nil || err.Error() != tt.wantErr.Error() {
+					t.Errorf("Event.RevokeReview() error = %v, wantErr %v", err, tt.wantErr)
+				}
+			} else if tt.event.Status != EventStatusDraft {
+				t.Errorf("Event.RevokeReview() status = %v, wantStatus %v", tt.event.Status, EventStatusDraft)
+			}
+		})
+	}
+}

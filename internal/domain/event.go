@@ -207,6 +207,15 @@ func (e *Event) SendToReview() error {
 	return nil
 }
 
+func (e *Event) RevokeReview() error {
+	if e.Status != EventStatusPending {
+		return fmt.Errorf("event is not in review status")
+	}
+
+	e.ChangeStatus(EventStatusDraft)
+	return nil
+}
+
 func (e *Event) ToProto() *eventv1.EventObject {
 	return &eventv1.EventObject{
 		Id:                 e.ID,

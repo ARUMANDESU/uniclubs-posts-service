@@ -3,6 +3,7 @@ package dtos
 import (
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
+	"strings"
 )
 
 type UpdateEvent struct {
@@ -49,13 +50,17 @@ type RejectEvent struct {
 }
 
 func UpdateToDTO(event *eventv1.UpdateEventRequest) *UpdateEvent {
+	tags := event.GetTags()
+	for i, tag := range tags {
+		tags[i] = strings.TrimSpace(tag)
+	}
 	return &UpdateEvent{
 		EventId:            event.GetEventId(),
 		UserId:             event.GetUserId(),
-		Title:              event.GetTitle(),
-		Description:        event.GetDescription(),
+		Title:              strings.Trim(event.GetTitle(), " "),
+		Description:        strings.Trim(event.GetDescription(), " "),
 		Type:               domain.EventType(event.GetType()),
-		Tags:               event.GetTags(),
+		Tags:               tags,
 		MaxParticipants:    uint32(event.GetMaxParticipants()),
 		LocationLink:       event.GetLocationLink(),
 		LocationUniversity: event.GetLocationUniversity(),

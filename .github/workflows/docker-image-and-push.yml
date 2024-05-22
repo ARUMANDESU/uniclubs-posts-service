@@ -31,3 +31,20 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: arumandesu/posts-service:latest,arumandesu/posts-service:${{env.DATE}}
+      - name: send telegram message on push
+        uses: appleboy/telegram-action@master
+        if: always()
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: markdown
+          message: |
+            💻 **New Backend Commit!** 
+            
+            👤 **Author**: ${{ github.actor }}  
+            📝 **Commit Message**: ${{ github.event.commits[0].message }}
+            
+            📦 **Repository**: [${{ github.repository }}](https://github.com/${{ github.repository }})  
+            🔗 **See Changes**: [View Commit](https://github.com/${{ github.repository }}/commit/${{github.sha}})  
+            
+            ✅ **Status**: ${{ job.status }}

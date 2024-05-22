@@ -24,20 +24,20 @@ tasks:
   test:coverage:
     aliases:
       - t:c
-    cmd: go test -short -coverprofile=./tests/c.out ./... && go tool cover -html="./tests/c.out"
+    cmd: gotest -short -coverprofile=./tests/c.out ./... && go tool cover -html="./tests/c.out"
 
   test:unit:
     aliases:
       - t:u
-    cmd: go test -v -short ./...
+    cmd: gotest -v -short ./...
 
   test:unit:race:
     aliases:
       - t:ur
-    cmd: go test -v -race -short ./...
+    cmd: gotest -v -race -short ./...
 
 
   test:integration:
     aliases:
       - t:i
-    cmd: go test -v ./tests/...
+    cmd: gotest -v ./tests/...

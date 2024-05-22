@@ -88,6 +88,17 @@ func eventFilter(value interface{}) error {
 		return nil
 	}
 
+	validStatuses := []any{
+		domain.EventStatusDraft.String(),
+		domain.EventStatusPending.String(),
+		domain.EventStatusApproved.String(),
+		domain.EventStatusRejected.String(),
+		domain.EventStatusInProgress.String(),
+		domain.EventStatusFinished.String(),
+		domain.EventStatusCanceled.String(),
+		domain.EventStatusArchived.String(),
+	}
+
 	return validation.ValidateStruct(req,
 		validation.Field(&req.UserId, validation.Min(0)),
 		validation.Field(&req.ClubId, validation.Min(0)),
@@ -95,12 +106,10 @@ func eventFilter(value interface{}) error {
 		validation.Field(&req.FromDate, validation.Date(domain.TimeLayout)),
 		validation.Field(&req.TillDate, validation.Date(domain.TimeLayout)),
 		validation.Field(&req.Status,
-			validation.In(
-				domain.EventStatusDraft.String(),
-				domain.EventStatusPending.String(),
-				domain.EventStatusInProgress.String(),
-				domain.EventStatusFinished.String(),
-				domain.EventStatusArchived.String(),
-			).Error("event status must be DRAFT, PENDING, IN_PROGRESS, FINISHED or ARCHIVED")),
+			validation.Each(
+				validation.In(validStatuses...).
+					Error(fmt.Sprintf("event status must be valid: %v", validStatuses)),
+			),
+		),
 	)
 }

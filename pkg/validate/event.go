@@ -92,14 +92,15 @@ func ListEvents(value interface{}) error {
 	if !ok {
 		return validation.NewInternalError(errors.New("list events invalid type"))
 	}
+
+	validSortBy := []any{domain.SortByDate.String(), domain.SortByParticipants.String(), domain.SortByType.String()}
+
 	return validation.ValidateStruct(req,
 		validation.Field(&req.Query, validation.Length(0, 1000)),
-		validation.Field(&req.SortBy, validation.In("date", "participants", "type")),
+		validation.Field(&req.SortBy, validation.In(validSortBy...)),
 		validation.Field(&req.SortOrder,
-			validation.Required.
-				When(req.SortBy != "").
-				Error("sort order is required when sort by is set"),
-			validation.In("asc", "desc")),
+			validation.In(domain.SortOrderAsc.String(), domain.SortOrderDesc.String()),
+		),
 		validation.Field(&req.PageNumber, validation.Required),
 		validation.Field(&req.PageSize, validation.Required),
 		validation.Field(&req.Filter, validation.By(eventFilter)),

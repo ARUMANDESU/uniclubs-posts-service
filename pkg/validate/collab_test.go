@@ -246,3 +246,107 @@ func TestRevokeInvite(t *testing.T) {
 		assert.NotNil(t, err)
 	})
 }
+
+func TestRemoveCollaborator(t *testing.T) {
+	t.Run("ValidRequest", func(t *testing.T) {
+		req := &eventv1.RemoveCollaboratorRequest{
+			EventId: "1",
+			UserId:  1,
+			ClubId:  1,
+		}
+
+		err := RemoveCollaborator(req)
+		assert.Nil(t, err)
+	})
+
+	t.Run("InvalidRequestMissingEventId", func(t *testing.T) {
+		req := &eventv1.RemoveCollaboratorRequest{
+			UserId: 1,
+			ClubId: 1,
+		}
+
+		err := RemoveCollaborator(req)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("InvalidRequestMissingUserId", func(t *testing.T) {
+		req := &eventv1.RemoveCollaboratorRequest{
+			EventId: "1",
+			ClubId:  1,
+		}
+
+		err := RemoveCollaborator(req)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("InvalidRequestMissingClubId", func(t *testing.T) {
+		req := &eventv1.RemoveCollaboratorRequest{
+			EventId: "1",
+			UserId:  1,
+		}
+
+		err := RemoveCollaborator(req)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("InvalidType", func(t *testing.T) {
+		req := "invalid"
+
+		err := RemoveCollaborator(req)
+		assert.NotNil(t, err)
+	})
+}
+
+func TestRemoveOrganizerValidation(t *testing.T) {
+	t.Run("ValidRequest", func(t *testing.T) {
+		req := &eventv1.RemoveOrganizerRequest{
+			EventId:     "1",
+			UserId:      1,
+			OrganizerId: 2,
+		}
+
+		err := RemoveOrganizer(req)
+		assert.Nil(t, err)
+	})
+
+	t.Run("Invalid request same userId And organizerId", func(t *testing.T) {
+		req := &eventv1.RemoveOrganizerRequest{
+			EventId:     "1",
+			UserId:      1,
+			OrganizerId: 1,
+		}
+
+		err := RemoveOrganizer(req)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("Invalid request: missing userId", func(t *testing.T) {
+		req := &eventv1.RemoveOrganizerRequest{
+			EventId:     "1",
+			OrganizerId: 2,
+		}
+
+		err := RemoveOrganizer(req)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("Invalid request: missing organizerId", func(t *testing.T) {
+		req := &eventv1.RemoveOrganizerRequest{
+			EventId: "1",
+			UserId:  1,
+		}
+
+		err := RemoveOrganizer(req)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("Invalid request: missing eventId", func(t *testing.T) {
+		req := &eventv1.RemoveOrganizerRequest{
+			UserId:      1,
+			OrganizerId: 2,
+		}
+
+		err := RemoveOrganizer(req)
+		assert.NotNil(t, err)
+	})
+}

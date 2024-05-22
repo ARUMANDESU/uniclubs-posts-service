@@ -3,7 +3,6 @@ package domain
 import (
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/genproto/protobuf/field_mask"
 	"testing"
 	"time"
 )
@@ -146,10 +145,7 @@ func TestProtoToFilers_ValidRequest(t *testing.T) {
 			Tags:     []string{"tag1", "tag2"},
 			FromDate: now.Format(TimeLayout),
 			TillDate: now.Add(24 * time.Hour).Format(TimeLayout),
-			Status:   "PUBLISHED",
-		},
-		FilterMask: &field_mask.FieldMask{
-			Paths: []string{"userId", "clubId", "tags", "fromDate", "tillDate", "status"},
+			Status:   []string{EventStatusInProgress.String(), EventStatusFinished.String()},
 		},
 	}
 
@@ -166,8 +162,7 @@ func TestProtoToFilers_ValidRequest(t *testing.T) {
 		Tags:      req.GetFilter().GetTags(),
 		FromDate:  fromDate,
 		ToDate:    tillDate,
-		Status:    EventStatus(req.GetFilter().GetStatus()),
-		Paths:     req.GetFilterMask().GetPaths(),
+		Status:    []EventStatus{EventStatusInProgress, EventStatusFinished},
 	}
 
 	filters := ProtoToFilers(req)

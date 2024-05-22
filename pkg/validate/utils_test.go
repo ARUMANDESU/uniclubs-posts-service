@@ -462,6 +462,17 @@ func TestCoverImages_InvalidRequest(t *testing.T) {
 }
 
 func TestEventFilter_ValidRequest(t *testing.T) {
+	allStatuses := []string{
+		domain.EventStatusApproved.String(),
+		domain.EventStatusDraft.String(),
+		domain.EventStatusInProgress.String(),
+		domain.EventStatusPending.String(),
+		domain.EventStatusRejected.String(),
+		domain.EventStatusApproved.String(),
+		domain.EventStatusFinished.String(),
+		domain.EventStatusCanceled.String(),
+	}
+
 	tests := []struct {
 		name string
 		req  *eventv1.EventFilter
@@ -478,7 +489,7 @@ func TestEventFilter_ValidRequest(t *testing.T) {
 				Tags:     []string{"tag1", "tag2"},
 				FromDate: time.Now().Format(domain.TimeLayout),
 				TillDate: time.Now().Add(24 * time.Hour).Format(domain.TimeLayout),
-				Status:   domain.EventStatusInProgress.String(),
+				Status:   allStatuses,
 			},
 		},
 		{
@@ -488,7 +499,7 @@ func TestEventFilter_ValidRequest(t *testing.T) {
 				ClubId:   1,
 				FromDate: time.Now().Format(domain.TimeLayout),
 				TillDate: time.Now().Add(24 * time.Hour).Format(domain.TimeLayout),
-				Status:   domain.EventStatusInProgress.String(),
+				Status:   allStatuses,
 			},
 		},
 		{
@@ -497,7 +508,7 @@ func TestEventFilter_ValidRequest(t *testing.T) {
 				UserId: 1,
 				ClubId: 1,
 				Tags:   []string{"tag1", "tag2"},
-				Status: domain.EventStatusInProgress.String(),
+				Status: allStatuses,
 			},
 		},
 		{
@@ -544,7 +555,7 @@ func TestEventFilter_InvalidRequest(t *testing.T) {
 			req: &eventv1.EventFilter{
 				UserId: 1,
 				ClubId: 1,
-				Status: "INVALID_STATUS",
+				Status: []string{"INVALID_STATUS"},
 			},
 		},
 		{

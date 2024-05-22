@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/arumandesu/uniclubs-posts-service/internal/config"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -32,6 +33,20 @@ func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
 	db := client.Database(cfg.DatabaseName)
 	eventsCollection := db.Collection("events")
 	inviteCollection := db.Collection("invites")
+
+	// Create text index on the 'name' field
+	indexModel := mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "title", Value: "text"},
+			{Key: "description", Value: "text"},
+			{Key: "tags", Value: "text"},
+		},
+	}
+
+	_, err = eventsCollection.Indexes().CreateOne(ctx, indexModel)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
 	return &Storage{
 		client:            client,

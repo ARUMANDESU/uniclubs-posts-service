@@ -383,14 +383,6 @@ func TestListEvents_InvalidRequest(t *testing.T) {
 				PageNumber: 1,
 			},
 		},
-		{
-			name: "Sort order is empty when sort by is set",
-			req: &eventv1.ListEventsRequest{
-				SortBy:     "date",
-				PageNumber: 1,
-				PageSize:   10,
-			},
-		},
 	}
 
 	for _, tt := range tests {

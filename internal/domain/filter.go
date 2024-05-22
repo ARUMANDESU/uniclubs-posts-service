@@ -9,13 +9,21 @@ type SortOrder string
 type SortBy string
 
 const (
-	Asc  SortOrder = "asc"
-	Desc SortOrder = "desc"
+	SortOrderAsc  SortOrder = "asc"
+	SortOrderDesc SortOrder = "desc"
 
 	SortByDate         SortBy = "date"
 	SortByParticipants SortBy = "participants"
 	SortByType         SortBy = "type"
 )
+
+func (s SortOrder) String() string {
+	return string(s)
+}
+
+func (s SortBy) String() string {
+	return string(s)
+}
 
 type Filters struct {
 	Page      int32
@@ -28,7 +36,7 @@ type Filters struct {
 	Tags      []string
 	FromDate  time.Time
 	ToDate    time.Time
-	Status    EventStatus
+	Status    []EventStatus
 	Paths     []string
 }
 
@@ -39,22 +47,41 @@ func (f Filters) Offset() int32 {
 	return (f.Page - 1) * f.PageSize
 }
 
+func (f Filters) Sort() string {
+	return f.SortBy.String()
+}
+
 func ProtoToFilers(req *eventv1.ListEventsRequest) Filters {
 	fromDate, _ := time.Parse(TimeLayout, req.GetFilter().GetFromDate())
 	tillDate, _ := time.Parse(TimeLayout, req.GetFilter().GetTillDate())
+
+	var sortOrder SortOrder
+	if req.GetSortOrder() == "" {
+		sortOrder = SortOrderDesc
+	} else {
+		sortOrder = SortOrder(req.GetSortOrder())
+	}
 
 	return Filters{
 		Page:      req.GetPageNumber(),
 		PageSize:  req.GetPageSize(),
 		Query:     req.GetQuery(),
 		SortBy:    SortBy(req.GetSortBy()),
-		SortOrder: SortOrder(req.GetSortOrder()),
+		SortOrder: sortOrder,
 		ClubId:    req.GetFilter().GetClubId(),
 		UserId:    req.GetFilter().GetUserId(),
 		Tags:      req.GetFilter().GetTags(),
 		FromDate:  fromDate,
 		ToDate:    tillDate,
-		Status:    EventStatus(req.GetFilter().GetStatus()),
+		Status:    convertToEventStatusSlice(req.GetFilter().GetStatus()),
 		Paths:     req.GetFilterMask().GetPaths(),
 	}
+}
+
+func convertToEventStatusSlice(statuses []string) []EventStatus {
+	var eventStatuses []EventStatus
+	for _, status := range statuses {
+		eventStatuses = append(eventStatuses, EventStatus(status))
+	}
+	return eventStatuses
 }

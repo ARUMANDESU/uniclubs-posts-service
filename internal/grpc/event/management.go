@@ -18,7 +18,9 @@ type (
 		CreateEvent(ctx context.Context, club domain.Club, user domain.User) (*domain.Event, error)
 		UpdateEvent(ctx context.Context, dto *dtos.UpdateEvent) (*domain.Event, error)
 		DeleteEvent(ctx context.Context, dto *dtos.DeleteEvent) (*domain.Event, error)
+
 		PublishEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
+		UnpublishEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
 		SendToReview(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
 		RevokeReview(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
 		ApproveEvent(ctx context.Context, eventId string, user domain.User) (*domain.Event, error)
@@ -75,7 +77,6 @@ func (s serverApi) DeleteEvent(ctx context.Context, req *eventv1.DeleteEventRequ
 }
 
 func (s serverApi) PublishEvent(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
-
 	if err := validate.EventActionRequest(req); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
@@ -89,8 +90,16 @@ func (s serverApi) PublishEvent(ctx context.Context, req *eventv1.EventActionReq
 }
 
 func (s serverApi) UnpublishEvent(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
+	if err := validate.EventActionRequest(req); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	event, err := s.management.UnpublishEvent(ctx, req.GetEventId(), req.GetUserId())
+	if err != nil {
+		return nil, handleError(err)
+	}
+
+	return event.ToProto(), nil
 }
 
 func (s serverApi) ApproveEvent(ctx context.Context, req *eventv1.ApproveEventRequest) (*eventv1.EventObject, error) {

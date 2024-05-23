@@ -189,6 +189,20 @@ func (e *Event) Publish() error {
 	return nil
 }
 
+func (e *Event) Unpublish() error {
+	if e.Status != EventStatusInProgress {
+		return ErrEventIsNotPublished
+	}
+
+	if e.Type == EventTypeIntraClub {
+		e.ChangeStatus(EventStatusDraft)
+		return nil
+	}
+
+	e.ChangeStatus(EventStatusApproved)
+	return nil
+}
+
 func (e *Event) SendToReview() error {
 	statusErrors := map[EventStatus]error{
 		EventStatusPending:    fmt.Errorf("event already in review status"),

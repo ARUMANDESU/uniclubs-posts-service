@@ -259,6 +259,30 @@ func (s Service) RejectEvent(ctx context.Context, dto *dtos.RejectEvent) (*domai
 	return updatedEvent, nil
 }
 
+func (s Service) UnpublishEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error) {
+	const op = "services.event.management.unpublishEvent"
+	log := s.log.With(slog.String("op", op))
+
+	event, err := s.FetchEventAndCheckOwner(ctx, eventId, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	err = event.Unpublish()
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", eventservice.ErrInvalidEventStatus, err)
+	}
+
+	updateCtx, cancel := context.WithTimeout(ctx, 7*time.Second)
+	defer cancel()
+	updatedEvent, err := s.eventStorage.UpdateEvent(updateCtx, event)
+	if err != nil {
+		return nil, s.handleError("failed to update event", log, err)
+	}
+
+	return updatedEvent, nil
+}
+
 // FetchEventAndCheckOwner fetches an event and checks if the user is the owner
 func (s Service) FetchEventAndCheckOwner(ctx context.Context, eventId string, userId int64) (*domain.Event, error) {
 	const op = "services.event.management.fetchEventAndCheckOwner"

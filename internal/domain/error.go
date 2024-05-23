@@ -10,4 +10,5 @@ var (
 	ErrOrganizersEmpty      = errors.New("there is no organizers")
 	ErrCollaboratorNotFound = errors.New("collaborator not found")
 	ErrEventIsNotApproved   = errors.New("event is not approved")
+	ErrEventIsNotPublished  = errors.New("event is not published")
 )

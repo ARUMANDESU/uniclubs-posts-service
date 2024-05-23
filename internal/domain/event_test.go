@@ -343,6 +343,56 @@ func TestEventPublish(t *testing.T) {
 	}
 }
 
+func TestEventUnpublish(t *testing.T) {
+	t.Run("Unpublish changes status to approved when status is in progress", func(t *testing.T) {
+		event := &Event{
+			Status: EventStatusInProgress,
+			Type:   EventTypeUniversity,
+		}
+
+		err := event.Unpublish()
+
+		assert.Nil(t, err)
+		assert.Equal(t, EventStatusApproved, event.Status)
+	})
+
+	t.Run("Unpublish returns error when status is not in progress", func(t *testing.T) {
+		event := &Event{
+			Status: EventStatusDraft,
+			Type:   EventTypeUniversity,
+		}
+
+		err := event.Unpublish()
+
+		assert.ErrorIs(t, err, ErrEventIsNotPublished)
+		assert.Equal(t, EventStatusDraft, event.Status)
+	})
+
+	t.Run("Unpublish changes status to draft when type is intra club", func(t *testing.T) {
+		event := &Event{
+			Status: EventStatusInProgress,
+			Type:   EventTypeIntraClub,
+		}
+
+		err := event.Unpublish()
+
+		assert.Nil(t, err)
+		assert.Equal(t, EventStatusDraft, event.Status)
+	})
+
+	t.Run("Event status is draft, club scope ", func(t *testing.T) {
+		event := &Event{
+			Status: EventStatusDraft,
+			Type:   EventTypeIntraClub,
+		}
+
+		err := event.Unpublish()
+
+		assert.ErrorIs(t, err, ErrEventIsNotPublished)
+		assert.Equal(t, event.Status, event.Status)
+	})
+}
+
 func TestEventSendToReview(t *testing.T) {
 	tests := []struct {
 		name    string

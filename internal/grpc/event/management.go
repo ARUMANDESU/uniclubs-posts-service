@@ -51,7 +51,12 @@ func (s serverApi) UpdateEvent(ctx context.Context, req *eventv1.UpdateEventRequ
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	event, err := s.management.UpdateEvent(ctx, dtos.UpdateToDTO(req))
+	dto, err := dtos.UpdateToDTO(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	event, err := s.management.UpdateEvent(ctx, dto)
 	if err != nil {
 		return nil, handleError(err)
 	}

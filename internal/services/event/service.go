@@ -23,4 +23,7 @@ var (
 	ErrInvalidEventStatus      = errors.New("invalid event status")
 	ErrEventInvalidFields      = errors.New("invalid event fields")
 	ErrEventIsNotApproved      = errors.New("event is not approved")
+	ErrEventIsNotEditable      = errors.New("event is not editable")
+	ErrContainsUnchangeable    = errors.New("contains unchangeable fields")
+	ErrUnknownStatus           = errors.New("unknown status")
 )

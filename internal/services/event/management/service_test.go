@@ -90,8 +90,8 @@ func TestService_UpdateEvent_HappyPath(t *testing.T) {
 		MaxParticipants:    100,
 		LocationLink:       "updated location link",
 		LocationUniversity: "updated location university",
-		StartDate:          time.Now().Format(domain.TimeLayout),
-		EndDate:            time.Now().AddDate(0, 0, 20).Format(domain.TimeLayout),
+		StartDate:          time.Now(),
+		EndDate:            time.Now().AddDate(0, 0, 20),
 		CoverImages: []domain.CoverImage{
 			{
 				File: domain.File{
@@ -116,24 +116,31 @@ func TestService_UpdateEvent_HappyPath(t *testing.T) {
 				Type: "file",
 			},
 		},
+		Paths: []string{
+			"title",
+			"description",
+			"type",
+			"tags",
+			"max_participants",
+			"location_link",
+			"location_university",
+			"start_date",
+			"end_date",
+			"cover_images",
+			"attached_images",
+			"attached_files",
+		},
 	}
-	updateStartDate, err := time.Parse(domain.TimeLayout, dto.StartDate)
-	require.NoError(t, err)
-	updateEndDate, err := time.Parse(domain.TimeLayout, dto.EndDate)
-	require.NoError(t, err)
+
 	oldEvent := &domain.Event{
 		ID:                 "event_id",
-		ClubId:             1,
 		OwnerId:            1,
-		CollaboratorClubs:  nil,
-		Organizers:         nil,
 		Title:              "old title",
+		Status:             domain.EventStatusDraft,
 		Description:        "old description",
 		Type:               "old type",
-		Status:             "old status",
 		Tags:               []string{"old tag1", "old tag2"},
 		MaxParticipants:    50,
-		ParticipantsCount:  0,
 		LocationLink:       "old location link",
 		LocationUniversity: "old location university",
 		StartDate:          time.Time{},
@@ -162,276 +169,45 @@ func TestService_UpdateEvent_HappyPath(t *testing.T) {
 				Type: "file",
 			},
 		},
-		CreatedAt: time.Time{},
-		UpdatedAt: time.Time{},
-		DeletedAt: time.Time{},
 	}
 
-	tests := []struct {
-		name          string
-		updatePath    []string
-		oldEvent      *domain.Event
-		expectedEvent *domain.Event
-	}{
-		{
-			name: "update all",
-			updatePath: []string{
-				"title",
-				"description",
-				"type",
-				"tags",
-				"max_participants",
-				"location_link",
-				"location_university",
-				"start_date",
-				"end_date",
-				"cover_images",
-				"attached_images",
-				"attached_files",
-			},
-			oldEvent: &domain.Event{
-				ID:                 "event_id",
-				OwnerId:            1,
-				Title:              "old title",
-				Description:        "old description",
-				Type:               "old type",
-				Tags:               []string{"old tag1", "old tag2"},
-				MaxParticipants:    50,
-				LocationLink:       "old location link",
-				LocationUniversity: "old location university",
-				StartDate:          time.Time{},
-				EndDate:            time.Time{},
-				CoverImages: []domain.CoverImage{
-					{
-						File: domain.File{
-							Name: "old cover image",
-							Url:  "old cover image url",
-							Type: "image",
-						},
-						Position: 1,
-					},
-				},
-				AttachedImages: []domain.File{
-					{
-						Name: "old attached image",
-						Url:  "old attached image url",
-						Type: "image",
-					},
-				},
-				AttachedFiles: []domain.File{
-					{
-						Name: "old attached file",
-						Url:  "old attached file url",
-						Type: "file",
-					},
-				},
-			},
-			expectedEvent: &domain.Event{
-				ID:                 oldEvent.ID,
-				OwnerId:            oldEvent.OwnerId,
-				Title:              dto.Title,
-				Description:        dto.Description,
-				Type:               dto.Type,
-				Tags:               dto.Tags,
-				MaxParticipants:    dto.MaxParticipants,
-				LocationLink:       dto.LocationLink,
-				LocationUniversity: dto.LocationUniversity,
-				StartDate:          updateStartDate,
-				EndDate:            updateEndDate,
-				CoverImages:        dto.CoverImages,
-				AttachedImages:     dto.AttachedImages,
-				AttachedFiles:      dto.AttachedFiles,
-			},
-		},
-		{
-			name:       "update title",
-			updatePath: []string{"title"},
-			oldEvent: &domain.Event{
-				ID:      "event_id",
-				OwnerId: 1,
-				Title:   "old title",
-			},
-			expectedEvent: &domain.Event{
-				ID:      oldEvent.ID,
-				OwnerId: oldEvent.OwnerId,
-				Title:   dto.Title,
-			},
-		},
-		{
-			name:       "update description",
-			updatePath: []string{"description"},
-			oldEvent: &domain.Event{
-				ID:          "event_id",
-				OwnerId:     1,
-				Description: "old description",
-			},
-			expectedEvent: &domain.Event{
-				ID:          oldEvent.ID,
-				OwnerId:     oldEvent.OwnerId,
-				Description: dto.Description,
-			},
-		},
-		{
-			name:       "update type",
-			updatePath: []string{"type"},
-			oldEvent: &domain.Event{
-				ID:      "event_id",
-				OwnerId: 1,
-				Type:    "old type",
-			},
-			expectedEvent: &domain.Event{
-				ID:      oldEvent.ID,
-				OwnerId: oldEvent.OwnerId,
-				Type:    dto.Type,
-			},
-		},
-		{
-			name:       "update tags",
-			updatePath: []string{"tags"},
-			oldEvent: &domain.Event{
-				ID:      "event_id",
-				OwnerId: 1,
-				Tags:    []string{"old tag1", "old tag2"},
-			},
-			expectedEvent: &domain.Event{
-				ID:      oldEvent.ID,
-				OwnerId: oldEvent.OwnerId,
-				Tags:    dto.Tags,
-			},
-		},
-		{
-			name:       "update max_participants",
-			updatePath: []string{"max_participants"},
-			oldEvent: &domain.Event{
-				ID:              "event_id",
-				OwnerId:         1,
-				MaxParticipants: 50,
-			},
-			expectedEvent: &domain.Event{
-				ID:              oldEvent.ID,
-				OwnerId:         oldEvent.OwnerId,
-				MaxParticipants: dto.MaxParticipants,
-			},
-		},
-		{
-			name:       "update location_link",
-			updatePath: []string{"location_link"},
-			oldEvent: &domain.Event{
-				ID:           "event_id",
-				OwnerId:      1,
-				LocationLink: "old location link",
-			},
-			expectedEvent: &domain.Event{
-				ID:           oldEvent.ID,
-				OwnerId:      oldEvent.OwnerId,
-				LocationLink: dto.LocationLink,
-			},
-		},
-		{
-			name:       "update location_university",
-			updatePath: []string{"location_university"},
-			oldEvent: &domain.Event{
-				ID:                 "event_id",
-				OwnerId:            1,
-				LocationUniversity: "old location university",
-			},
-			expectedEvent: &domain.Event{
-				ID:                 oldEvent.ID,
-				OwnerId:            oldEvent.OwnerId,
-				LocationUniversity: dto.LocationUniversity,
-			},
-		},
-		{
-			name:       "update start_date",
-			updatePath: []string{"start_date"},
-			oldEvent: &domain.Event{
-				ID:        "event_id",
-				OwnerId:   1,
-				StartDate: time.Time{}, // Assuming oldEvent.StartDate is an empty string
-			},
-			expectedEvent: &domain.Event{
-				ID:        oldEvent.ID,
-				OwnerId:   oldEvent.OwnerId,
-				StartDate: updateStartDate, // Assuming dto.StartDate is an empty string
-			},
-		},
-		{
-			name:       "update end_date",
-			updatePath: []string{"end_date"},
-			oldEvent: &domain.Event{
-				ID:      "event_id",
-				OwnerId: 1,
-				EndDate: time.Time{}, // Assuming oldEvent.EndDate is an empty string
-			},
-			expectedEvent: &domain.Event{
-				ID:      oldEvent.ID,
-				OwnerId: oldEvent.OwnerId,
-				EndDate: updateEndDate, // Assuming dto.EndDate is an empty string
-			},
-		},
-		{
-			name:       "update cover_images",
-			updatePath: []string{"cover_images"},
-			oldEvent: &domain.Event{
-				ID:          "event_id",
-				OwnerId:     1,
-				CoverImages: oldEvent.CoverImages, // Assuming oldCoverImages is an empty slice
-			},
-			expectedEvent: &domain.Event{
-				ID:          oldEvent.ID,
-				OwnerId:     oldEvent.OwnerId,
-				CoverImages: dto.CoverImages,
-			},
-		},
-		{
-			name:       "update attached_images",
-			updatePath: []string{"attached_images"},
-			oldEvent: &domain.Event{
-				ID:             "event_id",
-				OwnerId:        1,
-				AttachedImages: oldEvent.AttachedImages, // Assuming oldAttachedImages is an empty slice
-			},
-			expectedEvent: &domain.Event{
-				ID:             oldEvent.ID,
-				OwnerId:        oldEvent.OwnerId,
-				AttachedImages: dto.AttachedImages,
-			},
-		},
-		{
-			name:       "update attached_files",
-			updatePath: []string{"attached_files"},
-			oldEvent: &domain.Event{
-				ID:            "event_id",
-				OwnerId:       1,
-				AttachedFiles: oldEvent.AttachedFiles, // Assuming oldAttachedFiles is an empty slice
-			},
-			expectedEvent: &domain.Event{
-				ID:            oldEvent.ID,
-				OwnerId:       oldEvent.OwnerId,
-				AttachedFiles: dto.AttachedFiles,
-			},
-		},
+	expectedEvent := &domain.Event{
+		ID:                 "event_id",
+		OwnerId:            1,
+		Status:             domain.EventStatusDraft,
+		Title:              dto.Title,
+		Description:        dto.Description,
+		Type:               dto.Type,
+		Tags:               dto.Tags,
+		MaxParticipants:    dto.MaxParticipants,
+		LocationLink:       dto.LocationLink,
+		LocationUniversity: dto.LocationUniversity,
+		StartDate:          dto.StartDate,
+		EndDate:            dto.EndDate,
+		CoverImages:        dto.CoverImages,
+		AttachedImages:     dto.AttachedImages,
+		AttachedFiles:      dto.AttachedFiles,
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			suite := newSuite(t)
+	suite := newSuite(t)
 
-			ctx := context.Background()
-			dto := dto
-			dto.Paths = tt.updatePath
+	ctx := context.Background()
 
-			suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(tt.oldEvent, nil)
-			suite.mockStorage.On("UpdateEvent", mock.Anything, tt.expectedEvent).Return(tt.expectedEvent, nil)
+	suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(oldEvent, nil)
+	suite.mockStorage.On("UpdateEvent",
+		mock.AnythingOfType("*context.timerCtx"),
+		mock.AnythingOfType("*domain.Event")).Return(
+		func(ctx context.Context, event *domain.Event) (*domain.Event, error) {
+			return event, nil
+		},
+	)
 
-			event, err := suite.ManagementService.UpdateEvent(ctx, dto)
-			require.NoError(t, err)
-			assert.NotNil(t, event)
-			assert.ObjectsAreEqual(tt.expectedEvent, event)
+	event, err := suite.ManagementService.UpdateEvent(ctx, dto)
+	require.NoError(t, err)
+	assert.NotNil(t, event)
+	assert.Equal(t, expectedEvent, event)
 
-			suite.mockStorage.AssertExpectations(t)
-		})
-	}
+	suite.mockStorage.AssertExpectations(t)
 
 }
 
@@ -473,7 +249,7 @@ func TestService_UpdateEvent_UserIsNotEventOwner(t *testing.T) {
 	suite.mockStorage.AssertExpectations(t)
 }
 
-func TestService_UpdateEvent_UpdateEventError(t *testing.T) {
+func TestService_UpdateEvent_UnknownStatus(t *testing.T) {
 	suite := newSuite(t)
 	ctx := context.Background()
 	dto := &dtos.UpdateEvent{
@@ -486,14 +262,222 @@ func TestService_UpdateEvent_UpdateEventError(t *testing.T) {
 		OwnerId: dto.UserId,
 	}
 
-	expectedErr := errors.New("update event error")
+	expectedErr := eventservice.ErrUnknownStatus
 	suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(oldEvent, nil)
-	suite.mockStorage.On("UpdateEvent", mock.Anything, oldEvent).Return(nil, expectedErr)
 
 	_, err := suite.ManagementService.UpdateEvent(ctx, dto)
 	require.ErrorIs(t, err, expectedErr)
 
 	suite.mockStorage.AssertExpectations(t)
+}
+
+func TestService_UpdateEvent_EventIsNotEditable(t *testing.T) {
+
+	statuses := []domain.EventStatus{domain.EventStatusFinished, domain.EventStatusArchived, domain.EventStatusCanceled}
+
+	for _, s := range statuses {
+		t.Run(fmt.Sprintf("Status: %s", s), func(t *testing.T) {
+			suite := newSuite(t)
+			ctx := context.Background()
+			dto := &dtos.UpdateEvent{
+				EventId: "event_id",
+				UserId:  1,
+			}
+
+			oldEvent := &domain.Event{
+				ID:      dto.EventId,
+				OwnerId: dto.UserId,
+				Status:  s,
+			}
+
+			expectedErr := eventservice.ErrEventIsNotEditable
+			suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(oldEvent, nil)
+
+			_, err := suite.ManagementService.UpdateEvent(ctx, dto)
+			require.ErrorIs(t, err, expectedErr)
+
+			suite.mockStorage.AssertExpectations(t)
+		})
+	}
+
+}
+
+func TestService_UpdateEvent_StatusApproved(t *testing.T) {
+	t.Run("HasUnchangeableFields, updated status is pending", func(t *testing.T) {
+		suite := newSuite(t)
+		ctx := context.Background()
+		dto := &dtos.UpdateEvent{
+			EventId: "event_id",
+			UserId:  1,
+			Title:   "updated title",
+			Paths:   []string{"title"},
+		}
+
+		oldEvent := &domain.Event{
+			ID:      dto.EventId,
+			OwnerId: dto.UserId,
+			Status:  domain.EventStatusApproved,
+		}
+
+		expectedEvent := &domain.Event{
+			ID:      dto.EventId,
+			OwnerId: dto.UserId,
+			Status:  domain.EventStatusPending,
+			Title:   "updated title",
+		}
+
+		suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(oldEvent, nil)
+		suite.mockStorage.On("UpdateEvent",
+			mock.AnythingOfType("*context.timerCtx"),
+			mock.AnythingOfType("*domain.Event")).Return(
+			func(ctx context.Context, event *domain.Event) (*domain.Event, error) {
+				return event, nil
+			},
+		)
+
+		event, err := suite.ManagementService.UpdateEvent(ctx, dto)
+		require.NoError(t, err)
+		assert.NotNil(t, event)
+		assert.Equal(t, expectedEvent, event)
+
+		suite.mockStorage.AssertExpectations(t)
+	})
+
+	t.Run("Does not have unchangeable fields, updated status stays approved", func(t *testing.T) {
+		startDate := time.Now()
+		endDate := time.Now().AddDate(0, 0, 20)
+
+		suite := newSuite(t)
+		ctx := context.Background()
+		dto := &dtos.UpdateEvent{
+			EventId:            "event_id",
+			UserId:             1,
+			Tags:               []string{"updated tag1", "updated tag2"},
+			StartDate:          startDate,
+			EndDate:            endDate,
+			LocationUniversity: "updated location university",
+			LocationLink:       "updated location link",
+			Paths:              []string{"tags", "start_date", "end_date", "location_university", "location_link"},
+		}
+
+		oldEvent := &domain.Event{
+			ID:      dto.EventId,
+			OwnerId: dto.UserId,
+			Status:  domain.EventStatusApproved,
+		}
+
+		expectedEvent := &domain.Event{
+			ID:                 dto.EventId,
+			OwnerId:            dto.UserId,
+			Tags:               []string{"updated tag1", "updated tag2"},
+			StartDate:          startDate,
+			EndDate:            endDate,
+			LocationUniversity: "updated location university",
+			LocationLink:       "updated location link",
+			Status:             domain.EventStatusApproved,
+		}
+
+		suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(oldEvent, nil)
+		suite.mockStorage.On("UpdateEvent",
+			mock.AnythingOfType("*context.timerCtx"),
+			mock.AnythingOfType("*domain.Event")).Return(
+			func(ctx context.Context, event *domain.Event) (*domain.Event, error) {
+				return event, nil
+			},
+		)
+
+		event, err := suite.ManagementService.UpdateEvent(ctx, dto)
+		require.NoError(t, err)
+		assert.NotNil(t, event)
+		assert.Equal(t, expectedEvent, event)
+
+		suite.mockStorage.AssertExpectations(t)
+
+	})
+}
+
+func TestService_UpdateEvent_StatusInProgress_Pending(t *testing.T) {
+	statuses := []domain.EventStatus{domain.EventStatusInProgress, domain.EventStatusPending}
+
+	for _, s := range statuses {
+		t.Run(fmt.Sprintf("Status: %s", s), func(t *testing.T) {
+			t.Run("HasUnchangeableFields, return error", func(t *testing.T) {
+				suite := newSuite(t)
+				ctx := context.Background()
+				dto := &dtos.UpdateEvent{
+					EventId: "event_id",
+					UserId:  1,
+					Paths:   []string{"title"},
+				}
+
+				oldEvent := &domain.Event{
+					ID:      dto.EventId,
+					OwnerId: dto.UserId,
+					Status:  s,
+				}
+
+				expectedErr := eventservice.ErrContainsUnchangeable
+				suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(oldEvent, nil)
+
+				_, err := suite.ManagementService.UpdateEvent(ctx, dto)
+				require.ErrorIs(t, err, expectedErr)
+
+				suite.mockStorage.AssertExpectations(t)
+			})
+
+			t.Run("Does not have unchangeable fields, update event", func(t *testing.T) {
+				startDate := time.Now()
+				endDate := time.Now().AddDate(0, 0, 20)
+
+				suite := newSuite(t)
+				ctx := context.Background()
+				dto := &dtos.UpdateEvent{
+					EventId:            "event_id",
+					UserId:             1,
+					Tags:               []string{"updated tag1", "updated tag2"},
+					StartDate:          startDate,
+					EndDate:            endDate,
+					LocationUniversity: "updated location university",
+					LocationLink:       "updated location link",
+					Paths:              []string{"tags", "start_date", "end_date", "location_university", "location_link"},
+				}
+
+				oldEvent := &domain.Event{
+					ID:      dto.EventId,
+					OwnerId: dto.UserId,
+					Status:  s,
+				}
+
+				expectedEvent := &domain.Event{
+					ID:                 dto.EventId,
+					OwnerId:            dto.UserId,
+					Tags:               []string{"updated tag1", "updated tag2"},
+					StartDate:          startDate,
+					EndDate:            endDate,
+					LocationUniversity: "updated location university",
+					LocationLink:       "updated location link",
+					Status:             s,
+				}
+
+				suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(oldEvent, nil)
+				suite.mockStorage.On("UpdateEvent",
+					mock.AnythingOfType("*context.timerCtx"),
+					mock.AnythingOfType("*domain.Event")).Return(
+					func(ctx context.Context, event *domain.Event) (*domain.Event, error) {
+						return event, nil
+					},
+				)
+
+				event, err := suite.ManagementService.UpdateEvent(ctx, dto)
+				require.NoError(t, err)
+				assert.NotNil(t, event)
+				assert.Equal(t, expectedEvent, event)
+
+				suite.mockStorage.AssertExpectations(t)
+			})
+		})
+	}
+
 }
 
 func TestService_DeleteEvent_HappyPath(t *testing.T) {

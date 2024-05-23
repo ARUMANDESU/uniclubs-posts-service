@@ -4,11 +4,17 @@ import (
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"testing"
+	"time"
 )
 
 func TestUpdateToDTO(t *testing.T) {
+
+	startDate, _ := time.Parse(domain.TimeLayout, "2024-05-12 15:04:05.999999999 -0700 MST")
+	endDate, _ := time.Parse(domain.TimeLayout, "2024-06-02 15:04:05.999999999 -0700 MST")
+
 	event := &eventv1.UpdateEventRequest{
 		EventId:            "1",
 		UserId:             1,
@@ -19,15 +25,16 @@ func TestUpdateToDTO(t *testing.T) {
 		MaxParticipants:    1,
 		LocationLink:       "http://example.com/location",
 		LocationUniversity: "Test University",
-		StartDate:          "2022-01-01T00:00:00Z",
-		EndDate:            "2022-01-02T00:00:00Z",
+		StartDate:          "2024-05-12 15:04:05.999999999 -0700 MST",
+		EndDate:            "2024-06-02 15:04:05.999999999 -0700 MST",
 		CoverImages:        []*eventv1.CoverImage{{Name: "Test Cover Image", Url: "http://example.com/cover.jpg", Type: "jpg", Position: 1}},
 		AttachedImages:     []*eventv1.FileObject{{Name: "Test Attached Image", Url: "http://example.com/image.jpg", Type: "jpg"}},
 		AttachedFiles:      []*eventv1.FileObject{{Name: "Test Attached File", Url: "http://example.com/file.pdf", Type: "pdf"}},
 		UpdateMask:         &fieldmaskpb.FieldMask{Paths: []string{"title", "description"}},
 	}
 
-	dto := UpdateToDTO(event)
+	dto, err := UpdateToDTO(event)
+	require.NoError(t, err)
 
 	assert.Equal(t, event.GetEventId(), dto.EventId)
 	assert.Equal(t, event.GetUserId(), dto.UserId)
@@ -38,8 +45,8 @@ func TestUpdateToDTO(t *testing.T) {
 	assert.Equal(t, uint32(event.GetMaxParticipants()), dto.MaxParticipants)
 	assert.Equal(t, event.GetLocationLink(), dto.LocationLink)
 	assert.Equal(t, event.GetLocationUniversity(), dto.LocationUniversity)
-	assert.Equal(t, event.GetStartDate(), dto.StartDate)
-	assert.Equal(t, event.GetEndDate(), dto.EndDate)
+	assert.Equal(t, startDate, dto.StartDate)
+	assert.Equal(t, endDate, dto.EndDate)
 	assert.Equal(t, len(event.GetCoverImages()), len(dto.CoverImages))
 	assert.Equal(t, len(event.GetAttachedImages()), len(dto.AttachedImages))
 	assert.Equal(t, len(event.GetAttachedFiles()), len(dto.AttachedFiles))

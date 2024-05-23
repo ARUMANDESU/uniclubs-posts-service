@@ -1,9 +1,11 @@
 package dtos
 
 import (
+	"fmt"
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"strings"
+	"time"
 )
 
 type UpdateEvent struct {
@@ -16,8 +18,8 @@ type UpdateEvent struct {
 	MaxParticipants    uint32              `json:"max_participants"`
 	LocationLink       string              `json:"location_link"`
 	LocationUniversity string              `json:"location_university"`
-	StartDate          string              `json:"start_date"`
-	EndDate            string              `json:"end_date"`
+	StartDate          time.Time           `json:"start_date"`
+	EndDate            time.Time           `json:"end_date"`
 	CoverImages        []domain.CoverImage `json:"cover_images"`
 	AttachedImages     []domain.File       `json:"attached_images"`
 	AttachedFiles      []domain.File       `json:"attached_files"`
@@ -55,11 +57,43 @@ type DeleteEvent struct {
 	IsAdmin bool   `json:"is_admin"`
 }
 
-func UpdateToDTO(event *eventv1.UpdateEventRequest) *UpdateEvent {
+func (u *UpdateEvent) HasUnchangeableFields() bool {
+	// unchangeable are fields except tags, max_participants, location_link, location_university, start_date, end_date
+	if len(u.Paths) == 0 {
+		return true
+	}
+	for _, path := range u.Paths {
+		switch path {
+		case "tags":
+		case "max_participants":
+		case "location_link":
+		case "location_university":
+		case "start_date":
+		case "end_date":
+		default:
+			return true
+		}
+	}
+
+	return false
+}
+
+func UpdateToDTO(event *eventv1.UpdateEventRequest) (*UpdateEvent, error) {
+	const op = "dtos.UpdateToDTO"
+
 	tags := event.GetTags()
 	for i, tag := range tags {
 		tags[i] = strings.TrimSpace(tag)
 	}
+	startDate, err := time.Parse(domain.TimeLayout, event.StartDate)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to parse end date: %w", op, err)
+	}
+	endDate, err := time.Parse(domain.TimeLayout, event.EndDate)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to parse end date: %w", op, err)
+	}
+
 	return &UpdateEvent{
 		EventId:            event.GetEventId(),
 		UserId:             event.GetUserId(),
@@ -70,13 +104,13 @@ func UpdateToDTO(event *eventv1.UpdateEventRequest) *UpdateEvent {
 		MaxParticipants:    uint32(event.GetMaxParticipants()),
 		LocationLink:       event.GetLocationLink(),
 		LocationUniversity: event.GetLocationUniversity(),
-		StartDate:          event.GetStartDate(),
-		EndDate:            event.GetEndDate(),
+		StartDate:          startDate,
+		EndDate:            endDate,
 		CoverImages:        domain.ProtoToCoverImages(event.GetCoverImages()),
 		AttachedImages:     domain.ProtoToFiles(event.GetAttachedImages()),
 		AttachedFiles:      domain.ProtoToFiles(event.GetAttachedFiles()),
 		Paths:              event.GetUpdateMask().GetPaths(),
-	}
+	}, nil
 }
 
 func AddOrganizerRequestToUserToDTO(event *eventv1.AddOrganizerRequest) *SendJoinRequestToUser {

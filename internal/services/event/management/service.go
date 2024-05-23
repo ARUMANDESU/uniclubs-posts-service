@@ -56,6 +56,25 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dtos.UpdateEvent) (*domai
 		return nil, err
 	}
 
+	hasUnchangeableFields := dto.HasUnchangeableFields()
+
+	switch event.Status {
+	case domain.EventStatusFinished, domain.EventStatusCanceled, domain.EventStatusArchived:
+		return nil, eventservice.ErrEventIsNotEditable
+	case domain.EventStatusApproved:
+		if hasUnchangeableFields {
+			event.ChangeStatus(domain.EventStatusPending)
+		}
+	case domain.EventStatusInProgress, domain.EventStatusPending:
+		if hasUnchangeableFields {
+			return nil, fmt.Errorf("%w for status %s", eventservice.ErrContainsUnchangeable, event.Status)
+		}
+	case domain.EventStatusRejected, domain.EventStatusDraft:
+		// Allow updates without additional checks
+	default:
+		return nil, fmt.Errorf("%w: %s", eventservice.ErrUnknownStatus, event.Status)
+	}
+
 	for _, path := range dto.Paths {
 		switch path {
 		case "title":
@@ -73,19 +92,9 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dtos.UpdateEvent) (*domai
 		case "location_university":
 			event.LocationUniversity = dto.LocationUniversity
 		case "start_date":
-			startDate, err := time.Parse(domain.TimeLayout, dto.StartDate)
-			if err != nil {
-				log.Error("failed to parse start date", logger.Err(err))
-				return nil, err
-			}
-			event.StartDate = startDate
+			event.StartDate = dto.StartDate
 		case "end_date":
-			endDate, err := time.Parse(domain.TimeLayout, dto.EndDate)
-			if err != nil {
-				log.Error("failed to parse end date", logger.Err(err))
-				return nil, err
-			}
-			event.EndDate = endDate
+			event.EndDate = dto.EndDate
 		case "cover_images":
 			event.CoverImages = dto.CoverImages
 		case "attached_images":

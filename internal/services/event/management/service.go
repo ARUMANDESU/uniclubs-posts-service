@@ -106,18 +106,22 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dtos.UpdateEvent) (*domai
 	return updatedEvent, nil
 }
 
-func (s Service) DeleteEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error) {
+func (s Service) DeleteEvent(ctx context.Context, dto *dtos.DeleteEvent) (*domain.Event, error) {
 	const op = "services.event.management.deleteEvent"
 	log := s.log.With(slog.String("op", op))
 
-	event, err := s.FetchEventAndCheckOwner(ctx, eventId, userId)
+	event, err := s.getEvent(ctx, dto.EventId)
 	if err != nil {
 		return nil, err
 	}
 
+	if !(event.IsOwner(dto.UserId) || dto.IsAdmin) {
+		return nil, eventservice.ErrPermissionsDenied
+	}
+
 	deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	err = s.eventStorage.DeleteEventById(deleteCtx, eventId)
+	err = s.eventStorage.DeleteEventById(deleteCtx, dto.EventId)
 	if err != nil {
 		return nil, s.handleError("failed to delete event", log, err)
 	}

@@ -142,30 +142,96 @@ func TestManagement_DeleteEvent(t *testing.T) {
 	}
 	ctx, st := suite.New(t)
 
-	createReq := &eventv1.CreateEventRequest{
-		Club: &eventv1.ClubObject{
-			Id:   gofakeit.Int64(),
-			Name: gofakeit.AppName(),
-		},
-		User: &eventv1.UserObject{
-			Id:        gofakeit.Int64(),
-			FirstName: gofakeit.FirstName(),
-			LastName:  gofakeit.LastName(),
-			Barcode:   gofakeit.UUID(),
-		},
-	}
+	t.Run("User is event owner, but not an admin", func(t *testing.T) {
+		req := &eventv1.DeleteEventRequest{
+			UserId:  gofakeit.Int64(),
+			IsAdmin: false,
+		}
 
-	createResp, err := st.EventClient.CreateEvent(ctx, createReq)
-	require.NoError(t, err, fmt.Sprintf("CreateEvent failed, error: %v", err))
+		createReq := &eventv1.CreateEventRequest{
+			Club: &eventv1.ClubObject{
+				Id:   gofakeit.Int64(),
+				Name: gofakeit.AppName(),
+			},
+			User: &eventv1.UserObject{
+				Id:        req.UserId,
+				FirstName: gofakeit.FirstName(),
+				LastName:  gofakeit.LastName(),
+				Barcode:   gofakeit.UUID(),
+			},
+		}
 
-	req := &eventv1.DeleteEventRequest{
-		EventId: createResp.GetId(),
-		UserId:  createResp.GetOwnerId(),
-	}
+		createResp, err := st.EventClient.CreateEvent(ctx, createReq)
+		require.NoError(t, err, fmt.Sprintf("CreateEvent failed, error: %v", err))
 
-	resp, err := st.EventClient.DeleteEvent(ctx, req)
-	require.NoError(t, err, fmt.Sprintf("DeleteEvent failed, error: %v", err))
-	assert.NotEqual(t, "", resp.GetId(), "DeleteEvent failed: event ID is zero")
+		req.EventId = createResp.GetId()
+
+		resp, err := st.EventClient.DeleteEvent(ctx, req)
+		require.NoError(t, err, fmt.Sprintf("DeleteEvent failed, error: %v", err))
+		assert.NotEqual(t, "", resp.GetId(), "DeleteEvent failed: event ID is zero")
+
+	})
+
+	t.Run("User is event owner and an admin", func(t *testing.T) {
+		req := &eventv1.DeleteEventRequest{
+			UserId:  gofakeit.Int64(),
+			IsAdmin: true,
+		}
+
+		createReq := &eventv1.CreateEventRequest{
+			Club: &eventv1.ClubObject{
+				Id:   gofakeit.Int64(),
+				Name: gofakeit.AppName(),
+			},
+			User: &eventv1.UserObject{
+				Id:        req.UserId,
+				FirstName: gofakeit.FirstName(),
+				LastName:  gofakeit.LastName(),
+				Barcode:   gofakeit.UUID(),
+			},
+		}
+
+		createResp, err := st.EventClient.CreateEvent(ctx, createReq)
+		require.NoError(t, err, fmt.Sprintf("CreateEvent failed, error: %v", err))
+
+		req.EventId = createResp.GetId()
+
+		resp, err := st.EventClient.DeleteEvent(ctx, req)
+		require.NoError(t, err, fmt.Sprintf("DeleteEvent failed, error: %v", err))
+		assert.NotEqual(t, "", resp.GetId(), "DeleteEvent failed: event ID is zero")
+
+	})
+
+	t.Run("User is not an event owner, but admin", func(t *testing.T) {
+		req := &eventv1.DeleteEventRequest{
+			UserId:  gofakeit.Int64(),
+			IsAdmin: true,
+		}
+
+		createReq := &eventv1.CreateEventRequest{
+			Club: &eventv1.ClubObject{
+				Id:   gofakeit.Int64(),
+				Name: gofakeit.AppName(),
+			},
+			User: &eventv1.UserObject{
+				Id:        gofakeit.Int64(),
+				FirstName: gofakeit.FirstName(),
+				LastName:  gofakeit.LastName(),
+				Barcode:   gofakeit.UUID(),
+			},
+		}
+
+		createResp, err := st.EventClient.CreateEvent(ctx, createReq)
+		require.NoError(t, err, fmt.Sprintf("CreateEvent failed, error: %v", err))
+
+		req.EventId = createResp.GetId()
+
+		resp, err := st.EventClient.DeleteEvent(ctx, req)
+		require.NoError(t, err, fmt.Sprintf("DeleteEvent failed, error: %v", err))
+		assert.NotEqual(t, "", resp.GetId(), "DeleteEvent failed: event ID is zero")
+
+	})
+
 }
 
 func TestManagement_DeleteEvent_Invalid(t *testing.T) {

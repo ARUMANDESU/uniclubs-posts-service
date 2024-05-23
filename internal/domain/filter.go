@@ -74,7 +74,6 @@ func ProtoToFilers(req *eventv1.ListEventsRequest) Filters {
 		FromDate:  fromDate,
 		ToDate:    tillDate,
 		Status:    convertToEventStatusSlice(req.GetFilter().GetStatus()),
-		Paths:     req.GetFilterMask().GetPaths(),
 	}
 }
 

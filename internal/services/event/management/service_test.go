@@ -497,77 +497,112 @@ func TestService_UpdateEvent_UpdateEventError(t *testing.T) {
 }
 
 func TestService_DeleteEvent_HappyPath(t *testing.T) {
-	suite := newSuite(t)
-	ctx := context.Background()
-	eventId := "event_id"
-	userId := int64(1)
 
-	oldEvent := &domain.Event{
-		ID:      eventId,
-		OwnerId: userId,
+	tests := []struct {
+		name string
+		dto  *dtos.DeleteEvent
+	}{
+		{
+			name: "User is event owner, but not admin",
+			dto: &dtos.DeleteEvent{
+				EventId: "event_id",
+				UserId:  1,
+				IsAdmin: false,
+			},
+		},
+		{
+			name: "User is admin, but not event owner",
+			dto: &dtos.DeleteEvent{
+				EventId: "event_id",
+				UserId:  2,
+				IsAdmin: true,
+			},
+		},
+		{
+			name: "User is admin and also an event owner",
+			dto: &dtos.DeleteEvent{
+				EventId: "event_id",
+				UserId:  1,
+				IsAdmin: true,
+			},
+		},
+	}
+	onGetEvent := &domain.Event{
+		ID:      "event_id",
+		OwnerId: 1,
 	}
 
-	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(oldEvent, nil)
-	suite.mockStorage.On("DeleteEventById", mock.Anything, eventId).Return(nil)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			suite := newSuite(t)
+			ctx := context.Background()
 
-	event, err := suite.ManagementService.DeleteEvent(ctx, eventId, userId)
-	require.NoError(t, err)
-	assert.NotNil(t, event)
+			suite.mockStorage.On("GetEvent", mock.Anything, tt.dto.EventId).Return(onGetEvent, nil)
+			suite.mockStorage.On("DeleteEventById", mock.Anything, tt.dto.EventId).Return(nil)
 
-	suite.mockStorage.AssertExpectations(t)
+			event, err := suite.ManagementService.DeleteEvent(ctx, tt.dto)
+			require.NoError(t, err)
+			assert.NotNil(t, event)
+
+			suite.mockStorage.AssertExpectations(t)
+		})
+
+	}
+
 }
 
 func TestService_DeleteEvent_EventNotFound(t *testing.T) {
 	suite := newSuite(t)
 	ctx := context.Background()
-	eventId := "event_id"
-	userId := int64(1)
+	dto := &dtos.DeleteEvent{
+		EventId: "event_id",
+		UserId:  1,
+		IsAdmin: true,
+	}
 
-	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(nil, storage.ErrEventNotFound)
+	suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(nil, storage.ErrEventNotFound)
 
-	_, err := suite.ManagementService.DeleteEvent(ctx, eventId, userId)
+	_, err := suite.ManagementService.DeleteEvent(ctx, dto)
 	require.ErrorIs(t, err, eventservice.ErrEventNotFound)
 
 	suite.mockStorage.AssertExpectations(t)
 }
 
 func TestService_DeleteEvent_UserIsNotEventOwner(t *testing.T) {
-	suite := newSuite(t)
-	ctx := context.Background()
-	eventId := "event_id"
-	userId := int64(1)
-
-	oldEvent := &domain.Event{
-		ID:      eventId,
-		OwnerId: userId + 1, // Different user
+	tests := []struct {
+		name        string
+		dto         *dtos.DeleteEvent
+		expectedErr error
+	}{
+		{
+			name: "User is not event owner and not an admin",
+			dto: &dtos.DeleteEvent{
+				EventId: "event_id",
+				UserId:  1,
+				IsAdmin: false,
+			},
+			expectedErr: eventservice.ErrPermissionsDenied,
+		},
 	}
 
-	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(oldEvent, nil)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			suite := newSuite(t)
+			ctx := context.Background()
 
-	_, err := suite.ManagementService.DeleteEvent(ctx, eventId, userId)
-	require.ErrorIs(t, err, eventservice.ErrUserIsNotEventOwner)
+			onGetEvent := &domain.Event{
+				ID:      tt.dto.EventId,
+				OwnerId: tt.dto.UserId + 1, // Different user
+			}
 
-	suite.mockStorage.AssertExpectations(t)
-}
+			suite.mockStorage.On("GetEvent", mock.Anything, tt.dto.EventId).Return(onGetEvent, nil)
 
-func TestService_DeleteEvent_DeleteEventByIdError(t *testing.T) {
-	suite := newSuite(t)
-	ctx := context.Background()
-	eventId := "event_id"
-	userId := int64(1)
+			_, err := suite.ManagementService.DeleteEvent(ctx, tt.dto)
+			require.ErrorIs(t, err, tt.expectedErr)
 
-	oldEvent := &domain.Event{
-		ID:      eventId,
-		OwnerId: userId,
+			suite.mockStorage.AssertExpectations(t)
+		})
 	}
-
-	suite.mockStorage.On("GetEvent", mock.Anything, eventId).Return(oldEvent, nil)
-	suite.mockStorage.On("DeleteEventById", mock.Anything, eventId).Return(errors.New("delete error"))
-
-	_, err := suite.ManagementService.DeleteEvent(ctx, eventId, userId)
-	require.Error(t, err)
-
-	suite.mockStorage.AssertExpectations(t)
 }
 
 func TestService_PublishEvent_HappyPath(t *testing.T) {

@@ -13,16 +13,18 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type ManagementService interface {
-	CreateEvent(ctx context.Context, club domain.Club, user domain.User) (*domain.Event, error)
-	UpdateEvent(ctx context.Context, dto *dtos.UpdateEvent) (*domain.Event, error)
-	DeleteEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
-	PublishEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
-	SendToReview(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
-	RevokeReview(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
-	ApproveEvent(ctx context.Context, eventId string, user domain.User) (*domain.Event, error)
-	RejectEvent(ctx context.Context, dto *dtos.RejectEvent) (*domain.Event, error)
-}
+type (
+	ManagementService interface {
+		CreateEvent(ctx context.Context, club domain.Club, user domain.User) (*domain.Event, error)
+		UpdateEvent(ctx context.Context, dto *dtos.UpdateEvent) (*domain.Event, error)
+		DeleteEvent(ctx context.Context, dto *dtos.DeleteEvent) (*domain.Event, error)
+		PublishEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
+		SendToReview(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
+		RevokeReview(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
+		ApproveEvent(ctx context.Context, eventId string, user domain.User) (*domain.Event, error)
+		RejectEvent(ctx context.Context, dto *dtos.RejectEvent) (*domain.Event, error)
+	}
+)
 
 func (s serverApi) CreateEvent(ctx context.Context, req *eventv1.CreateEventRequest) (*eventv1.EventObject, error) {
 	if err := validate.CreateEvent(req); err != nil {
@@ -64,7 +66,7 @@ func (s serverApi) DeleteEvent(ctx context.Context, req *eventv1.DeleteEventRequ
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	event, err := s.management.DeleteEvent(ctx, req.GetEventId(), req.GetUserId())
+	event, err := s.management.DeleteEvent(ctx, dtos.DeleteEventToDTO(req))
 	if err != nil {
 		return nil, handleError(err)
 	}

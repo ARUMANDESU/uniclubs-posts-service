@@ -49,6 +49,12 @@ type RejectEvent struct {
 	Reason  string      `json:"reason"`
 }
 
+type DeleteEvent struct {
+	EventId string `json:"event_id"`
+	UserId  int64  `json:"user_id"`
+	IsAdmin bool   `json:"is_admin"`
+}
+
 func UpdateToDTO(event *eventv1.UpdateEventRequest) *UpdateEvent {
 	tags := event.GetTags()
 	for i, tag := range tags {
@@ -103,5 +109,13 @@ func RejectEventToDTO(event *eventv1.RejectEventRequest) *RejectEvent {
 		EventId: event.GetEventId(),
 		User:    domain.UserFromProto(event.GetUser()),
 		Reason:  event.GetReason(),
+	}
+}
+
+func DeleteEventToDTO(event *eventv1.DeleteEventRequest) *DeleteEvent {
+	return &DeleteEvent{
+		EventId: event.GetEventId(),
+		UserId:  event.GetUserId(),
+		IsAdmin: event.GetIsAdmin(),
 	}
 }

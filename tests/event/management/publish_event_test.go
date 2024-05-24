@@ -396,7 +396,7 @@ func TestUnPublishEvent_ClubScope_HappyPath(t *testing.T) {
 	require.NoError(t, err, "UnpublishEvent failed")
 
 	// Assert that the event is unpublished
-	assert.Equal(t, domain.EventStatusApproved.String(), unpublishResp.GetStatus())
+	assert.Equal(t, domain.EventStatusDraft.String(), unpublishResp.GetStatus())
 }
 
 func TestUnpublishEvent_ClubScope_Unauthorized(t *testing.T) {

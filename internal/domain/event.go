@@ -34,31 +34,32 @@ func (t EventType) String() string {
 }
 
 type Event struct {
-	ID                 string          `json:"id"`
-	ClubId             int64           `json:"club_id"`
-	OwnerId            int64           `json:"owner_id"`
-	CollaboratorClubs  []Club          `json:"collaborator_clubs"`
-	Organizers         []Organizer     `json:"organizers"`
-	Title              string          `json:"title,omitempty"`
-	Description        string          `json:"description,omitempty"`
-	Type               EventType       `json:"type,omitempty"`
-	Status             EventStatus     `json:"status,omitempty"`
-	Tags               []string        `json:"tags,omitempty"`
-	MaxParticipants    uint32          `json:"max_participants,omitempty"`
-	ParticipantsCount  uint32          `json:"participants_count,omitempty"`
-	LocationLink       string          `json:"location_link,omitempty"`
-	LocationUniversity string          `json:"location_university,omitempty"`
-	StartDate          time.Time       `json:"start_date"`
-	EndDate            time.Time       `json:"end_date"`
-	CoverImages        []CoverImage    `json:"cover_images,omitempty"`
-	AttachedImages     []File          `json:"attached_images,omitempty"`
-	AttachedFiles      []File          `json:"attached_files,omitempty"`
-	CreatedAt          time.Time       `json:"created_at"`
-	UpdatedAt          time.Time       `json:"updated_at"`
-	DeletedAt          time.Time       `json:"deleted_at"`
-	PublishedAt        time.Time       `json:"published_at"`
-	ApproveMetadata    ApproveMetadata `json:"approve_metadata"`
-	RejectMetadata     RejectMetadata  `json:"reject_metadata"`
+	ID                    string          `json:"id"`
+	ClubId                int64           `json:"club_id"`
+	OwnerId               int64           `json:"owner_id"`
+	CollaboratorClubs     []Club          `json:"collaborator_clubs"`
+	Organizers            []Organizer     `json:"organizers"`
+	Title                 string          `json:"title,omitempty"`
+	Description           string          `json:"description,omitempty"`
+	Type                  EventType       `json:"type,omitempty"`
+	Status                EventStatus     `json:"status,omitempty"`
+	Tags                  []string        `json:"tags,omitempty"`
+	MaxParticipants       uint32          `json:"max_participants,omitempty"`
+	ParticipantsCount     uint32          `json:"participants_count,omitempty"`
+	LocationLink          string          `json:"location_link,omitempty"`
+	LocationUniversity    string          `json:"location_university,omitempty"`
+	StartDate             time.Time       `json:"start_date"`
+	EndDate               time.Time       `json:"end_date"`
+	CoverImages           []CoverImage    `json:"cover_images,omitempty"`
+	AttachedImages        []File          `json:"attached_images,omitempty"`
+	AttachedFiles         []File          `json:"attached_files,omitempty"`
+	CreatedAt             time.Time       `json:"created_at"`
+	UpdatedAt             time.Time       `json:"updated_at"`
+	DeletedAt             time.Time       `json:"deleted_at"`
+	PublishedAt           time.Time       `json:"published_at"`
+	ApproveMetadata       ApproveMetadata `json:"approve_metadata"`
+	RejectMetadata        RejectMetadata  `json:"reject_metadata"`
+	IsHiddenForNonMembers bool            `json:"is_hidden_for_non_members"`
 }
 
 func (e *Event) IsOwner(userId int64) bool {

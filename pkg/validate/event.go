@@ -84,6 +84,7 @@ func UpdateEvent(value interface{}) error {
 		validation.Field(&req.CoverImages, validation.By(coverImages)),
 		validation.Field(&req.AttachedImages, validation.By(attachedFiles)),
 		validation.Field(&req.AttachedFiles, validation.By(attachedFiles)),
+		validation.Field(&req.UpdateMask, validation.Required, validation.By(updateMask)),
 	)
 }
 

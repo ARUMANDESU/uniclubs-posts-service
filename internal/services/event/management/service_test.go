@@ -480,6 +480,56 @@ func TestService_UpdateEvent_StatusInProgress_Pending(t *testing.T) {
 
 }
 
+func TestUpdateEvent_FailPath(t *testing.T) {
+	oldEvent := &domain.Event{
+		ID:      "test-event-id",
+		OwnerId: 1,
+		Status:  domain.EventStatusDraft,
+		Title:   "old title",
+		Type:    domain.EventTypeUniversity,
+	}
+
+	tests := []struct {
+		name string
+		dto  *dtos.UpdateEvent
+	}{
+		{
+			name: "UniversityEvent_HiddenForNonMembers",
+			dto: &dtos.UpdateEvent{
+				EventId:               "test-event-id",
+				UserId:                1,
+				Type:                  domain.EventTypeUniversity,
+				IsHiddenForNonMembers: true,
+				Paths:                 []string{"is_hidden_for_non_members"},
+			},
+		},
+		{
+			name: "IntraClubEvent_HiddenForNonMembers",
+			dto: &dtos.UpdateEvent{
+				EventId:               "test-event-id",
+				UserId:                1,
+				Type:                  domain.EventTypeIntraClub,
+				IsHiddenForNonMembers: true,
+				Paths:                 []string{"is_hidden_for_non_members"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			suite := newSuite(t)
+			ctx := context.Background()
+
+			suite.mockStorage.On("GetEvent", mock.Anything, tt.dto.EventId).Return(oldEvent, nil)
+
+			_, err := suite.ManagementService.UpdateEvent(ctx, tt.dto)
+			require.ErrorIs(t, err, eventservice.ErrEventInvalidFields)
+
+			suite.mockStorage.AssertExpectations(t)
+		})
+	}
+}
+
 func TestService_DeleteEvent_HappyPath(t *testing.T) {
 
 	tests := []struct {

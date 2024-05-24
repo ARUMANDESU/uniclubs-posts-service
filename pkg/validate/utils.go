@@ -6,8 +6,9 @@ import (
 	"github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
-	"github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
+	"github.com/go-ozzo/ozzo-validation/v4"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"log"
 )
 
@@ -109,6 +110,28 @@ func eventFilter(value interface{}) error {
 			validation.Each(
 				validation.In(validStatuses...).
 					Error(fmt.Sprintf("event status must be valid: %v", validStatuses)),
+			),
+		),
+	)
+}
+
+func updateMask(value interface{}) error {
+	req, ok := value.(*fieldmaskpb.FieldMask)
+	if !ok {
+		return validation.NewInternalError(errors.New("update event invalid type"))
+	}
+
+	valideUpdateFields := []any{"title", "description", "type", "tags",
+		"max_participants", "location_link", "location_university",
+		"start_date", "end_date", "cover_images", "attached_images",
+		"attached_files", "is_hidden_for_non_members",
+	}
+
+	return validation.ValidateStruct(req,
+		validation.Field(&req.Paths,
+			validation.Required,
+			validation.Each(validation.In(valideUpdateFields...).
+				Error(fmt.Sprintf("update fields must be one of %v", valideUpdateFields)),
 			),
 		),
 	)

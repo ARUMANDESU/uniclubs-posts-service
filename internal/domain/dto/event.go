@@ -9,21 +9,22 @@ import (
 )
 
 type UpdateEvent struct {
-	EventId            string              `json:"event_id"`
-	UserId             int64               `json:"user_id"`
-	Title              string              `json:"title"`
-	Description        string              `json:"description"`
-	Type               domain.EventType    `json:"type"`
-	Tags               []string            `json:"tags"`
-	MaxParticipants    uint32              `json:"max_participants"`
-	LocationLink       string              `json:"location_link"`
-	LocationUniversity string              `json:"location_university"`
-	StartDate          time.Time           `json:"start_date"`
-	EndDate            time.Time           `json:"end_date"`
-	CoverImages        []domain.CoverImage `json:"cover_images"`
-	AttachedImages     []domain.File       `json:"attached_images"`
-	AttachedFiles      []domain.File       `json:"attached_files"`
-	Paths              []string
+	EventId               string              `json:"event_id"`
+	UserId                int64               `json:"user_id"`
+	Title                 string              `json:"title"`
+	Description           string              `json:"description"`
+	Type                  domain.EventType    `json:"type"`
+	Tags                  []string            `json:"tags"`
+	MaxParticipants       uint32              `json:"max_participants"`
+	LocationLink          string              `json:"location_link"`
+	LocationUniversity    string              `json:"location_university"`
+	StartDate             time.Time           `json:"start_date"`
+	EndDate               time.Time           `json:"end_date"`
+	CoverImages           []domain.CoverImage `json:"cover_images"`
+	AttachedImages        []domain.File       `json:"attached_images"`
+	AttachedFiles         []domain.File       `json:"attached_files"`
+	IsHiddenForNonMembers bool                `json:"is_hidden_for_non_members"`
+	Paths                 []string
 }
 
 type SendJoinRequestToUser struct {
@@ -58,7 +59,12 @@ type DeleteEvent struct {
 }
 
 func (u *UpdateEvent) HasUnchangeableFields() bool {
-	// unchangeable are fields except tags, max_participants, location_link, location_university, start_date, end_date
+	/*
+	* unchangeable are fields except
+	* tags, max_participants, location_link,
+	* location_university, start_date, end_date
+	* is_hidden_for_non_members
+	 */
 	if len(u.Paths) == 0 {
 		return true
 	}
@@ -70,6 +76,7 @@ func (u *UpdateEvent) HasUnchangeableFields() bool {
 		case "location_university":
 		case "start_date":
 		case "end_date":
+		case "is_hidden_for_non_members":
 		default:
 			return true
 		}
@@ -81,35 +88,50 @@ func (u *UpdateEvent) HasUnchangeableFields() bool {
 func UpdateToDTO(event *eventv1.UpdateEventRequest) (*UpdateEvent, error) {
 	const op = "dtos.UpdateToDTO"
 
+	paths := make(map[string]bool)
+	for _, path := range event.GetUpdateMask().GetPaths() {
+		paths[path] = true
+	}
+
+	var startDate, endDate time.Time
+	var err error
+
+	if paths["start_date"] {
+		startDate, err = time.Parse(domain.TimeLayout, event.StartDate)
+		if err != nil {
+			return nil, fmt.Errorf("%s: failed to parse end date: %w", op, err)
+		}
+	}
+
+	if paths["end_date"] {
+		endDate, err = time.Parse(domain.TimeLayout, event.EndDate)
+		if err != nil {
+			return nil, fmt.Errorf("%s: failed to parse end date: %w", op, err)
+		}
+	}
+
 	tags := event.GetTags()
 	for i, tag := range tags {
 		tags[i] = strings.TrimSpace(tag)
 	}
-	startDate, err := time.Parse(domain.TimeLayout, event.StartDate)
-	if err != nil {
-		return nil, fmt.Errorf("%s: failed to parse end date: %w", op, err)
-	}
-	endDate, err := time.Parse(domain.TimeLayout, event.EndDate)
-	if err != nil {
-		return nil, fmt.Errorf("%s: failed to parse end date: %w", op, err)
-	}
 
 	return &UpdateEvent{
-		EventId:            event.GetEventId(),
-		UserId:             event.GetUserId(),
-		Title:              strings.Trim(event.GetTitle(), " "),
-		Description:        strings.Trim(event.GetDescription(), " "),
-		Type:               domain.EventType(event.GetType()),
-		Tags:               tags,
-		MaxParticipants:    uint32(event.GetMaxParticipants()),
-		LocationLink:       event.GetLocationLink(),
-		LocationUniversity: event.GetLocationUniversity(),
-		StartDate:          startDate,
-		EndDate:            endDate,
-		CoverImages:        domain.ProtoToCoverImages(event.GetCoverImages()),
-		AttachedImages:     domain.ProtoToFiles(event.GetAttachedImages()),
-		AttachedFiles:      domain.ProtoToFiles(event.GetAttachedFiles()),
-		Paths:              event.GetUpdateMask().GetPaths(),
+		EventId:               event.GetEventId(),
+		UserId:                event.GetUserId(),
+		Title:                 strings.Trim(event.GetTitle(), " "),
+		Description:           strings.Trim(event.GetDescription(), " "),
+		Type:                  domain.EventType(event.GetType()),
+		Tags:                  tags,
+		MaxParticipants:       uint32(event.GetMaxParticipants()),
+		LocationLink:          event.GetLocationLink(),
+		LocationUniversity:    event.GetLocationUniversity(),
+		StartDate:             startDate,
+		EndDate:               endDate,
+		CoverImages:           domain.ProtoToCoverImages(event.GetCoverImages()),
+		AttachedImages:        domain.ProtoToFiles(event.GetAttachedImages()),
+		AttachedFiles:         domain.ProtoToFiles(event.GetAttachedFiles()),
+		IsHiddenForNonMembers: event.GetIsHiddenForNonMembers(),
+		Paths:                 event.GetUpdateMask().GetPaths(),
 	}, nil
 }
 

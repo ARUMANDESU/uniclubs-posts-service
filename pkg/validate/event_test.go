@@ -5,6 +5,7 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/genproto/protobuf/field_mask"
 	"strings"
 	"testing"
 	"time"
@@ -144,6 +145,12 @@ func TestUpdateEvent_HappyPath(t *testing.T) {
 				Url:  gofakeit.URL(),
 				Name: gofakeit.ProductName(),
 				Type: "file/lol",
+			},
+		},
+		UpdateMask: &field_mask.FieldMask{
+			Paths: []string{
+				"tags", "max_participants", "location_link", "location_university",
+				"start_date", "end_date",
 			},
 		},
 	}

@@ -5,6 +5,7 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/genproto/protobuf/field_mask"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"testing"
 	"time"
@@ -14,8 +15,41 @@ func TestUpdateToDTO(t *testing.T) {
 
 	startDate, _ := time.Parse(domain.TimeLayout, "2024-05-12 15:04:05.999999999 -0700 MST")
 	endDate, _ := time.Parse(domain.TimeLayout, "2024-06-02 15:04:05.999999999 -0700 MST")
+	paths := []string{
+		"title",
+		"description",
+		"type",
+		"tags",
+		"max_participants",
+		"location_link",
+		"location_university",
+		"start_date",
+		"end_date",
+		"cover_images",
+		"attached_images",
+		"attached_files",
+	}
 
 	event := &eventv1.UpdateEventRequest{
+		EventId:               "1",
+		UserId:                1,
+		Title:                 "Test Title",
+		Description:           "Test Description",
+		Type:                  "Test Type",
+		Tags:                  []string{"Test Tag"},
+		MaxParticipants:       1,
+		LocationLink:          "http://example.com/location",
+		LocationUniversity:    "Test University",
+		StartDate:             "2024-05-12 15:04:05.999999999 -0700 MST",
+		EndDate:               "2024-06-02 15:04:05.999999999 -0700 MST",
+		CoverImages:           []*eventv1.CoverImage{{Name: "Test Cover Image", Url: "http://example.com/cover.jpg", Type: "jpg", Position: 1}},
+		AttachedImages:        []*eventv1.FileObject{{Name: "Test Attached Image", Url: "http://example.com/image.jpg", Type: "jpg"}},
+		AttachedFiles:         []*eventv1.FileObject{{Name: "Test Attached File", Url: "http://example.com/file.pdf", Type: "pdf"}},
+		IsHiddenForNonMembers: false,
+		UpdateMask:            &fieldmaskpb.FieldMask{Paths: paths},
+	}
+
+	expectedEvent := &UpdateEvent{
 		EventId:            "1",
 		UserId:             1,
 		Title:              "Test Title",
@@ -25,34 +59,69 @@ func TestUpdateToDTO(t *testing.T) {
 		MaxParticipants:    1,
 		LocationLink:       "http://example.com/location",
 		LocationUniversity: "Test University",
-		StartDate:          "2024-05-12 15:04:05.999999999 -0700 MST",
-		EndDate:            "2024-06-02 15:04:05.999999999 -0700 MST",
-		CoverImages:        []*eventv1.CoverImage{{Name: "Test Cover Image", Url: "http://example.com/cover.jpg", Type: "jpg", Position: 1}},
-		AttachedImages:     []*eventv1.FileObject{{Name: "Test Attached Image", Url: "http://example.com/image.jpg", Type: "jpg"}},
-		AttachedFiles:      []*eventv1.FileObject{{Name: "Test Attached File", Url: "http://example.com/file.pdf", Type: "pdf"}},
-		UpdateMask:         &fieldmaskpb.FieldMask{Paths: []string{"title", "description"}},
+		StartDate:          startDate,
+		EndDate:            endDate,
+		CoverImages: []domain.CoverImage{
+			{
+				File: domain.File{
+					Name: "Test Cover Image",
+					Url:  "http://example.com/cover.jpg",
+					Type: "jpg",
+				},
+				Position: 1,
+			},
+		},
+		AttachedImages: []domain.File{
+			{
+				Name: "Test Attached Image",
+				Url:  "http://example.com/image.jpg",
+				Type: "jpg",
+			},
+		},
+		AttachedFiles: []domain.File{
+			{
+				Name: "Test Attached File",
+				Url:  "http://example.com/file.pdf",
+				Type: "pdf",
+			},
+		},
+		IsHiddenForNonMembers: false,
+		Paths:                 paths,
 	}
 
 	dto, err := UpdateToDTO(event)
 	require.NoError(t, err)
-
-	assert.Equal(t, event.GetEventId(), dto.EventId)
-	assert.Equal(t, event.GetUserId(), dto.UserId)
-	assert.Equal(t, event.GetTitle(), dto.Title)
-	assert.Equal(t, event.GetDescription(), dto.Description)
-	assert.Equal(t, domain.EventType(event.GetType()), dto.Type)
-	assert.Equal(t, event.GetTags(), dto.Tags)
-	assert.Equal(t, uint32(event.GetMaxParticipants()), dto.MaxParticipants)
-	assert.Equal(t, event.GetLocationLink(), dto.LocationLink)
-	assert.Equal(t, event.GetLocationUniversity(), dto.LocationUniversity)
-	assert.Equal(t, startDate, dto.StartDate)
-	assert.Equal(t, endDate, dto.EndDate)
-	assert.Equal(t, len(event.GetCoverImages()), len(dto.CoverImages))
-	assert.Equal(t, len(event.GetAttachedImages()), len(dto.AttachedImages))
-	assert.Equal(t, len(event.GetAttachedFiles()), len(dto.AttachedFiles))
-	assert.Equal(t, event.GetUpdateMask().GetPaths(), dto.Paths)
+	assert.Equal(t, expectedEvent, dto)
 }
 
+func TestUpdateToDTO_FailPath(t *testing.T) {
+	tests := []struct {
+		name  string
+		event *eventv1.UpdateEventRequest
+	}{
+		{
+			name: "InvalidStartDate",
+			event: &eventv1.UpdateEventRequest{
+				UpdateMask: &field_mask.FieldMask{Paths: []string{"start_date"}},
+				StartDate:  "invalid date",
+			},
+		},
+		{
+			name: "InvalidEndDate",
+			event: &eventv1.UpdateEventRequest{
+				UpdateMask: &field_mask.FieldMask{Paths: []string{"end_date"}},
+				EndDate:    "invalid date",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := UpdateToDTO(tt.event)
+			assert.Error(t, err)
+		})
+	}
+}
 func TestAddOrganizerRequestToUserToDTO(t *testing.T) {
 	event := &eventv1.AddOrganizerRequest{
 		EventId:      "1",

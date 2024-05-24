@@ -56,6 +56,10 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dtos.UpdateEvent) (*domai
 		return nil, err
 	}
 
+	if dto.IsHiddenForNonMembers && (event.Type != domain.EventTypeIntraClub || dto.Type != domain.EventTypeIntraClub) {
+		return nil, fmt.Errorf("%w: university scope event cannot be hidden from non member users", eventservice.ErrEventInvalidFields)
+	}
+
 	hasUnchangeableFields := dto.HasUnchangeableFields()
 
 	switch event.Status {
@@ -101,6 +105,8 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dtos.UpdateEvent) (*domai
 			event.AttachedImages = dto.AttachedImages
 		case "attached_files":
 			event.AttachedFiles = dto.AttachedFiles
+		case "is_hidden_for_non_members":
+			event.IsHiddenForNonMembers = dto.IsHiddenForNonMembers
 		}
 	}
 

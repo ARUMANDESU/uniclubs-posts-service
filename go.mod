@@ -3,7 +3,7 @@ module github.com/arumandesu/uniclubs-posts-service
 go 1.22.2
 
 require (
-	github.com/ARUMANDESU/uniclubs-protos v0.6.4
+	github.com/ARUMANDESU/uniclubs-protos v0.6.6
 	github.com/brianvoe/gofakeit/v7 v7.0.3
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0

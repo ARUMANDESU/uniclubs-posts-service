@@ -38,6 +38,7 @@ type Filters struct {
 	ToDate                time.Time
 	Status                []EventStatus
 	IsHiddenForNonMembers bool
+	Paths                 []string
 }
 
 func (f Filters) Limit() int32 {
@@ -76,6 +77,7 @@ func ProtoToFilers(req *eventv1.ListEventsRequest) Filters {
 		ToDate:                tillDate,
 		Status:                convertToEventStatusSlice(filter.GetStatus()),
 		IsHiddenForNonMembers: filter.GetIsHiddenForNonMembers(),
+		Paths:                 req.GetFilterMask().GetPaths(),
 	}
 }
 

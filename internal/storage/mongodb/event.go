@@ -190,6 +190,10 @@ func constructEventFilter(filters domain.Filters) bson.M {
 		filter["status"] = bson.M{"$in": filters.Status}
 	}
 
+	if filters.IsHiddenForNonMembers {
+		filter["is_hidden_for_non_members"] = true
+	}
+
 	return filter
 }
 

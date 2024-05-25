@@ -26,18 +26,18 @@ func (s SortBy) String() string {
 }
 
 type Filters struct {
-	Page      int32
-	PageSize  int32
-	Query     string
-	SortBy    SortBy
-	SortOrder SortOrder
-	ClubId    int64
-	UserId    int64
-	Tags      []string
-	FromDate  time.Time
-	ToDate    time.Time
-	Status    []EventStatus
-	Paths     []string
+	Page                  int32
+	PageSize              int32
+	Query                 string
+	SortBy                SortBy
+	SortOrder             SortOrder
+	ClubId                int64
+	UserId                int64
+	Tags                  []string
+	FromDate              time.Time
+	ToDate                time.Time
+	Status                []EventStatus
+	IsHiddenForNonMembers bool
 }
 
 func (f Filters) Limit() int32 {
@@ -61,19 +61,21 @@ func ProtoToFilers(req *eventv1.ListEventsRequest) Filters {
 	} else {
 		sortOrder = SortOrder(req.GetSortOrder())
 	}
+	filter := req.GetFilter()
 
 	return Filters{
-		Page:      req.GetPageNumber(),
-		PageSize:  req.GetPageSize(),
-		Query:     req.GetQuery(),
-		SortBy:    SortBy(req.GetSortBy()),
-		SortOrder: sortOrder,
-		ClubId:    req.GetFilter().GetClubId(),
-		UserId:    req.GetFilter().GetUserId(),
-		Tags:      req.GetFilter().GetTags(),
-		FromDate:  fromDate,
-		ToDate:    tillDate,
-		Status:    convertToEventStatusSlice(req.GetFilter().GetStatus()),
+		Page:                  req.GetPageNumber(),
+		PageSize:              req.GetPageSize(),
+		Query:                 req.GetQuery(),
+		SortBy:                SortBy(req.GetSortBy()),
+		SortOrder:             sortOrder,
+		ClubId:                filter.GetClubId(),
+		UserId:                filter.GetUserId(),
+		Tags:                  filter.GetTags(),
+		FromDate:              fromDate,
+		ToDate:                tillDate,
+		Status:                convertToEventStatusSlice(filter.GetStatus()),
+		IsHiddenForNonMembers: filter.GetIsHiddenForNonMembers(),
 	}
 }
 

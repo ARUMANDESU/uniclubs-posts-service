@@ -116,19 +116,19 @@ func TestService_UpdateEvent_HappyPath(t *testing.T) {
 				Type: "file",
 			},
 		},
-		Paths: []string{
-			"title",
-			"description",
-			"type",
-			"tags",
-			"max_participants",
-			"location_link",
-			"location_university",
-			"start_date",
-			"end_date",
-			"cover_images",
-			"attached_images",
-			"attached_files",
+		Paths: map[string]bool{
+			"title":               true,
+			"description":         true,
+			"type":                true,
+			"tags":                true,
+			"max_participants":    true,
+			"location_link":       true,
+			"location_university": true,
+			"start_date":          true,
+			"end_date":            true,
+			"cover_images":        true,
+			"attached_images":     true,
+			"attached_files":      true,
 		},
 	}
 
@@ -310,7 +310,7 @@ func TestService_UpdateEvent_StatusApproved(t *testing.T) {
 			EventId: "event_id",
 			UserId:  1,
 			Title:   "updated title",
-			Paths:   []string{"title"},
+			Paths:   map[string]bool{"title": true},
 		}
 
 		oldEvent := &domain.Event{
@@ -350,31 +350,42 @@ func TestService_UpdateEvent_StatusApproved(t *testing.T) {
 		suite := newSuite(t)
 		ctx := context.Background()
 		dto := &dtos.UpdateEvent{
-			EventId:            "event_id",
-			UserId:             1,
-			Tags:               []string{"updated tag1", "updated tag2"},
-			StartDate:          startDate,
-			EndDate:            endDate,
-			LocationUniversity: "updated location university",
-			LocationLink:       "updated location link",
-			Paths:              []string{"tags", "start_date", "end_date", "location_university", "location_link"},
+			EventId:               "event_id",
+			UserId:                1,
+			Tags:                  []string{"updated tag1", "updated tag2"},
+			StartDate:             startDate,
+			EndDate:               endDate,
+			LocationUniversity:    "updated location university",
+			LocationLink:          "updated location link",
+			IsHiddenForNonMembers: true,
+			Paths: map[string]bool{
+				"tags":                      true,
+				"start_date":                true,
+				"end_date":                  true,
+				"location_university":       true,
+				"location_link":             true,
+				"is_hidden_for_non_members": true,
+			},
 		}
 
 		oldEvent := &domain.Event{
 			ID:      dto.EventId,
 			OwnerId: dto.UserId,
+			Type:    domain.EventTypeIntraClub,
 			Status:  domain.EventStatusApproved,
 		}
 
 		expectedEvent := &domain.Event{
-			ID:                 dto.EventId,
-			OwnerId:            dto.UserId,
-			Tags:               []string{"updated tag1", "updated tag2"},
-			StartDate:          startDate,
-			EndDate:            endDate,
-			LocationUniversity: "updated location university",
-			LocationLink:       "updated location link",
-			Status:             domain.EventStatusApproved,
+			ID:                    dto.EventId,
+			OwnerId:               dto.UserId,
+			Tags:                  []string{"updated tag1", "updated tag2"},
+			StartDate:             startDate,
+			EndDate:               endDate,
+			Type:                  domain.EventTypeIntraClub,
+			LocationUniversity:    "updated location university",
+			LocationLink:          "updated location link",
+			Status:                domain.EventStatusApproved,
+			IsHiddenForNonMembers: true,
 		}
 
 		suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(oldEvent, nil)
@@ -407,12 +418,13 @@ func TestService_UpdateEvent_StatusInProgress_Pending(t *testing.T) {
 				dto := &dtos.UpdateEvent{
 					EventId: "event_id",
 					UserId:  1,
-					Paths:   []string{"title"},
+					Paths:   map[string]bool{"title": true},
 				}
 
 				oldEvent := &domain.Event{
 					ID:      dto.EventId,
 					OwnerId: dto.UserId,
+					Type:    domain.EventTypeIntraClub,
 					Status:  s,
 				}
 
@@ -432,31 +444,42 @@ func TestService_UpdateEvent_StatusInProgress_Pending(t *testing.T) {
 				suite := newSuite(t)
 				ctx := context.Background()
 				dto := &dtos.UpdateEvent{
-					EventId:            "event_id",
-					UserId:             1,
-					Tags:               []string{"updated tag1", "updated tag2"},
-					StartDate:          startDate,
-					EndDate:            endDate,
-					LocationUniversity: "updated location university",
-					LocationLink:       "updated location link",
-					Paths:              []string{"tags", "start_date", "end_date", "location_university", "location_link"},
+					EventId:               "event_id",
+					UserId:                1,
+					Tags:                  []string{"updated tag1", "updated tag2"},
+					StartDate:             startDate,
+					EndDate:               endDate,
+					LocationUniversity:    "updated location university",
+					LocationLink:          "updated location link",
+					IsHiddenForNonMembers: true,
+					Paths: map[string]bool{
+						"tags":                      true,
+						"start_date":                true,
+						"end_date":                  true,
+						"location_university":       true,
+						"location_link":             true,
+						"is_hidden_for_non_members": true,
+					},
 				}
 
 				oldEvent := &domain.Event{
 					ID:      dto.EventId,
 					OwnerId: dto.UserId,
+					Type:    domain.EventTypeIntraClub,
 					Status:  s,
 				}
 
 				expectedEvent := &domain.Event{
-					ID:                 dto.EventId,
-					OwnerId:            dto.UserId,
-					Tags:               []string{"updated tag1", "updated tag2"},
-					StartDate:          startDate,
-					EndDate:            endDate,
-					LocationUniversity: "updated location university",
-					LocationLink:       "updated location link",
-					Status:             s,
+					ID:                    dto.EventId,
+					OwnerId:               dto.UserId,
+					Type:                  domain.EventTypeIntraClub,
+					Tags:                  []string{"updated tag1", "updated tag2"},
+					StartDate:             startDate,
+					IsHiddenForNonMembers: true,
+					EndDate:               endDate,
+					LocationUniversity:    "updated location university",
+					LocationLink:          "updated location link",
+					Status:                s,
 				}
 
 				suite.mockStorage.On("GetEvent", mock.Anything, dto.EventId).Return(oldEvent, nil)
@@ -500,17 +523,7 @@ func TestUpdateEvent_FailPath(t *testing.T) {
 				UserId:                1,
 				Type:                  domain.EventTypeUniversity,
 				IsHiddenForNonMembers: true,
-				Paths:                 []string{"is_hidden_for_non_members"},
-			},
-		},
-		{
-			name: "IntraClubEvent_HiddenForNonMembers",
-			dto: &dtos.UpdateEvent{
-				EventId:               "test-event-id",
-				UserId:                1,
-				Type:                  domain.EventTypeIntraClub,
-				IsHiddenForNonMembers: true,
-				Paths:                 []string{"is_hidden_for_non_members"},
+				Paths:                 map[string]bool{"is_hidden_for_non_members": true},
 			},
 		},
 	}

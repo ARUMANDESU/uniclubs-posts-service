@@ -56,7 +56,7 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dtos.UpdateEvent) (*domai
 		return nil, err
 	}
 
-	if dto.IsHiddenForNonMembers && (event.Type != domain.EventTypeIntraClub || dto.Type != domain.EventTypeIntraClub) {
+	if dto.Paths["is_hidden_for_non_members"] && !(event.Type == domain.EventTypeIntraClub || dto.Type == domain.EventTypeIntraClub) {
 		return nil, fmt.Errorf("%w: university scope event cannot be hidden from non member users", eventservice.ErrEventInvalidFields)
 	}
 
@@ -79,34 +79,28 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dtos.UpdateEvent) (*domai
 		return nil, fmt.Errorf("%w: %s", eventservice.ErrUnknownStatus, event.Status)
 	}
 
-	for _, path := range dto.Paths {
-		switch path {
-		case "title":
-			event.Title = dto.Title
-		case "description":
-			event.Description = dto.Description
-		case "type":
-			event.Type = dto.Type
-		case "tags":
-			event.Tags = dto.Tags
-		case "max_participants":
-			event.MaxParticipants = dto.MaxParticipants
-		case "location_link":
-			event.LocationLink = dto.LocationLink
-		case "location_university":
-			event.LocationUniversity = dto.LocationUniversity
-		case "start_date":
-			event.StartDate = dto.StartDate
-		case "end_date":
-			event.EndDate = dto.EndDate
-		case "cover_images":
-			event.CoverImages = dto.CoverImages
-		case "attached_images":
-			event.AttachedImages = dto.AttachedImages
-		case "attached_files":
-			event.AttachedFiles = dto.AttachedFiles
-		case "is_hidden_for_non_members":
-			event.IsHiddenForNonMembers = dto.IsHiddenForNonMembers
+	updateFunctions := map[string]func(){
+		"title":                     func() { event.Title = dto.Title },
+		"description":               func() { event.Description = dto.Description },
+		"type":                      func() { event.Type = dto.Type },
+		"tags":                      func() { event.Tags = dto.Tags },
+		"max_participants":          func() { event.MaxParticipants = dto.MaxParticipants },
+		"location_link":             func() { event.LocationLink = dto.LocationLink },
+		"location_university":       func() { event.LocationUniversity = dto.LocationUniversity },
+		"start_date":                func() { event.StartDate = dto.StartDate },
+		"end_date":                  func() { event.EndDate = dto.EndDate },
+		"cover_images":              func() { event.CoverImages = dto.CoverImages },
+		"attached_images":           func() { event.AttachedImages = dto.AttachedImages },
+		"attached_files":            func() { event.AttachedFiles = dto.AttachedFiles },
+		"is_hidden_for_non_members": func() { event.IsHiddenForNonMembers = dto.IsHiddenForNonMembers },
+	}
+
+	for path, exists := range dto.Paths {
+		if !exists {
+			continue
+		}
+		if updateFunc, ok := updateFunctions[path]; ok {
+			updateFunc()
 		}
 	}
 

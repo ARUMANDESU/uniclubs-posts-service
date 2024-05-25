@@ -24,7 +24,7 @@ type UpdateEvent struct {
 	AttachedImages        []domain.File       `json:"attached_images"`
 	AttachedFiles         []domain.File       `json:"attached_files"`
 	IsHiddenForNonMembers bool                `json:"is_hidden_for_non_members"`
-	Paths                 []string
+	Paths                 map[string]bool
 }
 
 type SendJoinRequestToUser struct {
@@ -60,24 +60,27 @@ type DeleteEvent struct {
 
 func (u *UpdateEvent) HasUnchangeableFields() bool {
 	/*
-	* unchangeable are fields except
-	* tags, max_participants, location_link,
-	* location_university, start_date, end_date
-	* is_hidden_for_non_members
+	* The fields that are allowed to be updated what ever event status is, except for the following statuses:
+	* - EventStatusFinished
+	* - EventStatusCanceled
+	* - EventStatusArchived
 	 */
+	allowedPaths := map[string]bool{
+		"tags":                      true,
+		"max_participants":          true,
+		"location_link":             true,
+		"location_university":       true,
+		"start_date":                true,
+		"end_date":                  true,
+		"is_hidden_for_non_members": true,
+	}
+
 	if len(u.Paths) == 0 {
 		return true
 	}
-	for _, path := range u.Paths {
-		switch path {
-		case "tags":
-		case "max_participants":
-		case "location_link":
-		case "location_university":
-		case "start_date":
-		case "end_date":
-		case "is_hidden_for_non_members":
-		default:
+
+	for path := range u.Paths {
+		if _, ok := allowedPaths[path]; !ok {
 			return true
 		}
 	}
@@ -131,7 +134,7 @@ func UpdateToDTO(event *eventv1.UpdateEventRequest) (*UpdateEvent, error) {
 		AttachedImages:        domain.ProtoToFiles(event.GetAttachedImages()),
 		AttachedFiles:         domain.ProtoToFiles(event.GetAttachedFiles()),
 		IsHiddenForNonMembers: event.GetIsHiddenForNonMembers(),
-		Paths:                 event.GetUpdateMask().GetPaths(),
+		Paths:                 paths,
 	}, nil
 }
 

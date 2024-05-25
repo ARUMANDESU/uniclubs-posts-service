@@ -16,18 +16,14 @@ func TestUpdateToDTO(t *testing.T) {
 	startDate, _ := time.Parse(domain.TimeLayout, "2024-05-12 15:04:05.999999999 -0700 MST")
 	endDate, _ := time.Parse(domain.TimeLayout, "2024-06-02 15:04:05.999999999 -0700 MST")
 	paths := []string{
-		"title",
-		"description",
-		"type",
-		"tags",
-		"max_participants",
-		"location_link",
-		"location_university",
-		"start_date",
-		"end_date",
-		"cover_images",
-		"attached_images",
-		"attached_files",
+		"title", "description", "type",
+		"tags", "max_participants", "location_link",
+		"location_university", "start_date", "end_date",
+		"cover_images", "attached_images", "attached_files",
+	}
+	pathsMap := make(map[string]bool)
+	for _, path := range paths {
+		pathsMap[path] = true
 	}
 
 	event := &eventv1.UpdateEventRequest{
@@ -86,7 +82,7 @@ func TestUpdateToDTO(t *testing.T) {
 			},
 		},
 		IsHiddenForNonMembers: false,
-		Paths:                 paths,
+		Paths:                 pathsMap,
 	}
 
 	dto, err := UpdateToDTO(event)

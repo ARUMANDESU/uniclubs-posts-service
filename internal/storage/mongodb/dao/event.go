@@ -33,7 +33,7 @@ type Event struct {
 	PublishedAt           time.Time          `bson:"published_at,omitempty"`
 	ApproveMetadata       ApproveMetadata    `json:"approve_metadata,omitempty"`
 	RejectMetadata        RejectMetadata     `json:"reject_metadata,omitempty"`
-	IsHiddenForNonMembers bool               `bson:"is_hidden_for_non_members,omitempty"`
+	IsHiddenForNonMembers bool               `bson:"is_hidden_for_non_members"`
 }
 
 func (e *Event) AddOrganizer(organizer Organizer) {

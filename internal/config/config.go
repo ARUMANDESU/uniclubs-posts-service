@@ -13,6 +13,7 @@ type Config struct {
 	GRPC     GRPC     `yaml:"grpc"`
 	Rabbitmq Rabbitmq `yaml:"rabbitmq"`
 	MongoDB  MongoDB  `yaml:"mongodb"`
+	Clients  ClientsConfig
 }
 
 type GRPC struct {
@@ -31,6 +32,19 @@ type Rabbitmq struct {
 	Password string `yaml:"password" env:"RABBITMQ_PASSWORD"`
 	Host     string `yaml:"host" env:"RABBITMQ_HOST"`
 	Port     string `yaml:"port" env:"RABBITMQ_PORT"`
+}
+
+type ClientsConfig struct {
+	User struct {
+		Address      string        `yaml:"address" env:"USER_SERVICE_ADDRESS"`
+		Timeout      time.Duration `yaml:"timeout" env:"USER_SERVICE_TIMEOUT"`
+		RetriesCount int           `yaml:"retries_count" env:"USER_SERVICE_RETRIES_COUNT"`
+	} `yaml:"user"`
+	Club struct {
+		Address      string        `yaml:"address" env:"CLUB_SERVICE_ADDRESS"`
+		Timeout      time.Duration `yaml:"timeout" env:"CLUB_SERVICE_TIMEOUT"`
+		RetriesCount int           `yaml:"retries_count" env:"CLUB_SERVICE_RETRIES_COUNT"`
+	} `yaml:"club"`
 }
 
 func MustLoad() *Config {

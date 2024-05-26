@@ -4,6 +4,8 @@ import (
 	"context"
 	amqpapp "github.com/arumandesu/uniclubs-posts-service/internal/app/amqp"
 	grpcapp "github.com/arumandesu/uniclubs-posts-service/internal/app/grpc"
+	"github.com/arumandesu/uniclubs-posts-service/internal/client/club"
+	userclient "github.com/arumandesu/uniclubs-posts-service/internal/client/user"
 	"github.com/arumandesu/uniclubs-posts-service/internal/config"
 	"github.com/arumandesu/uniclubs-posts-service/internal/grpc/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/rabbitmq"
@@ -11,6 +13,7 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/collaborator"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/info"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/management"
+	eventparticipant "github.com/arumandesu/uniclubs-posts-service/internal/services/event/participant"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/user"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage/mongodb"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
@@ -43,15 +46,29 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 	}
 	l.Info("connected to rabbitmq")
 
+	userClient, err := userclient.New(log, cfg.Clients.User.Address, cfg.Clients.User.Timeout, cfg.Clients.User.RetriesCount)
+	if err != nil {
+		log.Error("user service client init error", logger.Err(err))
+		panic(err)
+	}
+
+	clubClient, err := club.New(log, cfg.Clients.Club.Address, cfg.Clients.Club.Timeout, cfg.Clients.Club.RetriesCount)
+	if err != nil {
+		log.Error("club service client init error", logger.Err(err))
+		panic(err)
+	}
+
 	userService := userservice.New(log, mongoDB)
 	clubService := clubservice.New(log, mongoDB)
 	eventCollaboratorService := eventcollab.New(log, mongoDB, mongoDB, mongoDB, mongoDB)
+	participateService := eventparticipant.New(log, eventparticipant.NewStorage(mongoDB, userClient, clubClient, mongoDB))
 
 	services := eventgrpc.NewServices(
 		eventmanagement.New(log, mongoDB),
 		eventCollaboratorService,
 		eventCollaboratorService,
 		eventinfo.New(log, mongoDB),
+		participateService,
 	)
 
 	grpcApp := grpcapp.New(log, cfg.GRPC.Port, services)

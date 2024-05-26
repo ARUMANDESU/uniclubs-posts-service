@@ -11,4 +11,5 @@ var (
 	ErrOptimisticLockingFailed = errors.New("optimistic lock error")
 	ErrInvalidID               = errors.New("the provided id is not a valid ObjectID")
 	ErrInviteNotFound          = errors.New("invite not found")
+	ErrParticipantNotFound     = errors.New("participant not found")
 )

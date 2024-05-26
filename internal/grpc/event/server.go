@@ -15,6 +15,7 @@ type Services struct {
 	organizer    OrganizerService
 	collaborator CollaboratorService
 	info         InfoService
+	participant  ParticipantService
 }
 
 func Register(
@@ -29,11 +30,13 @@ func NewServices(
 	organizer OrganizerService,
 	collaborator CollaboratorService,
 	info InfoService,
+	participant ParticipantService,
 ) Services {
 	return Services{
 		management:   management,
 		organizer:    organizer,
 		collaborator: collaborator,
 		info:         info,
+		participant:  participant,
 	}
 }

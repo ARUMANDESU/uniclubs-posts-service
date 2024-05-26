@@ -3,11 +3,12 @@ module github.com/arumandesu/uniclubs-posts-service
 go 1.22.2
 
 require (
-	github.com/ARUMANDESU/uniclubs-protos v0.6.8
+	github.com/ARUMANDESU/uniclubs-protos v0.7.0
 	github.com/brianvoe/gofakeit/v7 v7.0.3
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/golang/protobuf v1.5.4
+	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/joho/godotenv v1.5.1
 	github.com/rabbitmq/amqp091-go v1.10.0

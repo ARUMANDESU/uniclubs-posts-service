@@ -26,4 +26,6 @@ var (
 	ErrEventIsNotEditable      = errors.New("event is not editable")
 	ErrContainsUnchangeable    = errors.New("contains unchangeable fields")
 	ErrUnknownStatus           = errors.New("unknown status")
+	ErrEventIsFull             = errors.New("event is full")
+	ErrAlreadyParticipating    = errors.New("user is already participating in the event")
 )

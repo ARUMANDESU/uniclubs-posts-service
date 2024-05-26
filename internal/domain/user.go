@@ -1,6 +1,9 @@
 package domain
 
-import eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
+import (
+	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
+	"time"
+)
 
 type User struct {
 	ID        int64  `json:"id"`
@@ -14,6 +17,13 @@ type Organizer struct {
 	User    `json:",inline"`
 	ClubId  int64 `json:"club_id"`
 	ByWhoId int64 `json:"by_who_id"`
+}
+
+type Participant struct {
+	ID       string `json:"id"`
+	EventId  string `json:"event_id"`
+	User     `json:",inline"`
+	JoinedAt time.Time `json:"joined_at"`
 }
 
 func (u User) ToOrganizer(clubId, byWhoId int64) Organizer {

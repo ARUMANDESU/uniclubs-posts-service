@@ -11,9 +11,10 @@ import (
 )
 
 type Storage struct {
-	client            *mongo.Client
-	eventsCollection  *mongo.Collection
-	invitesCollection *mongo.Collection
+	client                 *mongo.Client
+	eventsCollection       *mongo.Collection
+	invitesCollection      *mongo.Collection
+	participantsCollection *mongo.Collection
 }
 
 func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
@@ -33,6 +34,7 @@ func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
 	db := client.Database(cfg.DatabaseName)
 	eventsCollection := db.Collection("events")
 	inviteCollection := db.Collection("invites")
+	participantsCollection := db.Collection("participants")
 
 	// Create text index on the 'name' field
 	indexModel := mongo.IndexModel{
@@ -49,9 +51,10 @@ func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
 	}
 
 	return &Storage{
-		client:            client,
-		eventsCollection:  eventsCollection,
-		invitesCollection: inviteCollection,
+		client:                 client,
+		eventsCollection:       eventsCollection,
+		invitesCollection:      inviteCollection,
+		participantsCollection: participantsCollection,
 	}, nil
 }
 

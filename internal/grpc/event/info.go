@@ -59,3 +59,13 @@ func (s serverApi) ListEvents(ctx context.Context, req *eventv1.ListEventsReques
 		Metadata: pagination.ToProto(),
 	}, nil
 }
+
+func (s serverApi) ListParticipatedEvents(ctx context.Context, request *eventv1.ListParticipatedEventsRequest) (*eventv1.ListEventsResponse, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s serverApi) ListParticipants(ctx context.Context, request *eventv1.ListParticipantsRequest) (*eventv1.ListParticipantsResponse, error) {
+	//TODO implement me
+	panic("implement me")
+}

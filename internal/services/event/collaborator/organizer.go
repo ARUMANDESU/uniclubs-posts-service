@@ -290,7 +290,20 @@ func (s Service) RevokeInviteOrganizer(ctx context.Context, inviteId string, use
 		}
 	}
 
-	if invite.IsByWho(userId) {
+	event, err := s.eventStorage.GetEvent(ctx, invite.EventId)
+	if err != nil {
+		switch {
+		case errors.Is(err, storage.ErrEventNotFound):
+			return eventservice.ErrEventNotFound
+		case errors.Is(err, storage.ErrInvalidID):
+			return eventservice.ErrInvalidID
+		default:
+			log.Error("failed to get event", logger.Err(err))
+			return err
+		}
+	}
+
+	if !(invite.IsByWho(userId) || event.IsOwner(userId)) {
 		return eventservice.ErrPermissionsDenied
 	}
 

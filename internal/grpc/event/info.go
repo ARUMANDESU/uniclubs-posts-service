@@ -5,6 +5,7 @@ import (
 	"errors"
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
+	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/validate"
 	"google.golang.org/grpc/codes"
@@ -12,7 +13,7 @@ import (
 )
 
 type InfoService interface {
-	GetEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error)
+	GetEvent(ctx context.Context, eventId string, userId int64) (*dtos.GetEvent, error)
 	ListEvents(ctx context.Context, filters domain.Filters) ([]domain.Event, *domain.PaginationMetadata, error)
 }
 
@@ -22,7 +23,7 @@ func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	event, err := s.info.GetEvent(ctx, req.GetEventId(), req.GetUserId())
+	dto, err := s.info.GetEvent(ctx, req.GetEventId(), req.GetUserId())
 	if err != nil {
 		switch {
 		case errors.Is(err, eventservice.ErrEventNotFound):
@@ -35,9 +36,9 @@ func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (
 	}
 
 	return &eventv1.GetEventResponse{
-		Event:             event.ToProto(),
-		UserStatus:        0,
-		ParticipantStatus: 0,
+		Event:             dto.Event.ToProto(),
+		UserStatus:        eventv1.UserStatus(dto.UserStatus),
+		ParticipantStatus: eventv1.ParticipantStatus(dto.ParticipantStatus),
 	}, nil
 }
 

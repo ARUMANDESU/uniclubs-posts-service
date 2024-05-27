@@ -5,6 +5,19 @@ import (
 	"time"
 )
 
+type UserStatus int32
+type ParticipantStatus int32
+
+const (
+	UserStatusUnknown   UserStatus = 0
+	UserStatusOrganizer UserStatus = 1
+	UserStatusOwner     UserStatus = 2
+
+	ParticipantStatusUnknown ParticipantStatus = 0
+	ParticipantStatusJoined  ParticipantStatus = 2
+	ParticipantStatusBanned  ParticipantStatus = 4
+)
+
 type User struct {
 	ID        int64  `json:"id"`
 	FirstName string `json:"first_name"`

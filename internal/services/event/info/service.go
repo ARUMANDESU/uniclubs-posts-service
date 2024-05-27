@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
+	"github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
@@ -11,8 +12,8 @@ import (
 )
 
 type Service struct {
-	log           *slog.Logger
-	eventProvider EventProvider
+	log *slog.Logger
+	Storage
 }
 
 type EventProvider interface {
@@ -20,35 +21,57 @@ type EventProvider interface {
 	ListEvents(ctx context.Context, filters domain.Filters) ([]domain.Event, *domain.PaginationMetadata, error)
 }
 
-func New(log *slog.Logger, eventProvider EventProvider) Service {
+type ParticipantProvider interface {
+	GetEventParticipant(ctx context.Context, eventId string, userId int64) (*domain.Participant, error)
+}
+
+type BanProvider interface {
+	GetBanRecord(ctx context.Context, eventId string, userId int64) (*domain.BanRecord, error)
+}
+
+type ClubProvider interface {
+	IsBanned(ctx context.Context, clubId int64, userId int64) (bool, error)
+}
+
+func New(log *slog.Logger, storage Storage) Service {
 	return Service{
-		log:           log,
-		eventProvider: eventProvider,
+		log:     log,
+		Storage: storage,
 	}
 }
 
-func (s Service) GetEvent(ctx context.Context, eventId string, userId int64) (*domain.Event, error) {
+func (s Service) GetEvent(ctx context.Context, eventId string, userId int64) (*dtos.GetEvent, error) {
 	const op = "services.event.management.getEvent"
 	log := s.log.With(slog.String("op", op))
 
+	participantStatus := domain.ParticipantStatusUnknown
+	userStatus := domain.UserStatusUnknown
+
 	event, err := s.eventProvider.GetEvent(ctx, eventId)
 	if err != nil {
-		switch {
-		case errors.Is(err, storage.ErrEventNotFound):
-			return nil, eventservice.ErrEventNotFound
-		case errors.Is(err, storage.ErrInvalidID):
-			return nil, eventservice.ErrInvalidID
-		default:
-			log.Error("failed to get event", logger.Err(err))
-			return nil, err
-		}
+		return nil, s.handleError("failed to get event", log, err)
 	}
 
 	if !event.IsOrganizer(userId) && event.Status == domain.EventStatusDraft {
 		return nil, eventservice.ErrEventNotFound
 	}
+	if event.IsOrganizer(userId) {
+		userStatus = domain.UserStatusOrganizer
+	}
+	if event.IsOwner(userId) {
+		userStatus = domain.UserStatusOwner
+	}
 
-	return event, nil
+	participantStatus, err = s.getParticipantStatus(ctx, event, userId)
+	if err != nil {
+		return nil, s.handleError("failed to get ban status", log, err)
+	}
+
+	return &dtos.GetEvent{
+		Event:             *event,
+		UserStatus:        userStatus,
+		ParticipantStatus: participantStatus,
+	}, nil
 }
 
 func (s Service) ListEvents(ctx context.Context, filters domain.Filters) ([]domain.Event, *domain.PaginationMetadata, error) {
@@ -67,4 +90,74 @@ func (s Service) ListEvents(ctx context.Context, filters domain.Filters) ([]doma
 	}
 
 	return events, pagination, nil
+}
+
+// handleError handles common errors
+func (s Service) handleError(msg string, log *slog.Logger, err error) error {
+	switch {
+	case errors.Is(err, storage.ErrEventNotFound):
+		return eventservice.ErrEventNotFound
+	case errors.Is(err, storage.ErrInvalidID):
+		return eventservice.ErrInvalidID
+	case errors.Is(err, storage.ErrParticipantNotFound):
+		return eventservice.ErrParticipantNotFound
+	case errors.Is(err, storage.ErrBanRecordNotFound):
+		return eventservice.ErrBanRecordNotFound
+	default:
+		log.Error(msg, logger.Err(err))
+		return err
+	}
+}
+
+func (s Service) getParticipantStatus(ctx context.Context, event *domain.Event, userId int64) (domain.ParticipantStatus, error) {
+	const op = "services.event.management.getUserBanStatus"
+	log := s.log.With(slog.String("op", op))
+
+	participant, err := s.participantProvider.GetEventParticipant(ctx, event.ID, userId)
+	if err != nil && !errors.Is(err, storage.ErrParticipantNotFound) {
+		return domain.ParticipantStatusUnknown, s.handleError("failed to get participant", log, err)
+	}
+
+	if participant != nil {
+		return domain.ParticipantStatusJoined, nil
+	}
+
+	banRecord, err := s.banProvider.GetBanRecord(ctx, event.ID, userId)
+	if err != nil && !errors.Is(err, storage.ErrBanRecordNotFound) {
+		return domain.ParticipantStatusUnknown, s.handleError("failed to get ban record", log, err)
+	}
+	if banRecord != nil {
+		return domain.ParticipantStatusBanned, nil
+	}
+
+	banned, err := s.clubProvider.IsBanned(ctx, event.ClubId, userId)
+	if err != nil && !errors.Is(err, storage.ErrBanRecordNotFound) {
+		return domain.ParticipantStatusUnknown, err
+	}
+	if banned {
+		return domain.ParticipantStatusBanned, nil
+	}
+
+	return domain.ParticipantStatusUnknown, nil
+}
+
+type Storage struct {
+	eventProvider       EventProvider
+	participantProvider ParticipantProvider
+	banProvider         BanProvider
+	clubProvider        ClubProvider
+}
+
+func NewStorage(
+	eventProvider EventProvider,
+	participantProvider ParticipantProvider,
+	banProvider BanProvider,
+	clubProvider ClubProvider,
+) Storage {
+	return Storage{
+		eventProvider:       eventProvider,
+		participantProvider: participantProvider,
+		banProvider:         banProvider,
+		clubProvider:        clubProvider,
+	}
 }

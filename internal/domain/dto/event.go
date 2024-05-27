@@ -27,6 +27,12 @@ type UpdateEvent struct {
 	Paths                 map[string]bool
 }
 
+type GetEvent struct {
+	Event             domain.Event             `json:"event"`
+	UserStatus        domain.UserStatus        `json:"user_status"`
+	ParticipantStatus domain.ParticipantStatus `json:"participant_status"`
+}
+
 type SendJoinRequestToUser struct {
 	EventId      string      `json:"event_id"`
 	UserId       int64       `json:"user_id"`

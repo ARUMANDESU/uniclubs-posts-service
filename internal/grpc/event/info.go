@@ -15,6 +15,8 @@ import (
 type InfoService interface {
 	GetEvent(ctx context.Context, eventId string, userId int64) (*dtos.GetEvent, error)
 	ListEvents(ctx context.Context, filters domain.Filters) ([]domain.Event, *domain.PaginationMetadata, error)
+	GetUserInvites(ctx context.Context, dto *dtos.GetInvites) ([]domain.UserInvite, error)
+	GetClubInvites(ctx context.Context, dto *dtos.GetInvites) ([]domain.Invite, error)
 }
 
 func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (*eventv1.GetEventResponse, error) {
@@ -73,4 +75,48 @@ func (s serverApi) ListParticipatedEvents(ctx context.Context, request *eventv1.
 func (s serverApi) ListParticipants(ctx context.Context, request *eventv1.ListParticipantsRequest) (*eventv1.ListParticipantsResponse, error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (s serverApi) GetClubInvites(ctx context.Context, req *eventv1.GetInvitesRequest) (*eventv1.GetClubInvitesResponse, error) {
+	err := validate.GetInvitesRequest(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	dto := dtos.ProtoToGetInvites(req)
+	invites, err := s.info.GetClubInvites(ctx, dto)
+	if err != nil {
+		switch {
+		case errors.Is(err, eventservice.ErrInviteNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
+		}
+	}
+
+	return &eventv1.GetClubInvitesResponse{
+		Invites: domain.ClubInvitesToProto(invites),
+	}, nil
+}
+
+func (s serverApi) GetOrganizerInvites(ctx context.Context, req *eventv1.GetInvitesRequest) (*eventv1.GetOrganizerInvitesResponse, error) {
+	err := validate.GetInvitesRequest(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	dto := dtos.ProtoToGetInvites(req)
+	invites, err := s.info.GetUserInvites(ctx, dto)
+	if err != nil {
+		switch {
+		case errors.Is(err, eventservice.ErrInviteNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
+		}
+	}
+
+	return &eventv1.GetOrganizerInvitesResponse{
+		Invites: domain.UserInvitesToProto(invites),
+	}, nil
 }

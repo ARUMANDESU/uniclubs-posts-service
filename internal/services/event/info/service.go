@@ -33,6 +33,11 @@ type ClubProvider interface {
 	IsBanned(ctx context.Context, userId int64, clubId int64) (bool, error)
 }
 
+type InviteProvider interface {
+	GetUserInvites(ctx context.Context, dto *dtos.GetInvites) ([]domain.UserInvite, error)
+	GetClubInvites(ctx context.Context, dto *dtos.GetInvites) ([]domain.Invite, error)
+}
+
 func New(log *slog.Logger, storage Storage) Service {
 	return Service{
 		log:     log,
@@ -94,6 +99,31 @@ func (s Service) ListEvents(ctx context.Context, filters domain.Filters) ([]doma
 	return events, pagination, nil
 }
 
+func (s Service) GetUserInvites(ctx context.Context, dto *dtos.GetInvites) ([]domain.UserInvite, error) {
+	const op = "services.event.management.getUserInvites"
+	log := s.log.With(slog.String("op", op))
+
+	invites, err := s.inviteProvider.GetUserInvites(ctx, dto)
+	if err != nil {
+		return nil, s.handleError("failed to get user invites", log, err)
+	}
+
+	return invites, nil
+}
+
+func (s Service) GetClubInvites(ctx context.Context, dto *dtos.GetInvites) ([]domain.Invite, error) {
+	const op = "services.event.management.getClubInvites"
+	log := s.log.With(slog.String("op", op))
+
+	invites, err := s.inviteProvider.GetClubInvites(ctx, dto)
+	if err != nil {
+		return nil, s.handleError("failed to get club invites", log, err)
+	}
+
+	return invites, nil
+
+}
+
 // handleError handles common errors
 func (s Service) handleError(msg string, log *slog.Logger, err error) error {
 	switch {
@@ -105,6 +135,8 @@ func (s Service) handleError(msg string, log *slog.Logger, err error) error {
 		return eventservice.ErrParticipantNotFound
 	case errors.Is(err, storage.ErrBanRecordNotFound):
 		return eventservice.ErrBanRecordNotFound
+	case errors.Is(err, storage.ErrInviteNotFound):
+		return eventservice.ErrInviteNotFound
 	default:
 		log.Error(msg, logger.Err(err))
 		return err
@@ -148,6 +180,7 @@ type Storage struct {
 	participantProvider ParticipantProvider
 	banProvider         BanProvider
 	clubProvider        ClubProvider
+	inviteProvider      InviteProvider
 }
 
 func NewStorage(
@@ -155,11 +188,13 @@ func NewStorage(
 	participantProvider ParticipantProvider,
 	banProvider BanProvider,
 	clubProvider ClubProvider,
+	inviteProvider InviteProvider,
 ) Storage {
 	return Storage{
 		eventProvider:       eventProvider,
 		participantProvider: participantProvider,
 		banProvider:         banProvider,
 		clubProvider:        clubProvider,
+		inviteProvider:      inviteProvider,
 	}
 }

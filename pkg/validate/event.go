@@ -223,3 +223,14 @@ func BanParticipantRequest(value interface{}) error {
 		validation.Field(&req.Reason, validation.Required, validation.Length(0, MaxReasonLength)),
 	)
 }
+
+func GetInvitesRequest(value interface{}) error {
+	req, ok := value.(*eventv1.GetInvitesRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("get invites invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.UserId, validation.Min(0)),
+		validation.Field(&req.ClubId, validation.Min(0)),
+	)
+}

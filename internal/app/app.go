@@ -62,7 +62,7 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 	clubService := clubservice.New(log, mongoDB)
 	eventCollaboratorService := eventcollab.New(log, mongoDB, mongoDB, mongoDB, mongoDB)
 	participateService := eventparticipant.New(log, eventparticipant.NewStorage(mongoDB, userClient, clubClient, mongoDB, mongoDB))
-	eventInfoService := eventinfo.New(log, eventinfo.NewStorage(mongoDB, mongoDB, mongoDB, clubClient))
+	eventInfoService := eventinfo.New(log, eventinfo.NewStorage(mongoDB, mongoDB, mongoDB, clubClient, mongoDB))
 
 	services := eventgrpc.NewServices(
 		eventmanagement.New(log, mongoDB),

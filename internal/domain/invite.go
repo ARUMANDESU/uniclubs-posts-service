@@ -1,5 +1,7 @@
 package domain
 
+import eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
+
 type Invite struct {
 	ID      string `json:"id"`
 	EventId string `json:"event_id"`
@@ -20,4 +22,38 @@ func (u UserInvite) IsInvited(userId int64) bool {
 
 func (u UserInvite) IsByWho(userId int64) bool {
 	return u.ByWhoId == userId
+}
+
+func ClubInviteToProto(invite Invite) *eventv1.ClubInvite {
+	return &eventv1.ClubInvite{
+		Id:      invite.ID,
+		EventId: invite.EventId,
+		Club:    invite.Club.ToProto(),
+	}
+}
+
+func ClubInvitesToProto(invites []Invite) []*eventv1.ClubInvite {
+	convertedInvites := make([]*eventv1.ClubInvite, len(invites))
+	for i, invite := range invites {
+		convertedInvites[i] = ClubInviteToProto(invite)
+	}
+	return convertedInvites
+}
+
+func UserInviteToProto(invite UserInvite) *eventv1.OrganizerInvite {
+	return &eventv1.OrganizerInvite{
+		Id:      invite.ID,
+		EventId: invite.EventId,
+		ClubId:  invite.ClubId,
+		ByWhoId: invite.ByWhoId,
+		User:    invite.User.ToProto(),
+	}
+}
+
+func UserInvitesToProto(invites []UserInvite) []*eventv1.OrganizerInvite {
+	convertedInvites := make([]*eventv1.OrganizerInvite, len(invites))
+	for i, invite := range invites {
+		convertedInvites[i] = UserInviteToProto(invite)
+	}
+	return convertedInvites
 }

@@ -64,6 +64,20 @@ type DeleteEvent struct {
 	IsAdmin bool   `json:"is_admin"`
 }
 
+type GetInvites struct {
+	EventId string
+	UserId  int64
+	ClubId  int64
+}
+
+func ProtoToGetInvites(event *eventv1.GetInvitesRequest) *GetInvites {
+	return &GetInvites{
+		EventId: event.GetEventId(),
+		UserId:  event.GetUserId(),
+		ClubId:  event.GetClubId(),
+	}
+}
+
 func (u *UpdateEvent) HasUnchangeableFields() bool {
 	/*
 	* The fields that are allowed to be updated what ever event status is, except for the following statuses:

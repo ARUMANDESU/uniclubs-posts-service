@@ -71,7 +71,7 @@ func (s serverApi) RemoveCollaborator(ctx context.Context, req *eventv1.RemoveCo
 		case errors.Is(err, eventservice.ErrPermissionsDenied), errors.Is(err, eventservice.ErrClubIsEventOwner):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		case errors.Is(err, eventservice.ErrEventUpdateConflict):
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
+			return nil, status.Error(codes.Aborted, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal error")
 		}
@@ -102,7 +102,7 @@ func (s serverApi) HandleInviteClub(ctx context.Context, req *eventv1.HandleInvi
 		case errors.Is(err, eventservice.ErrPermissionsDenied):
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		case errors.Is(err, eventservice.ErrEventUpdateConflict):
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
+			return nil, status.Error(codes.Aborted, err.Error())
 		case errors.Is(err, eventservice.ErrUserAlreadyOrganizer):
 			return nil, status.Error(codes.AlreadyExists, err.Error())
 		default:

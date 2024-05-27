@@ -228,3 +228,79 @@ func (s *Storage) GetJoinRequestByClubId(ctx context.Context, eventId string, cl
 
 	return dao.ToDomainInvite(invite), nil
 }
+
+func (s *Storage) GetUserInvites(ctx context.Context, dto *dtos.GetInvites) ([]domain.UserInvite, error) {
+	const op = "storage.mongodb.getUserInvites"
+
+	filter := bson.M{}
+	if dto.EventId != "" {
+		eventObjectId, err := primitive.ObjectIDFromHex(dto.EventId)
+		if err != nil {
+			if errors.Is(err, primitive.ErrInvalidHex) {
+				return nil, fmt.Errorf("%s: %w", op, storage.ErrInvalidID)
+			}
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		filter["event_id"] = eventObjectId
+	}
+	if dto.UserId != 0 {
+		filter["user._id"] = dto.UserId
+	}
+	if dto.ClubId != 0 {
+		filter["club_id"] = dto.ClubId
+	}
+
+	find, err := s.invitesCollection.Find(ctx, filter)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("%s: %w", op, storage.ErrInviteNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var invites []dao.OrganizerInvite
+	err = find.All(ctx, &invites)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return dao.ToDomainUserInvites(invites), nil
+}
+
+func (s *Storage) GetClubInvites(ctx context.Context, dto *dtos.GetInvites) ([]domain.Invite, error) {
+	const op = "storage.mongodb.getClubInvites"
+
+	filter := bson.M{}
+	if dto.EventId != "" {
+		eventObjectId, err := primitive.ObjectIDFromHex(dto.EventId)
+		if err != nil {
+			if errors.Is(err, primitive.ErrInvalidHex) {
+				return nil, fmt.Errorf("%s: %w", op, storage.ErrInvalidID)
+			}
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		filter["event_id"] = eventObjectId
+	}
+	if dto.UserId != 0 {
+		filter["by_who_id"] = dto.UserId
+	}
+	if dto.ClubId != 0 {
+		filter["club._id"] = dto.ClubId
+	}
+
+	find, err := s.invitesCollection.Find(ctx, filter)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("%s: %w", op, storage.ErrInviteNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var invites []dao.ClubInvite
+	err = find.All(ctx, &invites)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return dao.ToDomainInvites(invites), nil
+}

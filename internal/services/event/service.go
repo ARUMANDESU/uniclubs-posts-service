@@ -29,4 +29,7 @@ var (
 	ErrEventIsFull             = errors.New("event is full")
 	ErrAlreadyParticipating    = errors.New("user is already participating in the event")
 	ErrParticipantNotFound     = errors.New("participant not found")
+	ErrBanRecordNotFound       = errors.New("ban record not found")
+	ErrUserAlreadyBanned       = errors.New("user is already banned")
+	ErrUserIsBanned            = errors.New("user is banned")
 )

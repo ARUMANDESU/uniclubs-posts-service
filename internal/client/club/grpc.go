@@ -54,6 +54,34 @@ func (c *Client) IsClubMember(ctx context.Context, userId, clubId int64) (bool, 
 
 }
 
+func (c *Client) IsBanned(ctx context.Context, userId, clubId int64) (bool, error) {
+	const op = "client.club.IsBanned"
+	log := c.log.With(slog.String("op", op))
+
+	res, err := c.ClubClient.GetJoinStatus(ctx, &clubv1.GetJoinStatusRequest{
+		ClubId: clubId,
+		UserId: userId,
+	})
+	if err != nil {
+		switch {
+		case codes.InvalidArgument == status.Code(err):
+			return false, ErrInvalidArg
+		case codes.NotFound == status.Code(err):
+			return false, ErrClubNotFound
+		default:
+			log.Error("internal", logger.Err(err))
+			return false, err
+		}
+	}
+
+	if res.GetStatus() == clubv1.JoinStatus_BANNED {
+		return true, nil
+	}
+
+	return false, nil
+
+}
+
 func New(
 	log *slog.Logger,
 	addr string,

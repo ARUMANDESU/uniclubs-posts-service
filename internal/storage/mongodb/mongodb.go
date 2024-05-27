@@ -15,6 +15,7 @@ type Storage struct {
 	eventsCollection       *mongo.Collection
 	invitesCollection      *mongo.Collection
 	participantsCollection *mongo.Collection
+	bansCollection         *mongo.Collection
 }
 
 func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
@@ -35,6 +36,7 @@ func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
 	eventsCollection := db.Collection("events")
 	inviteCollection := db.Collection("invites")
 	participantsCollection := db.Collection("participants")
+	bansCollection := db.Collection("bans")
 
 	// Create text index on the 'name' field
 	indexModel := mongo.IndexModel{
@@ -55,6 +57,7 @@ func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
 		eventsCollection:       eventsCollection,
 		invitesCollection:      inviteCollection,
 		participantsCollection: participantsCollection,
+		bansCollection:         bansCollection,
 	}, nil
 }
 

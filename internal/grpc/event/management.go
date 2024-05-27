@@ -164,7 +164,8 @@ func handleError(err error) error {
 	switch {
 	case errors.Is(err, eventservice.ErrEventNotFound),
 		errors.Is(err, eventservice.ErrClubNotExists),
-		errors.Is(err, eventservice.ErrParticipantNotFound):
+		errors.Is(err, eventservice.ErrParticipantNotFound),
+		errors.Is(err, eventservice.ErrBanRecordNotFound):
 		return status.Error(codes.NotFound, err.Error())
 	case errors.Is(err, eventservice.ErrInvalidID),
 		errors.Is(err, eventservice.ErrEventInvalidFields):
@@ -174,11 +175,14 @@ func handleError(err error) error {
 		errors.Is(err, eventservice.ErrUserIsNotEventOrganizer),
 		errors.Is(err, eventservice.ErrPermissionsDenied):
 		return status.Error(codes.PermissionDenied, err.Error())
+	case errors.Is(err, eventservice.ErrUserAlreadyBanned):
+		return status.Error(codes.AlreadyExists, err.Error())
 	case errors.Is(err, eventservice.ErrEventUpdateConflict):
 		return status.Error(codes.Aborted, err.Error())
 	case errors.Is(err, eventservice.ErrEventIsFull),
 		errors.Is(err, eventservice.ErrAlreadyParticipating),
-		errors.Is(err, eventservice.ErrInvalidEventStatus):
+		errors.Is(err, eventservice.ErrInvalidEventStatus),
+		errors.Is(err, eventservice.ErrUserIsBanned):
 		return status.Error(codes.FailedPrecondition, err.Error())
 	default:
 		return status.Error(codes.Internal, "internal error")

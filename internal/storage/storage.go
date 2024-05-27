@@ -12,4 +12,5 @@ var (
 	ErrInvalidID               = errors.New("the provided id is not a valid ObjectID")
 	ErrInviteNotFound          = errors.New("invite not found")
 	ErrParticipantNotFound     = errors.New("participant not found")
+	ErrBanRecordNotFound       = errors.New("ban record not found")
 )

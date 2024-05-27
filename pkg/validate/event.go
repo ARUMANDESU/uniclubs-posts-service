@@ -210,3 +210,16 @@ func KickParticipantRequest(value interface{}) error {
 		validation.Field(&req.ParticipantId, validation.Required, validation.Min(1)),
 	)
 }
+
+func BanParticipantRequest(value interface{}) error {
+	req, ok := value.(*eventv1.BanParticipantRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("ban participant invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.EventId, validation.Required),
+		validation.Field(&req.UserId, validation.Required, validation.Min(1), validation.NotIn(req.ParticipantId).Error("can't ban yourself")),
+		validation.Field(&req.ParticipantId, validation.Required, validation.Min(1)),
+		validation.Field(&req.Reason, validation.Required, validation.Length(0, MaxReasonLength)),
+	)
+}

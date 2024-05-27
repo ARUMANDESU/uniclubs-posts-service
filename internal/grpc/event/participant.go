@@ -60,6 +60,15 @@ func (s serverApi) KickParticipant(ctx context.Context, req *eventv1.KickPartici
 }
 
 func (s serverApi) BanParticipant(ctx context.Context, req *eventv1.BanParticipantRequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+	err := validate.BanParticipantRequest(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	_, err = s.participant.BanParticipant(ctx, dtos.ProtoToBanParticipant(req))
+	if err != nil {
+		return nil, handleError(err)
+	}
+
+	return nil, nil
 }

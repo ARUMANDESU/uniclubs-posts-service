@@ -30,12 +30,19 @@ type ParticipantStorage interface {
 	DeleteEventParticipant(ctx context.Context, eventId string, userId int64) error
 }
 
+type BanStorage interface {
+	GetBanRecord(ctx context.Context, eventId string, userId int64) (*domain.BanRecord, error)
+	BanParticipant(ctx context.Context, dto *dtos.BanParticipant) error
+	UnBanParticipant(ctx context.Context, eventId string, userId int64) error
+}
+
 type UserProvider interface {
 	GetUserById(ctx context.Context, id int64) (*domain.User, error)
 }
 
 type ClubProvider interface {
 	IsClubMember(ctx context.Context, userId, clubId int64) (bool, error)
+	IsBanned(ctx context.Context, userId, clubId int64) (bool, error)
 }
 
 func New(log *slog.Logger, storage Storage) Service {
@@ -60,6 +67,22 @@ func (s Service) ParticipateEvent(ctx context.Context, eventId string, userId in
 
 	if event.MaxParticipants != 0 && event.ParticipantsCount >= event.MaxParticipants {
 		return nil, fmt.Errorf("can't participate: %w", eventservice.ErrEventIsFull)
+	}
+
+	record, err := s.banStorage.GetBanRecord(ctx, eventId, userId)
+	if err != nil && !errors.Is(err, storage.ErrBanRecordNotFound) {
+		return nil, s.handleError("failed to get ban record", log, err)
+	}
+	if record != nil {
+		return nil, fmt.Errorf("can't participate: %w", eventservice.ErrUserIsBanned)
+	}
+
+	banned, err := s.clubProvider.IsBanned(ctx, userId, event.ClubId)
+	if err != nil && !errors.Is(err, storage.ErrBanRecordNotFound) {
+		return nil, s.handleError("failed to check if user is banned ", log, err)
+	}
+	if banned {
+		return nil, fmt.Errorf("can't participate: %w", eventservice.ErrUserIsBanned)
 	}
 
 	participant, err := s.participantStorage.GetEventParticipant(ctx, eventId, userId)
@@ -187,8 +210,72 @@ func (s Service) KickParticipant(ctx context.Context, dto *dtos.KickParticipant)
 }
 
 func (s Service) BanParticipant(ctx context.Context, dto *dtos.BanParticipant) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
+	const op = "service.event.participant.banParticipant"
+	log := s.log.With(slog.String("op", op))
+
+	event, err := s.eventStorage.GetEvent(ctx, dto.EventId)
+	if err != nil {
+		return nil, s.handleError("failed to get event", log, err)
+	}
+
+	if !event.IsOrganizer(dto.UserId) {
+		return nil, eventservice.ErrPermissionsDenied
+	}
+
+	if event.IsOrganizer(dto.ParticipantId) {
+		return nil, fmt.Errorf("%w: can't ban organizer from event", eventservice.ErrUserIsNotEventOrganizer)
+	}
+
+	if event.Status == domain.EventStatusFinished || event.Status == domain.EventStatusCanceled || event.Status == domain.EventStatusArchived {
+		return nil, fmt.Errorf("%w: can't ban participant from event, which status is %s", eventservice.ErrInvalidEventStatus, event.Status)
+	}
+
+	record, err := s.banStorage.GetBanRecord(ctx, dto.EventId, dto.ParticipantId)
+	if err != nil && !errors.Is(err, storage.ErrBanRecordNotFound) {
+		return nil, err
+	}
+	if record != nil {
+		return nil, eventservice.ErrUserAlreadyBanned
+	}
+
+	banned, err := s.clubProvider.IsBanned(ctx, dto.ParticipantId, event.ClubId)
+	if err != nil {
+		return nil, s.handleError("failed to check if user is banned ", log, err)
+	}
+	if banned {
+		return nil, eventservice.ErrUserAlreadyBanned
+	}
+
+	err = s.banStorage.BanParticipant(ctx, dto)
+	if err != nil {
+		return nil, fmt.Errorf("failed to ban participant: %w", err)
+	}
+
+	participant, err := s.participantStorage.GetEventParticipant(ctx, dto.EventId, dto.ParticipantId)
+	if err != nil && !errors.Is(err, storage.ErrParticipantNotFound) {
+		return nil, s.handleError("failed to get participant", log, err)
+	}
+	if participant == nil {
+		return event.ToProto(), nil
+	}
+
+	err = s.participantStorage.DeleteEventParticipant(ctx, dto.EventId, dto.ParticipantId)
+	if err != nil {
+		return nil, s.handleError("failed to delete participant", log, err)
+	}
+
+	if event.ParticipantsCount > 0 {
+		event.ParticipantsCount--
+	} else {
+		event.ParticipantsCount = 0
+	}
+
+	event, err = s.eventStorage.UpdateEvent(ctx, event)
+	if err != nil {
+		return nil, s.handleError("failed to update event", log, err)
+	}
+
+	return event.ToProto(), nil
 }
 
 func (s Service) IsMemberOfCollabClubs(ctx context.Context, event *domain.Event, userId int64) (bool, error) {
@@ -229,6 +316,8 @@ func (s Service) handleError(msg string, log *slog.Logger, err error) error {
 		return eventservice.ErrEventIsNotApproved
 	case errors.Is(err, storage.ErrParticipantNotFound):
 		return eventservice.ErrParticipantNotFound
+	case errors.Is(err, storage.ErrBanRecordNotFound):
+		return eventservice.ErrBanRecordNotFound
 	default:
 		log.Error(msg, logger.Err(err))
 		return err
@@ -240,13 +329,21 @@ type Storage struct {
 	userProvider       UserProvider
 	clubProvider       ClubProvider
 	participantStorage ParticipantStorage
+	banStorage         BanStorage
 }
 
-func NewStorage(eventStorage EventStorage, userProvider UserProvider, clubProvider ClubProvider, participantStorage ParticipantStorage) Storage {
+func NewStorage(
+	eventStorage EventStorage,
+	userProvider UserProvider,
+	clubProvider ClubProvider,
+	participantStorage ParticipantStorage,
+	banStorage BanStorage,
+) Storage {
 	return Storage{
 		eventStorage:       eventStorage,
 		userProvider:       userProvider,
 		clubProvider:       clubProvider,
 		participantStorage: participantStorage,
+		banStorage:         banStorage,
 	}
 }

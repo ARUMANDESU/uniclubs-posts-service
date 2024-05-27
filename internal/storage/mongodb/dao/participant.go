@@ -13,6 +13,14 @@ type Participant struct {
 	JoinedAt time.Time          `bson:"joined_at,omitempty"`
 }
 
+type BanRecord struct {
+	EventId  primitive.ObjectID `bson:"event_id"`
+	UserId   int64              `bson:"user_id"`
+	BannedAt time.Time          `bson:"banned_at,omitempty"`
+	Reason   string             `bson:"reason,omitempty"`
+	ByWhoId  int64              `bson:"by_who_id,omitempty"`
+}
+
 func ParticipantToDomain(participant Participant) *domain.Participant {
 	return &domain.Participant{
 		ID:       participant.Id.Hex(),
@@ -38,4 +46,14 @@ func ParticipantFromDomain(participant *domain.Participant) (*Participant, error
 		User:     UserFromDomainUser(participant.User),
 		JoinedAt: participant.JoinedAt,
 	}, nil
+}
+
+func BanRecordToDomain(banRecord BanRecord) *domain.BanRecord {
+	return &domain.BanRecord{
+		EventId:  banRecord.EventId.Hex(),
+		UserId:   banRecord.UserId,
+		BannedAt: banRecord.BannedAt,
+		Reason:   banRecord.Reason,
+		ByWhoId:  banRecord.ByWhoId,
+	}
 }

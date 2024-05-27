@@ -198,3 +198,15 @@ func RejectEventRequest(value interface{}) error {
 		validation.Field(&req.Reason, validation.Required, validation.Length(0, MaxReasonLength)),
 	)
 }
+
+func KickParticipantRequest(value interface{}) error {
+	req, ok := value.(*eventv1.KickParticipantRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("kick participant invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.EventId, validation.Required),
+		validation.Field(&req.UserId, validation.Required, validation.Min(1), validation.NotIn(req.ParticipantId).Error("can't kick yourself")),
+		validation.Field(&req.ParticipantId, validation.Required, validation.Min(1)),
+	)
+}

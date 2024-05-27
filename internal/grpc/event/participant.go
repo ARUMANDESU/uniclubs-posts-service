@@ -13,7 +13,7 @@ import (
 type ParticipantService interface {
 	ParticipateEvent(ctx context.Context, eventId string, userId int64) (*eventv1.EventObject, error)
 	CancelParticipation(ctx context.Context, eventId string, userId int64) (*eventv1.EventObject, error)
-	KickParticipant(ctx context.Context, dto *dtos.KickParticipant) (*eventv1.EventObject, error)
+	KickParticipant(ctx context.Context, dto *dtos.KickParticipant) error
 	BanParticipant(ctx context.Context, dto *dtos.BanParticipant) (*eventv1.EventObject, error)
 }
 
@@ -46,8 +46,17 @@ func (s serverApi) CancelParticipation(ctx context.Context, req *eventv1.EventAc
 }
 
 func (s serverApi) KickParticipant(ctx context.Context, req *eventv1.KickParticipantRequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+	err := validate.KickParticipantRequest(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	err = s.participant.KickParticipant(ctx, dtos.ProtoToKickParticipant(req))
+	if err != nil {
+		return nil, handleError(err)
+	}
+
+	return nil, nil
 }
 
 func (s serverApi) BanParticipant(ctx context.Context, req *eventv1.BanParticipantRequest) (*emptypb.Empty, error) {

@@ -12,7 +12,7 @@ var (
 	ErrInviteAlreadyExists     = errors.New("invite already exists")
 	ErrUserAlreadyOrganizer    = errors.New("user is already an organizer")
 	ErrClubAlreadyCollaborator = errors.New("club is already a collaborator")
-	ErrUserIsFromAnotherClub   = errors.New("user is from another club")
+	ErrUserIsFromAnotherClub   = errors.New("user is not member of the collaborator clubs")
 	ErrPermissionsDenied       = errors.New("permissions denied")
 	ErrUserIsEventOwner        = errors.New("user is event owner")
 	ErrClubIsEventOwner        = errors.New("club is event owner")

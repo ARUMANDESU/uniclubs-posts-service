@@ -74,7 +74,7 @@ func (s Service) ParticipateEvent(ctx context.Context, eventId string, userId in
 	if event.Type == domain.EventTypeIntraClub {
 		isMemberOfCollabClubs, err := s.IsMemberOfCollabClubs(ctx, event, userId)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("can't participate: %w, %w", err, eventservice.ErrUserIsFromAnotherClub)
 		}
 		if !isMemberOfCollabClubs {
 			return nil, fmt.Errorf("can't participate: %w", eventservice.ErrUserIsFromAnotherClub)
@@ -127,26 +127,63 @@ func (s Service) CancelParticipation(ctx context.Context, eventId string, userId
 		return nil, s.handleError("failed to delete participant", log, err)
 	}
 
-	log.Debug("event", slog.AnyValue(event))
 	if event.ParticipantsCount > 0 {
 		event.ParticipantsCount--
 	} else {
 		event.ParticipantsCount = 0
 	}
 
-	log.Debug("updating event", slog.AnyValue(event))
 	event, err = s.eventStorage.UpdateEvent(ctx, event)
 	if err != nil {
 		return nil, s.handleError("failed to update event", log, err)
 	}
 
-	log.Debug("updating event 2", slog.AnyValue(event))
 	return event.ToProto(), nil
 }
 
-func (s Service) KickParticipant(ctx context.Context, dto *dtos.KickParticipant) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
+func (s Service) KickParticipant(ctx context.Context, dto *dtos.KickParticipant) error {
+	const op = "service.event.participant.kickParticipant"
+	log := s.log.With(slog.String("op", op))
+
+	event, err := s.eventStorage.GetEvent(ctx, dto.EventId)
+	if err != nil {
+		return s.handleError("failed to get event", log, err)
+	}
+
+	if !event.IsOrganizer(dto.UserId) {
+		return eventservice.ErrPermissionsDenied
+	}
+
+	if event.IsOrganizer(dto.ParticipantId) {
+		return fmt.Errorf("%w: can't kick organizer from event", eventservice.ErrUserIsNotEventOrganizer)
+	}
+
+	if event.Status == domain.EventStatusFinished || event.Status == domain.EventStatusCanceled || event.Status == domain.EventStatusArchived {
+		return fmt.Errorf("%w: can't kick participant from event, which status is %s", eventservice.ErrInvalidEventStatus, event.Status)
+	}
+
+	_, err = s.participantStorage.GetEventParticipant(ctx, dto.EventId, dto.ParticipantId)
+	if err != nil {
+		return s.handleError("failed to get participant", log, err)
+	}
+
+	err = s.participantStorage.DeleteEventParticipant(ctx, dto.EventId, dto.ParticipantId)
+	if err != nil {
+		return s.handleError("failed to delete participant", log, err)
+	}
+
+	if event.ParticipantsCount > 0 {
+		event.ParticipantsCount--
+	} else {
+		event.ParticipantsCount = 0
+	}
+
+	event, err = s.eventStorage.UpdateEvent(ctx, event)
+	if err != nil {
+		return s.handleError("failed to update event", log, err)
+	}
+
+	return nil
 }
 
 func (s Service) BanParticipant(ctx context.Context, dto *dtos.BanParticipant) (*eventv1.EventObject, error) {

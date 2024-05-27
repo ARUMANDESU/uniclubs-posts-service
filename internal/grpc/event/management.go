@@ -166,9 +166,13 @@ func handleError(err error) error {
 		errors.Is(err, eventservice.ErrClubNotExists),
 		errors.Is(err, eventservice.ErrParticipantNotFound):
 		return status.Error(codes.NotFound, err.Error())
-	case errors.Is(err, eventservice.ErrInvalidID), errors.Is(err, eventservice.ErrEventInvalidFields):
+	case errors.Is(err, eventservice.ErrInvalidID),
+		errors.Is(err, eventservice.ErrEventInvalidFields):
 		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, eventservice.ErrUserIsNotEventOwner):
+	case errors.Is(err, eventservice.ErrUserIsNotEventOwner),
+		errors.Is(err, eventservice.ErrUserIsFromAnotherClub),
+		errors.Is(err, eventservice.ErrUserIsNotEventOrganizer),
+		errors.Is(err, eventservice.ErrPermissionsDenied):
 		return status.Error(codes.PermissionDenied, err.Error())
 	case errors.Is(err, eventservice.ErrEventUpdateConflict):
 		return status.Error(codes.Aborted, err.Error())

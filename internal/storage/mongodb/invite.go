@@ -47,6 +47,7 @@ func (s *Storage) GetUserJoinRequests(ctx context.Context, eventId string) ([]do
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+	defer find.Close(ctx)
 
 	var invites []dao.OrganizerInvite
 	err = find.All(ctx, &invites)
@@ -169,6 +170,8 @@ func (s *Storage) GetClubJoinRequests(ctx context.Context, eventId string) ([]do
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
+	defer find.Close(ctx)
+
 	var invites []dao.ClubInvite
 	err = find.All(ctx, &invites)
 	if err != nil {
@@ -250,6 +253,8 @@ func (s *Storage) GetUserInvites(ctx context.Context, dto *dtos.GetInvites) ([]d
 		filter["club_id"] = dto.ClubId
 	}
 
+	filter["user"] = bson.M{"$exists": true}
+
 	find, err := s.invitesCollection.Find(ctx, filter)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -257,6 +262,8 @@ func (s *Storage) GetUserInvites(ctx context.Context, dto *dtos.GetInvites) ([]d
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
+	defer find.Close(ctx)
 
 	var invites []dao.OrganizerInvite
 	err = find.All(ctx, &invites)
@@ -287,6 +294,7 @@ func (s *Storage) GetClubInvites(ctx context.Context, dto *dtos.GetInvites) ([]d
 	if dto.ClubId != 0 {
 		filter["club._id"] = dto.ClubId
 	}
+	filter["club"] = bson.M{"$exists": true}
 
 	find, err := s.invitesCollection.Find(ctx, filter)
 	if err != nil {
@@ -295,6 +303,8 @@ func (s *Storage) GetClubInvites(ctx context.Context, dto *dtos.GetInvites) ([]d
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+
+	defer find.Close(ctx)
 
 	var invites []dao.ClubInvite
 	err = find.All(ctx, &invites)

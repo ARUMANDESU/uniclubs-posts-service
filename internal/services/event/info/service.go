@@ -30,7 +30,7 @@ type BanProvider interface {
 }
 
 type ClubProvider interface {
-	IsBanned(ctx context.Context, clubId int64, userId int64) (bool, error)
+	IsBanned(ctx context.Context, userId int64, clubId int64) (bool, error)
 }
 
 func New(log *slog.Logger, storage Storage) Service {
@@ -62,9 +62,11 @@ func (s Service) GetEvent(ctx context.Context, eventId string, userId int64) (*d
 		userStatus = domain.UserStatusOwner
 	}
 
-	participantStatus, err = s.getParticipantStatus(ctx, event, userId)
-	if err != nil {
-		return nil, s.handleError("failed to get ban status", log, err)
+	if userId != 0 {
+		participantStatus, err = s.getParticipantStatus(ctx, event, userId)
+		if err != nil {
+			return nil, s.handleError("failed to get ban status", log, err)
+		}
 	}
 
 	return &dtos.GetEvent{

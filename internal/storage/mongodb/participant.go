@@ -49,3 +49,22 @@ func (s *Storage) AddEventParticipant(ctx context.Context, participant *domain.P
 
 	return nil
 }
+
+func (s *Storage) DeleteEventParticipant(ctx context.Context, eventId string, userId int64) error {
+	const op = "storage.mongodb.event.deleteEventParticipant"
+
+	objectID, err := primitive.ObjectIDFromHex(eventId)
+	if err != nil {
+		if errors.Is(err, primitive.ErrInvalidHex) {
+			return fmt.Errorf("%s: %w", op, storage.ErrInvalidID)
+		}
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = s.participantsCollection.DeleteOne(ctx, bson.M{"event_id": objectID, "user._id": userId})
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}

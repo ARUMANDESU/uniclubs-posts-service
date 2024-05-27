@@ -19,7 +19,7 @@ type Event struct {
 	Tags                  []string           `bson:"tags,omitempty"`
 	ParticipantIds        []int64            `bson:"participant_ids,omitempty"`
 	MaxParticipants       uint32             `bson:"max_participants,omitempty"`
-	ParticipantsCount     uint32             `bson:"participants_count,omitempty"`
+	ParticipantsCount     uint32             `bson:"participants_count,minsize"`
 	LocationLink          string             `bson:"location_link,omitempty"`
 	LocationUniversity    string             `bson:"location_university,omitempty"`
 	StartDate             time.Time          `bson:"start_date,omitempty"`

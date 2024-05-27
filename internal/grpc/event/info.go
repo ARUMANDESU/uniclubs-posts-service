@@ -16,7 +16,7 @@ type InfoService interface {
 	ListEvents(ctx context.Context, filters domain.Filters) ([]domain.Event, *domain.PaginationMetadata, error)
 }
 
-func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (*eventv1.EventObject, error) {
+func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (*eventv1.GetEventResponse, error) {
 	err := validate.GetEvent(req)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -34,7 +34,11 @@ func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (
 		}
 	}
 
-	return event.ToProto(), nil
+	return &eventv1.GetEventResponse{
+		Event:             event.ToProto(),
+		UserStatus:        0,
+		ParticipantStatus: 0,
+	}, nil
 }
 
 func (s serverApi) ListEvents(ctx context.Context, req *eventv1.ListEventsRequest) (*eventv1.ListEventsResponse, error) {

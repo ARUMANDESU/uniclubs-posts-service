@@ -162,13 +162,19 @@ func (s serverApi) RevokeReview(ctx context.Context, req *eventv1.EventActionReq
 
 func handleError(err error) error {
 	switch {
-	case errors.Is(err, eventservice.ErrEventNotFound):
+	case errors.Is(err, eventservice.ErrEventNotFound),
+		errors.Is(err, eventservice.ErrClubNotExists),
+		errors.Is(err, eventservice.ErrParticipantNotFound):
 		return status.Error(codes.NotFound, err.Error())
 	case errors.Is(err, eventservice.ErrInvalidID), errors.Is(err, eventservice.ErrEventInvalidFields):
 		return status.Error(codes.InvalidArgument, err.Error())
 	case errors.Is(err, eventservice.ErrUserIsNotEventOwner):
 		return status.Error(codes.PermissionDenied, err.Error())
-	case errors.Is(err, eventservice.ErrInvalidEventStatus), errors.Is(err, eventservice.ErrEventUpdateConflict):
+	case errors.Is(err, eventservice.ErrEventUpdateConflict):
+		return status.Error(codes.Aborted, err.Error())
+	case errors.Is(err, eventservice.ErrEventIsFull),
+		errors.Is(err, eventservice.ErrAlreadyParticipating),
+		errors.Is(err, eventservice.ErrInvalidEventStatus):
 		return status.Error(codes.FailedPrecondition, err.Error())
 	default:
 		return status.Error(codes.Internal, "internal error")

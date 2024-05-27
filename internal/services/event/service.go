@@ -28,4 +28,5 @@ var (
 	ErrUnknownStatus           = errors.New("unknown status")
 	ErrEventIsFull             = errors.New("event is full")
 	ErrAlreadyParticipating    = errors.New("user is already participating in the event")
+	ErrParticipantNotFound     = errors.New("participant not found")
 )

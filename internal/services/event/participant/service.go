@@ -27,6 +27,7 @@ type EventStorage interface {
 type ParticipantStorage interface {
 	GetEventParticipant(ctx context.Context, eventId string, userId int64) (*domain.Participant, error)
 	AddEventParticipant(ctx context.Context, participant *domain.Participant) error
+	DeleteEventParticipant(ctx context.Context, eventId string, userId int64) error
 }
 
 type UserProvider interface {
@@ -108,8 +109,39 @@ func (s Service) ParticipateEvent(ctx context.Context, eventId string, userId in
 }
 
 func (s Service) CancelParticipation(ctx context.Context, eventId string, userId int64) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
+	const op = "service.event.participant.cancelParticipation"
+	log := s.log.With(slog.String("op", op))
+
+	event, err := s.eventStorage.GetEvent(ctx, eventId)
+	if err != nil {
+		return nil, s.handleError("failed to get event", log, err)
+	}
+
+	_, err = s.participantStorage.GetEventParticipant(ctx, eventId, userId)
+	if err != nil {
+		return nil, s.handleError("failed to get participant", log, err)
+	}
+
+	err = s.participantStorage.DeleteEventParticipant(ctx, eventId, userId)
+	if err != nil {
+		return nil, s.handleError("failed to delete participant", log, err)
+	}
+
+	log.Debug("event", slog.AnyValue(event))
+	if event.ParticipantsCount > 0 {
+		event.ParticipantsCount--
+	} else {
+		event.ParticipantsCount = 0
+	}
+
+	log.Debug("updating event", slog.AnyValue(event))
+	event, err = s.eventStorage.UpdateEvent(ctx, event)
+	if err != nil {
+		return nil, s.handleError("failed to update event", log, err)
+	}
+
+	log.Debug("updating event 2", slog.AnyValue(event))
+	return event.ToProto(), nil
 }
 
 func (s Service) KickParticipant(ctx context.Context, dto *dtos.KickParticipant) (*eventv1.EventObject, error) {
@@ -158,6 +190,8 @@ func (s Service) handleError(msg string, log *slog.Logger, err error) error {
 		return eventservice.ErrInvalidID
 	case errors.Is(err, domain.ErrEventIsNotApproved):
 		return eventservice.ErrEventIsNotApproved
+	case errors.Is(err, storage.ErrParticipantNotFound):
+		return eventservice.ErrParticipantNotFound
 	default:
 		log.Error(msg, logger.Err(err))
 		return err

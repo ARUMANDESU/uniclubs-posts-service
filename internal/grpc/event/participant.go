@@ -7,6 +7,7 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/pkg/validate"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type ParticipantService interface {
@@ -16,31 +17,40 @@ type ParticipantService interface {
 	BanParticipant(ctx context.Context, dto *dtos.BanParticipant) (*eventv1.EventObject, error)
 }
 
-func (s serverApi) ParticipateEvent(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
+func (s serverApi) ParticipateEvent(ctx context.Context, req *eventv1.EventActionRequest) (*emptypb.Empty, error) {
 	err := validate.EventActionRequest(req)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	event, err := s.participant.ParticipateEvent(ctx, req.EventId, req.UserId)
+	_, err = s.participant.ParticipateEvent(ctx, req.EventId, req.UserId)
 	if err != nil {
 		return nil, handleError(err)
 	}
 
-	return event, nil
+	return nil, nil
 }
 
-func (s serverApi) CancelParticipation(ctx context.Context, req *eventv1.EventActionRequest) (*eventv1.EventObject, error) {
+func (s serverApi) CancelParticipation(ctx context.Context, req *eventv1.EventActionRequest) (*emptypb.Empty, error) {
+	err := validate.EventActionRequest(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	_, err = s.participant.CancelParticipation(ctx, req.EventId, req.UserId)
+	if err != nil {
+		return nil, handleError(err)
+	}
+
+	return nil, nil
+}
+
+func (s serverApi) KickParticipant(ctx context.Context, req *eventv1.KickParticipantRequest) (*emptypb.Empty, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s serverApi) KickParticipant(ctx context.Context, req *eventv1.KickParticipantRequest) (*eventv1.EventObject, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s serverApi) BanParticipant(ctx context.Context, req *eventv1.BanParticipantRequest) (*eventv1.EventObject, error) {
+func (s serverApi) BanParticipant(ctx context.Context, req *eventv1.BanParticipantRequest) (*emptypb.Empty, error) {
 	//TODO implement me
 	panic("implement me")
 }

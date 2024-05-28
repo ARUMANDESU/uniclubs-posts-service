@@ -164,13 +164,13 @@ func constructEventFilter(filters domain.Filters) bson.M {
 	}
 
 	if filters.ClubId != 0 {
-		filter["club_id"] = filters.ClubId
+		filter["collaborator_clubs._id"] = filters.ClubId
 	}
 
 	if filters.UserId != 0 {
 		filter["$or"] = []bson.M{
 			{"owner_id": filters.UserId},
-			{"organizers.id": filters.UserId},
+			{"organizers._id": filters.UserId},
 		}
 	}
 

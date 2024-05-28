@@ -271,7 +271,12 @@ func (s *Storage) GetUserInvites(ctx context.Context, dto *dtos.GetInvites) ([]d
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return dao.ToDomainUserInvites(invites), nil
+	domainInvites, err := s.toDomainInvites(invites)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return domainInvites, nil
 }
 
 func (s *Storage) GetClubInvites(ctx context.Context, dto *dtos.GetInvites) ([]domain.Invite, error) {
@@ -312,5 +317,36 @@ func (s *Storage) GetClubInvites(ctx context.Context, dto *dtos.GetInvites) ([]d
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return dao.ToDomainInvites(invites), nil
+	domainInvites, err := s.toDomainClubInvites(invites)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return domainInvites, nil
+}
+
+func (s *Storage) toDomainInvites(daoInvites []dao.OrganizerInvite) ([]domain.UserInvite, error) {
+	domainInvites := make([]domain.UserInvite, len(daoInvites))
+	for i, daoInvite := range daoInvites {
+		var event dao.Event
+		err := s.eventsCollection.FindOne(context.Background(), bson.M{"_id": daoInvite.EventId}).Decode(&event)
+		if err != nil {
+			return nil, err
+		}
+		domainInvites[i] = dao.ToDomainOrgInvite(daoInvite, event)
+	}
+	return domainInvites, nil
+}
+
+func (s *Storage) toDomainClubInvites(daoInvites []dao.ClubInvite) ([]domain.Invite, error) {
+	domainInvites := make([]domain.Invite, len(daoInvites))
+	for i, daoInvite := range daoInvites {
+		var event dao.Event
+		err := s.eventsCollection.FindOne(context.Background(), bson.M{"_id": daoInvite.EventId}).Decode(&event)
+		if err != nil {
+			return nil, err
+		}
+		domainInvites[i] = dao.ToDomainClubInvite(daoInvite, event)
+	}
+	return domainInvites, nil
 }

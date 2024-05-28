@@ -3,14 +3,14 @@ package domain
 import eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 
 type Invite struct {
-	ID      string `json:"id"`
-	EventId string `json:"event_id"`
-	Club    Club   `json:"club"`
+	ID    string `json:"id"`
+	Event Event  `json:"event"`
+	Club  Club   `json:"club"`
 }
 
 type UserInvite struct {
 	ID      string `json:"id"`
-	EventId string `json:"event_id"`
+	Event   Event  `json:"event"`
 	ClubId  int64  `json:"club_id"`
 	ByWhoId int64  `json:"by_who_id"`
 	User    User   `json:"user"`
@@ -26,9 +26,9 @@ func (u UserInvite) IsByWho(userId int64) bool {
 
 func ClubInviteToProto(invite Invite) *eventv1.ClubInvite {
 	return &eventv1.ClubInvite{
-		Id:      invite.ID,
-		EventId: invite.EventId,
-		Club:    invite.Club.ToProto(),
+		Id:    invite.ID,
+		Event: invite.Event.ToProto(),
+		Club:  invite.Club.ToProto(),
 	}
 }
 
@@ -43,7 +43,7 @@ func ClubInvitesToProto(invites []Invite) []*eventv1.ClubInvite {
 func UserInviteToProto(invite UserInvite) *eventv1.OrganizerInvite {
 	return &eventv1.OrganizerInvite{
 		Id:      invite.ID,
-		EventId: invite.EventId,
+		Event:   invite.Event.ToProto(),
 		ClubId:  invite.ClubId,
 		ByWhoId: invite.ByWhoId,
 		User:    invite.User.ToProto(),

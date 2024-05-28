@@ -103,7 +103,7 @@ func (s Service) AcceptUserJoinRequest(ctx context.Context, inviteId string, use
 		return domain.Event{}, eventservice.ErrPermissionsDenied
 	}
 
-	event, err := s.eventStorage.GetEvent(ctx, invite.EventId)
+	event, err := s.eventStorage.GetEvent(ctx, invite.Event.ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
@@ -290,7 +290,7 @@ func (s Service) RevokeInviteOrganizer(ctx context.Context, inviteId string, use
 		}
 	}
 
-	event, err := s.eventStorage.GetEvent(ctx, invite.EventId)
+	event, err := s.eventStorage.GetEvent(ctx, invite.Event.ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):

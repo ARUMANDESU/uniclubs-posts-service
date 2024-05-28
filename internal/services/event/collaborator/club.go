@@ -91,7 +91,7 @@ func (s Service) AcceptClubJoinRequest(ctx context.Context, dto *dtos.AcceptJoin
 		return domain.Event{}, fmt.Errorf("%w got %d", eventservice.ErrClubMismatch, dto.ClubId)
 	}
 
-	event, err := s.eventStorage.GetEvent(ctx, invite.EventId)
+	event, err := s.eventStorage.GetEvent(ctx, invite.Event.ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):
@@ -288,7 +288,7 @@ func (s Service) RevokeInviteClub(ctx context.Context, inviteId string, userId i
 		}
 	}
 
-	event, err := s.eventStorage.GetEvent(ctx, invite.EventId)
+	event, err := s.eventStorage.GetEvent(ctx, invite.Event.ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrEventNotFound):

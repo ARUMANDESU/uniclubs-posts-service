@@ -121,7 +121,6 @@ func (s Service) GetClubInvites(ctx context.Context, dto *dtos.GetInvites) ([]do
 	}
 
 	return invites, nil
-
 }
 
 // handleError handles common errors

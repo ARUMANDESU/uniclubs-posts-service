@@ -21,16 +21,20 @@ type OrganizerInvite struct {
 
 func ToDomainInvite(i ClubInvite) *domain.Invite {
 	return &domain.Invite{
-		ID:      i.ID.Hex(),
-		EventId: i.EventId.Hex(),
-		Club:    ToDomainClub(i.Club),
+		ID: i.ID.Hex(),
+		Event: domain.Event{
+			ID: i.EventId.Hex(),
+		},
+		Club: ToDomainClub(i.Club),
 	}
 }
 
 func ToDomainUserInvite(u OrganizerInvite) *domain.UserInvite {
 	return &domain.UserInvite{
-		ID:      u.ID.Hex(),
-		EventId: u.EventId.Hex(),
+		ID: u.ID.Hex(),
+		Event: domain.Event{
+			ID: u.EventId.Hex(),
+		},
 		ClubId:  u.ClubId,
 		ByWhoId: u.ByWhoId,
 		User:    ToDomainUser(u.User),
@@ -51,4 +55,22 @@ func ToDomainUserInvites(userInvites []OrganizerInvite) []domain.UserInvite {
 		domainUserInvites[i] = *ToDomainUserInvite(userInvite)
 	}
 	return domainUserInvites
+}
+
+func ToDomainClubInvite(i ClubInvite, event Event) domain.Invite {
+	return domain.Invite{
+		ID:    i.ID.Hex(),
+		Event: *ToDomainEvent(event),
+		Club:  ToDomainClub(i.Club),
+	}
+}
+
+func ToDomainOrgInvite(u OrganizerInvite, event Event) domain.UserInvite {
+	return domain.UserInvite{
+		ID:      u.ID.Hex(),
+		Event:   *ToDomainEvent(event),
+		ClubId:  u.ClubId,
+		ByWhoId: u.ByWhoId,
+		User:    ToDomainUser(u.User),
+	}
 }

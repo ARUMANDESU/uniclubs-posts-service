@@ -30,6 +30,15 @@ func ParticipantToDomain(participant Participant) *domain.Participant {
 	}
 }
 
+func ParticipantsToDomain(participants []Participant) []domain.Participant {
+	var result []domain.Participant
+	for _, participant := range participants {
+		result = append(result, *ParticipantToDomain(participant))
+	}
+	return result
+
+}
+
 func ParticipantFromDomain(participant *domain.Participant) (*Participant, error) {
 	eventId, err := primitive.ObjectIDFromHex(participant.EventId)
 	if err != nil {

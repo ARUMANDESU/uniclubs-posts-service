@@ -39,15 +39,27 @@ func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
 	bansCollection := db.Collection("bans")
 
 	// Create text index on the 'name' field
-	indexModel := mongo.IndexModel{
+	eventIndex := mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "title", Value: "text"},
 			{Key: "description", Value: "text"},
 			{Key: "tags", Value: "text"},
 		},
 	}
+	_, err = eventsCollection.Indexes().CreateOne(ctx, eventIndex)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
 
-	_, err = eventsCollection.Indexes().CreateOne(ctx, indexModel)
+	participantsIndex := mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "event_id", Value: 1},
+			{Key: "user._id", Value: 1},
+			{Key: "user.first_name", Value: "text"},
+			{Key: "user.last_name", Value: "text"},
+		},
+	}
+	_, err = participantsCollection.Indexes().CreateOne(ctx, participantsIndex)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

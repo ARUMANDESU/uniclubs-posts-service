@@ -43,7 +43,15 @@ func (s *Storage) CreateJoinRequestToUser(ctx context.Context, dto *dtos.SendJoi
 func (s *Storage) GetUserJoinRequests(ctx context.Context, eventId string) ([]domain.UserInvite, error) {
 	const op = "storage.mongodb.getJoinRequests"
 
-	find, err := s.invitesCollection.Find(ctx, bson.D{{"event_id", eventId}})
+	eventObjectId, err := primitive.ObjectIDFromHex(eventId)
+	if err != nil {
+		if errors.Is(err, primitive.ErrInvalidHex) {
+			return nil, fmt.Errorf("%s: %w", op, storage.ErrInvalidID)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	find, err := s.invitesCollection.Find(ctx, bson.D{{"event_id", eventObjectId}})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

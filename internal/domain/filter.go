@@ -25,12 +25,16 @@ func (s SortBy) String() string {
 	return string(s)
 }
 
-type Filters struct {
-	Page                  int32
-	PageSize              int32
-	Query                 string
-	SortBy                SortBy
-	SortOrder             SortOrder
+type BaseFilter struct {
+	Page      int32
+	PageSize  int32
+	Query     string
+	SortBy    SortBy
+	SortOrder SortOrder
+}
+
+type EventsFilter struct {
+	BaseFilter
 	ClubId                int64
 	UserId                int64
 	Tags                  []string
@@ -41,18 +45,18 @@ type Filters struct {
 	Paths                 []string
 }
 
-func (f Filters) Limit() int32 {
+func (f BaseFilter) Limit() int32 {
 	return f.PageSize
 }
-func (f Filters) Offset() int32 {
+func (f BaseFilter) Offset() int32 {
 	return (f.Page - 1) * f.PageSize
 }
 
-func (f Filters) Sort() string {
+func (f BaseFilter) Sort() string {
 	return f.SortBy.String()
 }
 
-func ProtoToFilers(req *eventv1.ListEventsRequest) Filters {
+func ProtoToFilers(req *eventv1.ListEventsRequest) EventsFilter {
 	fromDate, _ := time.Parse(TimeLayout, req.GetFilter().GetFromDate())
 	tillDate, _ := time.Parse(TimeLayout, req.GetFilter().GetTillDate())
 
@@ -64,12 +68,14 @@ func ProtoToFilers(req *eventv1.ListEventsRequest) Filters {
 	}
 	filter := req.GetFilter()
 
-	return Filters{
-		Page:                  req.GetPageNumber(),
-		PageSize:              req.GetPageSize(),
-		Query:                 req.GetQuery(),
-		SortBy:                SortBy(req.GetSortBy()),
-		SortOrder:             sortOrder,
+	return EventsFilter{
+		BaseFilter: BaseFilter{
+			Page:      req.GetPageNumber(),
+			PageSize:  req.GetPageSize(),
+			Query:     req.GetQuery(),
+			SortBy:    SortBy(req.GetSortBy()),
+			SortOrder: sortOrder,
+		},
 		ClubId:                filter.GetClubId(),
 		UserId:                filter.GetUserId(),
 		Tags:                  filter.GetTags(),

@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
 
@@ -138,4 +139,49 @@ func (s *Storage) GetBanRecord(ctx context.Context, eventId string, userId int64
 	}
 
 	return dao.BanRecordToDomain(banRecord), nil
+}
+
+func (s *Storage) ListParticipants(ctx context.Context, dto *dtos.ListParticipants) ([]domain.Participant, *domain.PaginationMetadata, error) {
+	const op = "storage.mongodb.event.listParticipants"
+
+	objectID, err := primitive.ObjectIDFromHex(dto.EventId)
+	if err != nil {
+		if errors.Is(err, primitive.ErrInvalidHex) {
+			return nil, nil, fmt.Errorf("%s: %w", op, storage.ErrInvalidID)
+		}
+		return nil, nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	filter := bson.M{"event_id": objectID}
+	if dto.Filter.Query != "" {
+		filter["user.first_name"] = primitive.Regex{Pattern: dto.Filter.Query, Options: "i"}
+	}
+
+	totalRecords, err := s.participantsCollection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if totalRecords == 0 {
+		return nil, &domain.PaginationMetadata{}, nil
+	}
+
+	opts := options.Find()
+	opts.SetSort(constructEventSortBy(dto.Filter))
+	opts.SetSkip(int64(dto.Filter.Offset()))
+	opts.SetLimit(int64(dto.Filter.Limit()))
+
+	cursor, err := s.participantsCollection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, nil, handleError(op, err)
+	}
+	defer cursor.Close(ctx)
+
+	var participants []dao.Participant
+	if err = cursor.All(ctx, &participants); err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	paginationMetadata := domain.CalculatePaginationMetadata(int32(totalRecords), dto.Filter.Page, dto.Filter.PageSize)
+
+	return dao.ParticipantsToDomain(participants), &paginationMetadata, nil
 }

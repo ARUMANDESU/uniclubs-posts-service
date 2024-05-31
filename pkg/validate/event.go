@@ -234,3 +234,20 @@ func GetInvitesRequest(value interface{}) error {
 		validation.Field(&req.ClubId, validation.Min(0)),
 	)
 }
+
+func ListParticipants(value interface{}) error {
+	req, ok := value.(*eventv1.ListParticipantsRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("list participants invalid type"))
+	}
+
+	validSortBy := []any{domain.SortByDate.String(), domain.SortByParticipants.String(), domain.SortByType.String()}
+
+	return validation.ValidateStruct(req,
+		validation.Field(&req.EventId, validation.Required),
+		validation.Field(&req.PageNumber, validation.Min(0)),
+		validation.Field(&req.PageSize, validation.Min(0)),
+		validation.Field(&req.SortBy, validation.In(validSortBy...)),
+		validation.Field(&req.SortOrder, validation.In(domain.SortOrderAsc.String(), domain.SortOrderDesc.String())),
+	)
+}

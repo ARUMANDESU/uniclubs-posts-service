@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// лень преписывать, сами разберетесь
+
 func TestCalculateMetadata(t *testing.T) {
 	tests := []struct {
 		totalRecords   int32
@@ -57,25 +59,25 @@ func TestCalculateMetadata(t *testing.T) {
 
 func TestFilters_Limit(t *testing.T) {
 	tests := []struct {
-		filters       Filters
+		filters       EventsFilter
 		expectedLimit int32
 	}{
 		{
-			filters: Filters{
+			filters: EventsFilter{
 				Page:     1,
 				PageSize: 10,
 			},
 			expectedLimit: 10,
 		},
 		{
-			filters: Filters{
+			filters: EventsFilter{
 				Page:     1,
 				PageSize: 1,
 			},
 			expectedLimit: 1,
 		},
 		{
-			filters: Filters{
+			filters: EventsFilter{
 				Page:     1,
 				PageSize: -1,
 			},
@@ -95,25 +97,25 @@ func TestFilters_Limit(t *testing.T) {
 
 func TestFilters_Offset(t *testing.T) {
 	tests := []struct {
-		filters        Filters
+		filters        EventsFilter
 		expectedOffset int32
 	}{
 		{
-			filters: Filters{
+			filters: EventsFilter{
 				Page:     1,
 				PageSize: 10,
 			},
 			expectedOffset: 0,
 		},
 		{
-			filters: Filters{
+			filters: EventsFilter{
 				Page:     2,
 				PageSize: 20,
 			},
 			expectedOffset: 20,
 		},
 		{
-			filters: Filters{
+			filters: EventsFilter{
 				Page:     5,
 				PageSize: 30,
 			},
@@ -151,7 +153,7 @@ func TestProtoToFilers_ValidRequest(t *testing.T) {
 
 	fromDate, _ := time.Parse(TimeLayout, req.GetFilter().GetFromDate())
 	tillDate, _ := time.Parse(TimeLayout, req.GetFilter().GetTillDate())
-	expectedFilters := Filters{
+	expectedFilters := EventsFilter{
 		Page:      req.GetPageNumber(),
 		PageSize:  req.GetPageSize(),
 		Query:     req.GetQuery(),

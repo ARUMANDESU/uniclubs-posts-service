@@ -89,3 +89,11 @@ func OrganizersToProto(organizers []Organizer) []*eventv1.OrganizerObject {
 	}
 	return convertedOrganizers
 }
+
+func ParticipantsToProto(participants []Participant) []*eventv1.UserObject { // todo: change later to ParticipantObject
+	convertedParticipants := make([]*eventv1.UserObject, len(participants))
+	for i, participant := range participants {
+		convertedParticipants[i] = participant.ToProto()
+	}
+	return convertedParticipants
+}

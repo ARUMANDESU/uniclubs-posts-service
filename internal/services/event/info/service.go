@@ -18,11 +18,12 @@ type Service struct {
 
 type EventProvider interface {
 	GetEvent(ctx context.Context, eventId string) (*domain.Event, error)
-	ListEvents(ctx context.Context, filters domain.Filters) ([]domain.Event, *domain.PaginationMetadata, error)
+	ListEvents(ctx context.Context, filters domain.EventsFilter) ([]domain.Event, *domain.PaginationMetadata, error)
 }
 
 type ParticipantProvider interface {
 	GetEventParticipant(ctx context.Context, eventId string, userId int64) (*domain.Participant, error)
+	ListParticipants(ctx context.Context, dto *dtos.ListParticipants) ([]domain.Participant, *domain.PaginationMetadata, error)
 }
 
 type BanProvider interface {
@@ -81,7 +82,7 @@ func (s Service) GetEvent(ctx context.Context, eventId string, userId int64) (*d
 	}, nil
 }
 
-func (s Service) ListEvents(ctx context.Context, filters domain.Filters) ([]domain.Event, *domain.PaginationMetadata, error) {
+func (s Service) ListEvents(ctx context.Context, filters domain.EventsFilter) ([]domain.Event, *domain.PaginationMetadata, error) {
 	const op = "services.event.management.listEvents"
 	log := s.log.With(slog.String("op", op))
 
@@ -121,6 +122,18 @@ func (s Service) GetClubInvites(ctx context.Context, dto *dtos.GetInvites) ([]do
 	}
 
 	return invites, nil
+}
+
+func (s Service) ListParticipants(ctx context.Context, dto *dtos.ListParticipants) ([]domain.Participant, *domain.PaginationMetadata, error) {
+	const op = "services.event.management.listParticipants"
+	log := s.log.With(slog.String("op", op))
+
+	participants, metadata, err := s.participantProvider.ListParticipants(ctx, dto)
+	if err != nil {
+		return nil, nil, s.handleError("failed to list participants", log, err)
+	}
+
+	return participants, metadata, nil
 }
 
 // handleError handles common errors

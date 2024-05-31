@@ -11,7 +11,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
 	"time"
 )
 
@@ -113,12 +112,10 @@ func (s *Storage) DeleteEventById(ctx context.Context, eventId string) error {
 	return nil
 }
 
-func (s *Storage) ListEvents(ctx context.Context, filters domain.Filters) ([]domain.Event, *domain.PaginationMetadata, error) {
+func (s *Storage) ListEvents(ctx context.Context, filters domain.EventsFilter) ([]domain.Event, *domain.PaginationMetadata, error) {
 	const op = "storage.mongodb.event.listEvents"
 
 	filter := constructEventFilter(filters)
-
-	log.Println("Filter: ", filter)
 
 	totalRecords, err := s.eventsCollection.CountDocuments(ctx, filter)
 	if err != nil {
@@ -128,9 +125,8 @@ func (s *Storage) ListEvents(ctx context.Context, filters domain.Filters) ([]dom
 		return nil, nil, fmt.Errorf("%s: %w", op, storage.ErrEventNotFound)
 	}
 
-	log.Println("totalRecords: ", totalRecords)
 	opts := options.Find()
-	opts.SetSort(constructEventSortBy(filters))
+	opts.SetSort(constructEventSortBy(filters.BaseFilter))
 	opts.SetSkip(int64(filters.Offset()))
 	opts.SetLimit(int64(filters.Limit()))
 
@@ -138,6 +134,7 @@ func (s *Storage) ListEvents(ctx context.Context, filters domain.Filters) ([]dom
 	if err != nil {
 		return nil, nil, handleError(op, err)
 	}
+	defer cursor.Close(ctx)
 
 	var events []dao.Event
 	if err = cursor.All(ctx, &events); err != nil {
@@ -156,7 +153,7 @@ func handleError(op string, err error) error {
 	return fmt.Errorf("%s: %w", op, err)
 }
 
-func constructEventFilter(filters domain.Filters) bson.M {
+func constructEventFilter(filters domain.EventsFilter) bson.M {
 	filter := bson.M{}
 
 	if filters.Query != "" {
@@ -203,7 +200,7 @@ func constructEventFilter(filters domain.Filters) bson.M {
 	return filter
 }
 
-func constructEventSortBy(filter domain.Filters) bson.M {
+func constructEventSortBy(filter domain.BaseFilter) bson.M {
 	sortBy := bson.M{}
 
 	switch filter.SortBy {

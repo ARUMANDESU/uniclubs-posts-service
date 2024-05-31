@@ -2,6 +2,7 @@ package validate
 
 import (
 	"errors"
+	"fmt"
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -138,7 +139,7 @@ func PublishEvent(value interface{}) error {
 		),
 		validation.Field(&req.Title,
 			validation.Required.Error("event title is required"),
-			validation.Length(3, MaxTitleLength).Error("event title must be between 3 and 500 characters"),
+			validation.Length(3, MaxTitleLength).Error(fmt.Sprintf("event title must be between %d and %d characters", 3, MaxTitleLength)),
 		),
 		validation.Field(&req.Type,
 			validation.Required.Error("event type is required"),
@@ -163,6 +164,7 @@ func SendToReview(value interface{}) error {
 			validation.Required.Error("event title is required"),
 			validation.Length(3, MaxTitleLength).Error("event title must be between 3 and 500 characters"),
 		),
+		validation.Field(&req.Description, validation.Required.Error("event description is required")),
 		validation.Field(&req.Type,
 			validation.Required.Error("event type is required"),
 			validation.In(domain.EventTypeUniversity, domain.EventTypeIntraClub),

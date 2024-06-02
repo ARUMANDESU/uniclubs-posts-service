@@ -72,3 +72,8 @@ func (s serverApi) BanParticipant(ctx context.Context, req *eventv1.BanParticipa
 
 	return nil, nil
 }
+
+func (s serverApi) UnbanParticipant(ctx context.Context, request *eventv1.UnbanParticipantRequest) (*emptypb.Empty, error) {
+	//TODO implement me
+	panic("implement me")
+}

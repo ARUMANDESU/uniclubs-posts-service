@@ -18,6 +18,7 @@ type InfoService interface {
 	GetUserInvites(ctx context.Context, dto *dtos.GetInvites) ([]domain.UserInvite, error)
 	GetClubInvites(ctx context.Context, dto *dtos.GetInvites) ([]domain.Invite, error)
 	ListParticipants(ctx context.Context, dto *dtos.ListParticipants) ([]domain.Participant, *domain.PaginationMetadata, error)
+	ListBannedParticipants(ctx context.Context, dto *dtos.ListBans) ([]domain.BanRecord, *domain.PaginationMetadata, error)
 }
 
 func (s serverApi) GetEvent(ctx context.Context, req *eventv1.GetEventRequest) (*eventv1.GetEventResponse, error) {
@@ -137,5 +138,28 @@ func (s serverApi) GetOrganizerInvites(ctx context.Context, req *eventv1.GetInvi
 
 	return &eventv1.GetOrganizerInvitesResponse{
 		Invites: domain.UserInvitesToProto(invites),
+	}, nil
+}
+
+func (s serverApi) ListBannedParticipants(ctx context.Context, request *eventv1.ListBannedParticipantsRequest) (*eventv1.ListBannedParticipantsResponse, error) {
+	err := validate.ListBans(request)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	dto := dtos.ProtoToListBans(request)
+	bans, pagination, err := s.info.ListBannedParticipants(ctx, dto)
+	if err != nil {
+		switch {
+		case errors.Is(err, eventservice.ErrParticipantNotFound):
+			return nil, status.Error(codes.NotFound, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal error")
+		}
+	}
+
+	return &eventv1.ListBannedParticipantsResponse{
+		BannedParticipants: domain.ToProtoBanRecords(bans),
+		Metadata:           pagination.ToProto(),
 	}, nil
 }

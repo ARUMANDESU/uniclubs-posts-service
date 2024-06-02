@@ -85,7 +85,7 @@ func (s *Storage) BanParticipant(ctx context.Context, dto *dtos.BanParticipant) 
 
 	banRecord := dao.BanRecord{
 		EventId:  objectID,
-		UserId:   dto.ParticipantId,
+		User:     dao.UserFromDomainUser(dto.Participant),
 		BannedAt: time.Now(),
 		Reason:   dto.Reason,
 		ByWhoId:  dto.UserId,
@@ -184,4 +184,48 @@ func (s *Storage) ListParticipants(ctx context.Context, dto *dtos.ListParticipan
 	paginationMetadata := domain.CalculatePaginationMetadata(int32(totalRecords), dto.Filter.Page, dto.Filter.PageSize)
 
 	return dao.ParticipantsToDomain(participants), &paginationMetadata, nil
+}
+
+func (s *Storage) ListBannedParticipants(ctx context.Context, dto *dtos.ListBans) ([]domain.BanRecord, *domain.PaginationMetadata, error) {
+	const op = "storage.mongodb.event.listBannedParticipants"
+
+	objectID, err := primitive.ObjectIDFromHex(dto.EventId)
+	if err != nil {
+		if errors.Is(err, primitive.ErrInvalidHex) {
+			return nil, nil, fmt.Errorf("%s: %w", storage.ErrInvalidID)
+		}
+		return nil, nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	filter := bson.M{"event_id": objectID}
+	if dto.Filter.Query != "" {
+		filter["user.first_name"] = primitive.Regex{Pattern: dto.Filter.Query, Options: "i"}
+	}
+
+	totalRecords, err := s.bansCollection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if totalRecords == 0 {
+		return nil, &domain.PaginationMetadata{}, nil
+	}
+
+	opts := options.Find()
+	opts.SetSkip(int64(dto.Filter.Offset()))
+	opts.SetLimit(int64(dto.Filter.Limit()))
+
+	cursor, err := s.bansCollection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, nil, handleError(op, err)
+	}
+	defer cursor.Close(ctx)
+
+	var bans []dao.BanRecord
+	if err = cursor.All(ctx, &bans); err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	paginationMetadata := domain.CalculatePaginationMetadata(int32(totalRecords), dto.Filter.Page, dto.Filter.PageSize)
+
+	return dao.BanRecordsToDomain(bans), &paginationMetadata, nil
 }

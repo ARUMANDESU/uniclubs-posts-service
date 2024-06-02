@@ -15,7 +15,7 @@ type Participant struct {
 
 type BanRecord struct {
 	EventId  primitive.ObjectID `bson:"event_id"`
-	UserId   int64              `bson:"user_id"`
+	User     User               `bson:"user"`
 	BannedAt time.Time          `bson:"banned_at,omitempty"`
 	Reason   string             `bson:"reason,omitempty"`
 	ByWhoId  int64              `bson:"by_who_id,omitempty"`
@@ -60,9 +60,17 @@ func ParticipantFromDomain(participant *domain.Participant) (*Participant, error
 func BanRecordToDomain(banRecord BanRecord) *domain.BanRecord {
 	return &domain.BanRecord{
 		EventId:  banRecord.EventId.Hex(),
-		UserId:   banRecord.UserId,
+		User:     ToDomainUser(banRecord.User),
 		BannedAt: banRecord.BannedAt,
 		Reason:   banRecord.Reason,
 		ByWhoId:  banRecord.ByWhoId,
 	}
+}
+
+func BanRecordsToDomain(banRecords []BanRecord) []domain.BanRecord {
+	result := make([]domain.BanRecord, 0, len(banRecords))
+	for _, banRecord := range banRecords {
+		result = append(result, *BanRecordToDomain(banRecord))
+	}
+	return result
 }

@@ -28,6 +28,7 @@ type ParticipantProvider interface {
 
 type BanProvider interface {
 	GetBanRecord(ctx context.Context, eventId string, userId int64) (*domain.BanRecord, error)
+	ListBannedParticipants(ctx context.Context, dto *dtos.ListBans) ([]domain.BanRecord, *domain.PaginationMetadata, error)
 }
 
 type ClubProvider interface {
@@ -134,6 +135,27 @@ func (s Service) ListParticipants(ctx context.Context, dto *dtos.ListParticipant
 	}
 
 	return participants, metadata, nil
+}
+
+func (s Service) ListBannedParticipants(ctx context.Context, dto *dtos.ListBans) ([]domain.BanRecord, *domain.PaginationMetadata, error) {
+	const op = "services.event.management.listBannedParticipants"
+	log := s.log.With(slog.String("op", op))
+
+	event, err := s.eventProvider.GetEvent(ctx, dto.EventId)
+	if err != nil {
+		return nil, nil, s.handleError("failed to get event", log, err)
+	}
+	if !event.IsOrganizer(dto.UserId) {
+		return nil, nil, eventservice.ErrPermissionsDenied
+	}
+
+	bannedParticipants, metadata, err := s.banProvider.ListBannedParticipants(ctx, dto)
+	if err != nil {
+		return nil, nil, s.handleError("failed to list banned participants", log, err)
+	}
+
+	return bannedParticipants, metadata, nil
+
 }
 
 // handleError handles common errors

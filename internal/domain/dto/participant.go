@@ -20,18 +20,18 @@ func ProtoToKickParticipant(req *eventv1.KickParticipantRequest) *KickParticipan
 }
 
 type BanParticipant struct {
-	EventId       string `json:"event_id"`
-	UserId        int64  `json:"user_id"`
-	ParticipantId int64  `json:"participant_id"`
-	Reason        string `json:"reason"`
+	EventId     string      `json:"event_id"`
+	UserId      int64       `json:"user_id"`
+	Participant domain.User `json:"participant"`
+	Reason      string      `json:"reason"`
 }
 
 func ProtoToBanParticipant(req *eventv1.BanParticipantRequest) *BanParticipant {
 	return &BanParticipant{
-		EventId:       req.GetEventId(),
-		UserId:        req.GetUserId(),
-		ParticipantId: req.GetParticipantId(),
-		Reason:        req.GetReason(),
+		EventId:     req.GetEventId(),
+		UserId:      req.GetUserId(),
+		Participant: domain.User{ID: req.GetParticipantId()},
+		Reason:      req.GetReason(),
 	}
 }
 
@@ -55,6 +55,34 @@ func ProtoToListParticipants(req *eventv1.ListParticipantsRequest) *ListParticip
 		dto.Filter.SortOrder = domain.SortOrderDesc
 	} else {
 		dto.Filter.SortOrder = domain.SortOrder(req.GetSortOrder())
+	}
+
+	if req.GetPageNumber() == 0 {
+		dto.Filter.Page = 1
+	}
+
+	if req.GetPageSize() == 0 {
+		dto.Filter.PageSize = 10
+	}
+
+	return dto
+}
+
+type ListBans struct {
+	EventId string            `json:"event_id"`
+	Filter  domain.BaseFilter `json:"filter"`
+	UserId  int64             `json:"user_id"`
+}
+
+func ProtoToListBans(req *eventv1.ListBannedParticipantsRequest) *ListBans {
+	dto := &ListBans{
+		EventId: req.GetEventId(),
+		Filter: domain.BaseFilter{
+			Page:     req.GetPageNumber(),
+			PageSize: req.GetPageSize(),
+			Query:    req.GetQuery(),
+		},
+		UserId: req.GetUserId(),
 	}
 
 	if req.GetPageNumber() == 0 {

@@ -222,7 +222,7 @@ func (s Service) BanParticipant(ctx context.Context, dto *dtos.BanParticipant) (
 		return nil, eventservice.ErrPermissionsDenied
 	}
 
-	if event.IsOrganizer(dto.ParticipantId) {
+	if event.IsOrganizer(dto.Participant.ID) {
 		return nil, fmt.Errorf("%w: can't ban organizer from event", eventservice.ErrUserIsNotEventOrganizer)
 	}
 
@@ -230,7 +230,7 @@ func (s Service) BanParticipant(ctx context.Context, dto *dtos.BanParticipant) (
 		return nil, fmt.Errorf("%w: can't ban participant from event, which status is %s", eventservice.ErrInvalidEventStatus, event.Status)
 	}
 
-	record, err := s.banStorage.GetBanRecord(ctx, dto.EventId, dto.ParticipantId)
+	record, err := s.banStorage.GetBanRecord(ctx, dto.EventId, dto.Participant.ID)
 	if err != nil && !errors.Is(err, storage.ErrBanRecordNotFound) {
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (s Service) BanParticipant(ctx context.Context, dto *dtos.BanParticipant) (
 		return nil, eventservice.ErrUserAlreadyBanned
 	}
 
-	banned, err := s.clubProvider.IsBanned(ctx, dto.ParticipantId, event.ClubId)
+	banned, err := s.clubProvider.IsBanned(ctx, dto.Participant.ID, event.ClubId)
 	if err != nil {
 		return nil, s.handleError("failed to check if user is banned ", log, err)
 	}
@@ -246,20 +246,18 @@ func (s Service) BanParticipant(ctx context.Context, dto *dtos.BanParticipant) (
 		return nil, eventservice.ErrUserAlreadyBanned
 	}
 
+	participant, err := s.participantStorage.GetEventParticipant(ctx, dto.EventId, dto.Participant.ID)
+	if err != nil {
+		return nil, s.handleError("failed to get participant", log, err)
+	}
+
+	dto.Participant = participant.User
 	err = s.banStorage.BanParticipant(ctx, dto)
 	if err != nil {
 		return nil, fmt.Errorf("failed to ban participant: %w", err)
 	}
 
-	participant, err := s.participantStorage.GetEventParticipant(ctx, dto.EventId, dto.ParticipantId)
-	if err != nil && !errors.Is(err, storage.ErrParticipantNotFound) {
-		return nil, s.handleError("failed to get participant", log, err)
-	}
-	if participant == nil {
-		return event.ToProto(), nil
-	}
-
-	err = s.participantStorage.DeleteEventParticipant(ctx, dto.EventId, dto.ParticipantId)
+	err = s.participantStorage.DeleteEventParticipant(ctx, dto.EventId, dto.Participant.ID)
 	if err != nil {
 		return nil, s.handleError("failed to delete participant", log, err)
 	}

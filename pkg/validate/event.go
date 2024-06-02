@@ -253,3 +253,16 @@ func ListParticipants(value interface{}) error {
 		validation.Field(&req.SortOrder, validation.In(domain.SortOrderAsc.String(), domain.SortOrderDesc.String())),
 	)
 }
+
+func ListBans(value interface{}) error {
+	req, ok := value.(*eventv1.ListBannedParticipantsRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("list bans invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.EventId, validation.Required),
+		validation.Field(&req.PageNumber, validation.Min(0)),
+		validation.Field(&req.PageSize, validation.Min(0)),
+		validation.Field(&req.UserId, validation.Required, validation.Min(1)),
+	)
+}

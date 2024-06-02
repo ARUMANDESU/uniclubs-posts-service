@@ -33,7 +33,7 @@ type ParticipantStorage interface {
 type BanStorage interface {
 	GetBanRecord(ctx context.Context, eventId string, userId int64) (*domain.BanRecord, error)
 	BanParticipant(ctx context.Context, dto *dtos.BanParticipant) error
-	UnBanParticipant(ctx context.Context, eventId string, userId int64) error
+	RemoveBanRecord(ctx context.Context, eventId string, userId int64) error
 }
 
 type UserProvider interface {
@@ -271,6 +271,34 @@ func (s Service) BanParticipant(ctx context.Context, dto *dtos.BanParticipant) (
 	event, err = s.eventStorage.UpdateEvent(ctx, event)
 	if err != nil {
 		return nil, s.handleError("failed to update event", log, err)
+	}
+
+	return event.ToProto(), nil
+}
+
+func (s Service) UnbanParticipant(ctx context.Context, dto *dtos.UnbanParticipant) (*eventv1.EventObject, error) {
+	const op = "service.event.participant.unbanParticipant"
+	log := s.log.With(slog.String("op", op))
+
+	event, err := s.eventStorage.GetEvent(ctx, dto.EventId)
+	if err != nil {
+		return nil, s.handleError("failed to get event", log, err)
+	}
+	if !event.IsOrganizer(dto.UserId) {
+		return nil, eventservice.ErrPermissionsDenied
+	}
+
+	record, err := s.banStorage.GetBanRecord(ctx, dto.EventId, dto.ParticipantId)
+	if err != nil {
+		return nil, s.handleError("failed to get ban record", log, err)
+	}
+	if record == nil {
+		return nil, eventservice.ErrBanRecordNotFound
+	}
+
+	err = s.banStorage.RemoveBanRecord(ctx, dto.EventId, dto.ParticipantId)
+	if err != nil {
+		return nil, s.handleError("failed to remove ban record", log, err)
 	}
 
 	return event.ToProto(), nil

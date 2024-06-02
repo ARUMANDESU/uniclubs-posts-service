@@ -15,6 +15,7 @@ type ParticipantService interface {
 	CancelParticipation(ctx context.Context, eventId string, userId int64) (*eventv1.EventObject, error)
 	KickParticipant(ctx context.Context, dto *dtos.KickParticipant) error
 	BanParticipant(ctx context.Context, dto *dtos.BanParticipant) (*eventv1.EventObject, error)
+	UnbanParticipant(ctx context.Context, dto *dtos.UnbanParticipant) (*eventv1.EventObject, error)
 }
 
 func (s serverApi) ParticipateEvent(ctx context.Context, req *eventv1.EventActionRequest) (*emptypb.Empty, error) {
@@ -74,6 +75,15 @@ func (s serverApi) BanParticipant(ctx context.Context, req *eventv1.BanParticipa
 }
 
 func (s serverApi) UnbanParticipant(ctx context.Context, request *eventv1.UnbanParticipantRequest) (*emptypb.Empty, error) {
-	//TODO implement me
-	panic("implement me")
+	err := validate.UnbanParticipantRequest(request)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	_, err = s.participant.UnbanParticipant(ctx, dtos.ProtoToUnbanParticipant(request))
+	if err != nil {
+		return nil, handleError(err)
+	}
+
+	return nil, nil
 }

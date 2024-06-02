@@ -99,7 +99,7 @@ func (s *Storage) BanParticipant(ctx context.Context, dto *dtos.BanParticipant) 
 	return nil
 }
 
-func (s *Storage) UnBanParticipant(ctx context.Context, eventId string, userId int64) error {
+func (s *Storage) RemoveBanRecord(ctx context.Context, eventId string, userId int64) error {
 	const op = "storage.mongodb.event.unBanParticipant"
 
 	objectID, err := primitive.ObjectIDFromHex(eventId)
@@ -110,7 +110,7 @@ func (s *Storage) UnBanParticipant(ctx context.Context, eventId string, userId i
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	_, err = s.bansCollection.DeleteOne(ctx, bson.M{"event_id": objectID, "user_id": userId})
+	_, err = s.bansCollection.DeleteOne(ctx, bson.M{"event_id": objectID, "user._id": userId})
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (s *Storage) GetBanRecord(ctx context.Context, eventId string, userId int64
 	}
 
 	var banRecord dao.BanRecord
-	err = s.bansCollection.FindOne(ctx, bson.M{"event_id": objectID, "user_id": userId}).Decode(&banRecord)
+	err = s.bansCollection.FindOne(ctx, bson.M{"event_id": objectID, "user._id": userId}).Decode(&banRecord)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, storage.ErrBanRecordNotFound

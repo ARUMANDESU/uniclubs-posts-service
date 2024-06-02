@@ -95,3 +95,17 @@ func ProtoToListBans(req *eventv1.ListBannedParticipantsRequest) *ListBans {
 
 	return dto
 }
+
+type UnbanParticipant struct {
+	EventId       string `json:"event_id"`
+	UserId        int64  `json:"user_id"`
+	ParticipantId int64  `json:"participant_id"`
+}
+
+func ProtoToUnbanParticipant(req *eventv1.UnbanParticipantRequest) *UnbanParticipant {
+	return &UnbanParticipant{
+		EventId:       req.GetEventId(),
+		UserId:        req.GetUserId(),
+		ParticipantId: req.GetParticipantId(),
+	}
+}

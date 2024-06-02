@@ -266,3 +266,15 @@ func ListBans(value interface{}) error {
 		validation.Field(&req.UserId, validation.Required, validation.Min(1)),
 	)
 }
+
+func UnbanParticipantRequest(value interface{}) error {
+	req, ok := value.(*eventv1.UnbanParticipantRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("unban participant invalid type"))
+	}
+	return validation.ValidateStruct(req,
+		validation.Field(&req.EventId, validation.Required),
+		validation.Field(&req.UserId, validation.Required, validation.Min(1)),
+		validation.Field(&req.ParticipantId, validation.Required, validation.Min(1)),
+	)
+}

@@ -136,8 +136,28 @@ func (s Service) UpdatePost(ctx context.Context, dto *dtos.UpdatePostRequest) (*
 }
 
 func (s Service) DeletePost(ctx context.Context, dto *dtos.ActionRequest) (*domain.Post, error) {
-	//TODO implement me
-	panic("implement me")
+	const op = "services.post.management.deletePost"
+	log := s.log.With(slog.String("op", op))
+
+	post, err := s.postStorage.GetPostById(ctx, dto.PostId)
+	if err != nil {
+		return nil, s.handleError(log, "failed to get post by id", err)
+	}
+
+	hasPermission, err := s.clubProvider.HasPermission(ctx, dto.UserId, post.Club.ID, clubv1.Permission_PERMISSION_MANAGE_POSTS)
+	if err != nil {
+		return nil, s.handleError(log, "failed to check permission", err)
+	}
+	if !hasPermission {
+		return nil, fmt.Errorf("%w: user %d does not have permission to manage posts in club %d", postservice.ErrPermissionDenied, dto.UserId, post.Club.ID)
+	}
+
+	post, err = s.postStorage.DeletePost(ctx, dto.PostId)
+	if err != nil {
+		return nil, s.handleError(log, "failed to delete post", err)
+	}
+
+	return post, nil
 }
 
 func (s Service) HidePost(ctx context.Context, dto *dtos.ActionRequest) (*domain.Post, error) {

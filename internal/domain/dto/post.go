@@ -67,3 +67,10 @@ func ToUpdatePostRequest(post *postv1.UpdatePostRequest) *UpdatePostRequest {
 		Paths:         paths,
 	}
 }
+
+func ToActionRequest(action *postv1.ActionRequest) *ActionRequest {
+	return &ActionRequest{
+		PostId: action.GetId(),
+		UserId: action.GetUserId(),
+	}
+}

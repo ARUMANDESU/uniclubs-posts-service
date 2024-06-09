@@ -64,8 +64,23 @@ func (s *Storage) UpdatePost(ctx context.Context, post *domain.Post) (*domain.Po
 }
 
 func (s *Storage) DeletePost(ctx context.Context, postId string) (*domain.Post, error) {
-	// todo: implement me
-	panic("implement me")
+	const op = "storage.mongodb.post.deletePost"
+
+	objectID, err := primitive.ObjectIDFromHex(postId)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, storage.ErrInvalidID)
+	}
+
+	var post dao.Post
+	err = s.postsCollection.FindOneAndDelete(ctx, bson.M{"_id": objectID}).Decode(&post)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("%s: %w", op, storage.ErrNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return dao.PostToDomain(&post), nil
 }
 
 func (s *Storage) HidePost(ctx context.Context, postId string) (*domain.Post, error) {

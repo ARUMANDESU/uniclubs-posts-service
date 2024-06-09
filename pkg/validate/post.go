@@ -51,3 +51,15 @@ func UpdatePostRequest(value interface{}) error {
 		validation.Field(&req.UpdateMask, validation.Required, validation.By(updatePostMask)),
 	)
 }
+
+func PostActionRequest(value interface{}) error {
+	req, ok := value.(*postv1.ActionRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("list bans invalid type"))
+	}
+
+	return validation.ValidateStruct(req,
+		validation.Field(&req.Id, validation.Required),
+		validation.Field(&req.UserId, validation.Required, validation.Min(1)),
+	)
+}

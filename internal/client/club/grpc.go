@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	clubv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/club"
+	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
 	grpclog "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	grpcretry "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/retry"
@@ -27,7 +28,7 @@ type Client struct {
 }
 
 func (c *Client) IsClubMember(ctx context.Context, userId, clubId int64) (bool, error) {
-	const op = "client.club.IsClubMember"
+	const op = "client.club.isClubMember"
 	log := c.log.With(slog.String("op", op))
 
 	res, err := c.ClubClient.GetJoinStatus(ctx, &clubv1.GetJoinStatusRequest{
@@ -55,7 +56,7 @@ func (c *Client) IsClubMember(ctx context.Context, userId, clubId int64) (bool, 
 }
 
 func (c *Client) IsBanned(ctx context.Context, userId, clubId int64) (bool, error) {
-	const op = "client.club.IsBanned"
+	const op = "client.club.isBanned"
 	log := c.log.With(slog.String("op", op))
 
 	res, err := c.ClubClient.GetJoinStatus(ctx, &clubv1.GetJoinStatusRequest{
@@ -80,6 +81,54 @@ func (c *Client) IsBanned(ctx context.Context, userId, clubId int64) (bool, erro
 
 	return false, nil
 
+}
+
+func (c *Client) HasPermission(ctx context.Context, userId, clubId int64, permission clubv1.Permission) (bool, error) {
+	const op = "client.club.hasPermission"
+	log := c.log.With(slog.String("op", op))
+
+	res, err := c.ClubClient.HavePermissionTo(ctx, &clubv1.HavePermissionToRequest{
+		ClubId:     clubId,
+		UserId:     userId,
+		Permission: permission,
+	})
+	if err != nil {
+		switch {
+		case codes.InvalidArgument == status.Code(err):
+			return false, ErrInvalidArg
+		case codes.NotFound == status.Code(err):
+			return false, ErrClubNotFound
+		default:
+			log.Error("internal", logger.Err(err))
+			return false, err
+		}
+	}
+
+	return res.GetHasPermission(), nil
+}
+
+func (c *Client) GetClubById(ctx context.Context, clubId int64) (*domain.Club, error) {
+	const op = "client.club.getClubById"
+	log := c.log.With(slog.String("op", op))
+
+	res, err := c.ClubClient.GetClub(ctx, &clubv1.GetClubRequest{ClubId: clubId})
+	if err != nil {
+		switch {
+		case codes.InvalidArgument == status.Code(err):
+			return nil, ErrInvalidArg
+		case codes.NotFound == status.Code(err):
+			return nil, ErrClubNotFound
+		default:
+			log.Error("internal", logger.Err(err))
+			return nil, err
+		}
+	}
+
+	return &domain.Club{
+		ID:      res.GetClubId(),
+		Name:    res.GetName(),
+		LogoURL: res.GetLogoUrl(),
+	}, nil
 }
 
 func New(

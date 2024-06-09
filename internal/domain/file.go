@@ -1,6 +1,6 @@
 package domain
 
-import eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
+import posts "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts"
 
 type File struct {
 	Name string `json:"name" bson:"name"`
@@ -13,16 +13,16 @@ type CoverImage struct {
 	Position uint32 `json:"position" bson:"position"`
 }
 
-func (f File) ToProto() *eventv1.FileObject {
-	return &eventv1.FileObject{
+func (f File) ToPb() *posts.FileObject {
+	return &posts.FileObject{
 		Name: f.Name,
 		Url:  f.Url,
 		Type: f.Type,
 	}
 }
 
-func (c CoverImage) ToProto() *eventv1.CoverImage {
-	return &eventv1.CoverImage{
+func (c CoverImage) ToPb() *posts.CoverImage {
+	return &posts.CoverImage{
 		Name:     c.Name,
 		Url:      c.Url,
 		Type:     c.Type,
@@ -30,23 +30,23 @@ func (c CoverImage) ToProto() *eventv1.CoverImage {
 	}
 }
 
-func CoverImagesToProto(images []CoverImage) []*eventv1.CoverImage {
-	convertedImages := make([]*eventv1.CoverImage, len(images))
+func CoverImagesToPb(images []CoverImage) []*posts.CoverImage {
+	convertedImages := make([]*posts.CoverImage, len(images))
 	for i, image := range images {
-		convertedImages[i] = image.ToProto()
+		convertedImages[i] = image.ToPb()
 	}
 	return convertedImages
 }
 
-func FilesToProto(files []File) []*eventv1.FileObject {
-	convertedFiles := make([]*eventv1.FileObject, len(files))
+func FilesToPb(files []File) []*posts.FileObject {
+	convertedFiles := make([]*posts.FileObject, len(files))
 	for i, file := range files {
-		convertedFiles[i] = file.ToProto()
+		convertedFiles[i] = file.ToPb()
 	}
 	return convertedFiles
 }
 
-func ProtoToFile(file *eventv1.FileObject) File {
+func PbToFile(file *posts.FileObject) File {
 	return File{
 		Name: file.Name,
 		Url:  file.Url,
@@ -54,7 +54,7 @@ func ProtoToFile(file *eventv1.FileObject) File {
 	}
 }
 
-func ProtoToCoverImage(image *eventv1.CoverImage) CoverImage {
+func PbToCoverImage(image *posts.CoverImage) CoverImage {
 	return CoverImage{
 		File: File{
 			Name: image.Name,
@@ -65,18 +65,18 @@ func ProtoToCoverImage(image *eventv1.CoverImage) CoverImage {
 	}
 }
 
-func ProtoToCoverImages(images []*eventv1.CoverImage) []CoverImage {
+func PbToCoverImages(images []*posts.CoverImage) []CoverImage {
 	convertedImages := make([]CoverImage, len(images))
 	for i, image := range images {
-		convertedImages[i] = ProtoToCoverImage(image)
+		convertedImages[i] = PbToCoverImage(image)
 	}
 	return convertedImages
 }
 
-func ProtoToFiles(files []*eventv1.FileObject) []File {
+func PbToFiles(files []*posts.FileObject) []File {
 	convertedFiles := make([]File, len(files))
 	for i, file := range files {
-		convertedFiles[i] = ProtoToFile(file)
+		convertedFiles[i] = PbToFile(file)
 	}
 	return convertedFiles
 }

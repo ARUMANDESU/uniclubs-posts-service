@@ -10,7 +10,7 @@ type Club struct {
 
 // Into dao
 
-func ClubFromDomainClub(club domain.Club) Club {
+func ClubFromDomain(club domain.Club) Club {
 	return Club{
 		ID:      club.ID,
 		Name:    club.Name,
@@ -21,7 +21,7 @@ func ClubFromDomainClub(club domain.Club) Club {
 func ToCollaboratorClubs(clubs []domain.Club) []Club {
 	clubIds := make([]Club, len(clubs))
 	for i, club := range clubs {
-		clubIds[i] = ClubFromDomainClub(club)
+		clubIds[i] = ClubFromDomain(club)
 	}
 	return clubIds
 }

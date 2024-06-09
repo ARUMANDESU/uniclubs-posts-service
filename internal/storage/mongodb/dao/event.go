@@ -24,9 +24,9 @@ type Event struct {
 	LocationUniversity    string             `bson:"location_university,omitempty"`
 	StartDate             time.Time          `bson:"start_date,omitempty"`
 	EndDate               time.Time          `bson:"end_date,omitempty"`
-	CoverImages           []CoverImageMongo  `bson:"cover_images,omitempty"`
-	AttachedImages        []FileMongo        `bson:"attached_images,omitempty"`
-	AttachedFiles         []FileMongo        `bson:"attached_files,omitempty"`
+	CoverImages           []CoverImage       `bson:"cover_images,omitempty"`
+	AttachedImages        []File             `bson:"attached_images,omitempty"`
+	AttachedFiles         []File             `bson:"attached_files,omitempty"`
 	CreatedAt             time.Time          `bson:"created_at"`
 	UpdatedAt             time.Time          `bson:"updated_at"`
 	DeletedAt             time.Time          `bson:"deleted_at,omitempty"`

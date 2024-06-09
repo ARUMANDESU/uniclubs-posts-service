@@ -3,7 +3,7 @@ package validate
 import (
 	"errors"
 	"fmt"
-	"github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
+	"github.com/ARUMANDESU/uniclubs-protos/gen/go/posts"
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/go-ozzo/ozzo-validation/is"
@@ -13,7 +13,7 @@ import (
 )
 
 func user(value interface{}) error {
-	u, ok := value.(*uniclubs_posts_service_v1_eventv1.UserObject)
+	u, ok := value.(*eventv1.UserObject)
 	if !ok {
 		return validation.NewInternalError(errors.New("user invalid type"))
 	}
@@ -26,7 +26,7 @@ func user(value interface{}) error {
 }
 
 func club(value interface{}) error {
-	c, ok := value.(*uniclubs_posts_service_v1_eventv1.ClubObject)
+	c, ok := value.(*posts.ClubObject)
 	if !ok {
 		return validation.NewInternalError(errors.New("club invalid type"))
 	}
@@ -37,7 +37,7 @@ func club(value interface{}) error {
 }
 
 func attachedFiles(value interface{}) error {
-	a, ok := value.([]*uniclubs_posts_service_v1_eventv1.FileObject)
+	a, ok := value.([]*posts.FileObject)
 	if !ok {
 		log.Printf("file type: %T", value)
 		return validation.NewInternalError(errors.New("attached files invalid type"))
@@ -58,7 +58,7 @@ func attachedFiles(value interface{}) error {
 }
 
 func coverImages(value interface{}) error {
-	c, ok := value.([]*uniclubs_posts_service_v1_eventv1.CoverImage)
+	c, ok := value.([]*posts.CoverImage)
 	if !ok {
 		log.Printf("image type: %T", value)
 		return validation.NewInternalError(errors.New("cover images invalid type"))
@@ -132,6 +132,42 @@ func updateMask(value interface{}) error {
 			validation.Required,
 			validation.Each(validation.In(valideUpdateFields...).
 				Error(fmt.Sprintf("update fields must be one of %v", valideUpdateFields)),
+			),
+		),
+	)
+}
+
+func createPostMask(value interface{}) error {
+	req, ok := value.(*fieldmaskpb.FieldMask)
+	if !ok {
+		return validation.NewInternalError(errors.New("create post mask invalid type"))
+	}
+
+	validCreateFields := []any{"title", "description", "tags", "cover_images", "attached_files"}
+
+	return validation.ValidateStruct(req,
+		validation.Field(&req.Paths,
+			validation.Required,
+			validation.Each(validation.In(validCreateFields...).
+				Error(fmt.Sprintf("create fields must be one of %v", validCreateFields)),
+			),
+		),
+	)
+}
+
+func updatePostMask(value interface{}) error {
+	req, ok := value.(*fieldmaskpb.FieldMask)
+	if !ok {
+		return validation.NewInternalError(errors.New("update post mask invalid type"))
+	}
+
+	validUpdateFields := []any{"title", "description", "tags", "cover_images", "attached_files"}
+
+	return validation.ValidateStruct(req,
+		validation.Field(&req.Paths,
+			validation.Required,
+			validation.Each(validation.In(validUpdateFields...).
+				Error(fmt.Sprintf("update fields must be one of %v", validUpdateFields)),
 			),
 		),
 	)

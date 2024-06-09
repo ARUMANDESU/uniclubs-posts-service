@@ -156,7 +156,7 @@ func (s *Storage) CreateJoinRequestToClub(ctx context.Context, dto *dtos.SendJoi
 	invite := dao.ClubInvite{
 		ID:      primitive.NewObjectID(),
 		EventId: eventObjectId,
-		Club:    dao.ClubFromDomainClub(dto.Club),
+		Club:    dao.ClubFromDomain(dto.Club),
 	}
 
 	_, err = s.invitesCollection.InsertOne(ctx, invite)

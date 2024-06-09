@@ -8,12 +8,15 @@ import (
 	userclient "github.com/arumandesu/uniclubs-posts-service/internal/client/user"
 	"github.com/arumandesu/uniclubs-posts-service/internal/config"
 	"github.com/arumandesu/uniclubs-posts-service/internal/grpc/event"
+	postgrpc "github.com/arumandesu/uniclubs-posts-service/internal/grpc/post"
 	"github.com/arumandesu/uniclubs-posts-service/internal/rabbitmq"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/club"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/collaborator"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/info"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/management"
 	eventparticipant "github.com/arumandesu/uniclubs-posts-service/internal/services/event/participant"
+	postinfo "github.com/arumandesu/uniclubs-posts-service/internal/services/post/info"
+	postmanagement "github.com/arumandesu/uniclubs-posts-service/internal/services/post/management"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/user"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage/mongodb"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
@@ -64,7 +67,7 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 	participateService := eventparticipant.New(log, eventparticipant.NewStorage(mongoDB, userClient, clubClient, mongoDB, mongoDB))
 	eventInfoService := eventinfo.New(log, eventinfo.NewStorage(mongoDB, mongoDB, mongoDB, clubClient, mongoDB))
 
-	services := eventgrpc.NewServices(
+	eventServices := eventgrpc.NewServices(
 		eventmanagement.New(log, mongoDB),
 		eventCollaboratorService,
 		eventCollaboratorService,
@@ -72,7 +75,12 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 		participateService,
 	)
 
-	grpcApp := grpcapp.New(log, cfg.GRPC.Port, services)
+	postServices := postgrpc.NewServices(
+		postmanagement.New(log, mongoDB, clubClient),
+		postinfo.New(log, mongoDB, clubClient),
+	)
+
+	grpcApp := grpcapp.New(log, cfg.GRPC.Port, eventServices, postServices)
 	amqpApp := amqpapp.New(log, userService, clubService, rmq)
 	return &App{
 		log:     log,

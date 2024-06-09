@@ -1,6 +1,7 @@
 package domain
 
 import (
+	posts "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts"
 	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
 	"math"
 	"time"
@@ -54,8 +55,8 @@ func CalculatePaginationMetadata(totalRecords, page, pageSize int32) PaginationM
 	}
 }
 
-func (m PaginationMetadata) ToProto() *eventv1.PaginationMetadata {
-	return &eventv1.PaginationMetadata{
+func (m PaginationMetadata) ToProto() *posts.PaginationMetadata {
+	return &posts.PaginationMetadata{
 		CurrentPage:  m.CurrentPage,
 		PageSize:     m.PageSize,
 		FirstPage:    m.FirstPage,

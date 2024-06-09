@@ -27,7 +27,7 @@ func (s *Storage) CreateEvent(ctx context.Context, club domain.Club, user domain
 	}
 
 	event.AddOrganizer(dao.OrganizerFromDomainUser(user, club.ID))
-	event.AddCollaboratorClub(dao.ClubFromDomainClub(club))
+	event.AddCollaboratorClub(dao.ClubFromDomain(club))
 
 	insertResult, err := s.eventsCollection.InsertOne(ctx, event)
 	if err != nil {

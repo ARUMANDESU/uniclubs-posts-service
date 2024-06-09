@@ -15,6 +15,7 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/info"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/event/management"
 	eventparticipant "github.com/arumandesu/uniclubs-posts-service/internal/services/event/participant"
+	postinfo "github.com/arumandesu/uniclubs-posts-service/internal/services/post/info"
 	postmanagement "github.com/arumandesu/uniclubs-posts-service/internal/services/post/management"
 	"github.com/arumandesu/uniclubs-posts-service/internal/services/user"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage/mongodb"
@@ -75,7 +76,8 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 	)
 
 	postServices := postgrpc.NewServices(
-		postmanagement.New(log, mongoDB, clubClient), nil,
+		postmanagement.New(log, mongoDB, clubClient),
+		postinfo.New(log, mongoDB, clubClient),
 	)
 
 	grpcApp := grpcapp.New(log, cfg.GRPC.Port, eventServices, postServices)

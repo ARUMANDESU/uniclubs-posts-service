@@ -47,3 +47,16 @@ func PostToDomain(p *Post) *domain.Post {
 		UpdatedAt:     p.UpdatedAt,
 	}
 }
+
+func PostsToDomain(posts []Post) []domain.Post {
+	if posts == nil {
+		return nil
+	}
+
+	domainPosts := make([]domain.Post, 0, len(posts))
+	for _, post := range posts {
+		domainPosts = append(domainPosts, *PostToDomain(&post))
+	}
+
+	return domainPosts
+}

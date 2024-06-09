@@ -14,11 +14,6 @@ type serverApi struct {
 	Services
 }
 
-func (s serverApi) mustEmbedUnimplementedPostServer() {
-	//TODO implement me
-	panic("implement me")
-}
-
 type Services struct {
 	management ManagementService
 	info       InfoService

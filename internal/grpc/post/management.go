@@ -24,7 +24,7 @@ func (s serverApi) CreatePost(ctx context.Context, req *postv1.CreatePostRequest
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	post, err := s.Services.management.CreatePost(ctx, dtos.ToCreatePostRequest(req))
+	post, err := s.management.CreatePost(ctx, dtos.ToCreatePostRequest(req))
 	if err != nil {
 		return nil, handleServiceError(err)
 	}
@@ -38,7 +38,7 @@ func (s serverApi) UpdatePost(ctx context.Context, req *postv1.UpdatePostRequest
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	post, err := s.Services.management.UpdatePost(ctx, dtos.ToUpdatePostRequest(req))
+	post, err := s.management.UpdatePost(ctx, dtos.ToUpdatePostRequest(req))
 	if err != nil {
 		return nil, handleServiceError(err)
 	}
@@ -52,7 +52,7 @@ func (s serverApi) DeletePost(ctx context.Context, req *postv1.ActionRequest) (*
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	post, err := s.Services.management.DeletePost(ctx, dtos.ToActionRequest(req))
+	post, err := s.management.DeletePost(ctx, dtos.ToActionRequest(req))
 	if err != nil {
 		return nil, handleServiceError(err)
 	}

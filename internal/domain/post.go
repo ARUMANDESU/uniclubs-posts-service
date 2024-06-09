@@ -35,3 +35,16 @@ func PostToPb(post *Post) *postv1.PostObject {
 		UpdatedAt:     timestamppb.New(post.UpdatedAt),
 	}
 }
+
+func PostsToPb(posts []Post) []*postv1.PostObject {
+	if posts == nil {
+		return nil
+	}
+
+	pbPosts := make([]*postv1.PostObject, 0, len(posts))
+	for _, post := range posts {
+		pbPosts = append(pbPosts, PostToPb(&post))
+	}
+
+	return pbPosts
+}

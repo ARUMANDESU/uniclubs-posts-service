@@ -32,6 +32,13 @@ type ActionRequest struct {
 	UserId int64  `json:"user_id"`
 }
 
+type ListPostsRequest struct {
+	domain.BaseFilter
+	ClubId int64           `json:"club_id"`
+	Tags   []string        `json:"tags"`
+	Paths  map[string]bool `json:"paths"`
+}
+
 func ToCreatePostRequest(post *postv1.CreatePostRequest) *CreatePostRequest {
 	paths := make(map[string]bool)
 	for _, path := range post.GetCreateMask().GetPaths() {
@@ -73,4 +80,38 @@ func ToActionRequest(action *postv1.ActionRequest) *ActionRequest {
 		PostId: action.GetId(),
 		UserId: action.GetUserId(),
 	}
+}
+
+func ToListPostsRequest(l *postv1.ListPostsRequest) *ListPostsRequest {
+	dto := &ListPostsRequest{
+		BaseFilter: domain.BaseFilter{
+			Page:     l.GetPage(),
+			PageSize: l.GetPageSize(),
+			Query:    l.GetQuery(),
+			SortBy:   domain.SortBy(l.GetSortBy()),
+		},
+		ClubId: l.GetClubId(),
+		Tags:   l.GetTags(),
+	}
+
+	paths := make(map[string]bool)
+	for _, path := range l.GetListMask().GetPaths() {
+		paths[path] = true
+	}
+	dto.Paths = paths
+
+	if l.GetSortOrder() == "" {
+		dto.BaseFilter.SortOrder = domain.SortOrderDesc
+	} else {
+		dto.BaseFilter.SortOrder = domain.SortOrder(l.GetSortOrder())
+	}
+
+	if l.GetPage() == 0 {
+		dto.BaseFilter.Page = 1
+	}
+	if l.GetPageSize() == 0 {
+		dto.BaseFilter.PageSize = 25
+	}
+
+	return dto
 }

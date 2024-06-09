@@ -75,3 +75,20 @@ func GetPostRequest(value interface{}) error {
 		validation.Field(&req.UserId, validation.Min(0)),
 	)
 }
+
+func ListPostsRequest(value interface{}) error {
+	req, ok := value.(*postv1.ListPostsRequest)
+	if !ok {
+		return validation.NewInternalError(errors.New("list bans invalid type"))
+	}
+
+	return validation.ValidateStruct(req,
+		validation.Field(&req.Page, validation.Min(0)),
+		validation.Field(&req.PageSize, validation.Min(0)),
+		validation.Field(&req.Query, validation.Length(0, 255)),
+		validation.Field(&req.SortBy, validation.In("created_at", "title")),
+		validation.Field(&req.SortOrder, validation.In("asc", "desc")),
+		validation.Field(&req.ClubId, validation.Min(0)),
+		validation.Field(&req.Tags, validation.Length(0, MaxPostTagsCount)),
+	)
+}

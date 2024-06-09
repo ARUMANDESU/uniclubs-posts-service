@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
+	dtos "github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage/mongodb/dao"
 	"go.mongodb.org/mongo-driver/bson"
@@ -111,4 +112,70 @@ func (s *Storage) GetPostById(ctx context.Context, postId string) (*domain.Post,
 	}
 
 	return dao.PostToDomain(&post), nil
+}
+
+func (s *Storage) ListPosts(ctx context.Context, filters *dtos.ListPostsRequest) ([]domain.Post, *domain.PaginationMetadata, error) {
+	const op = "storage.mongodb.post.listPosts"
+
+	filter := constructPostFilter(filters)
+
+	totalRecords, err := s.postsCollection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if totalRecords == 0 {
+		return nil, nil, fmt.Errorf("%s: %w", op, storage.ErrNotFound)
+	}
+
+	opts := options.Find()
+	//todo: make this work later
+	//opts.SetSort(constructEventSortBy(filters.BaseFilter))
+	opts.SetSkip(int64(filters.Offset()))
+	opts.SetLimit(int64(filters.Limit()))
+
+	cursor, err := s.postsCollection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, nil, handleError(op, err)
+	}
+	defer cursor.Close(ctx)
+
+	var posts []dao.Post
+	if err = cursor.All(ctx, &posts); err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	paginationMetadata := domain.CalculatePaginationMetadata(int32(totalRecords), filters.Page, filters.PageSize)
+
+	return dao.PostsToDomain(posts), &paginationMetadata, nil
+}
+
+func constructPostFilter(filters *dtos.ListPostsRequest) bson.M {
+	m := bson.M{}
+
+	if filters.ClubId != 0 {
+		m["club._id"] = filters.ClubId
+	}
+
+	if filters.Tags != nil && len(filters.Tags) > 0 {
+		m["tags"] = bson.M{"$in": filters.Tags}
+	}
+
+	return m
+}
+
+func constructPostSortBy(filter *domain.BaseFilter) bson.M {
+	sortBy := bson.M{}
+
+	switch filter.SortBy {
+	case domain.SortByDate:
+		sortBy["created_at"] = constructEventSortOrder(filter.SortOrder)
+	case domain.SortByParticipants:
+		sortBy["participants"] = constructEventSortOrder(filter.SortOrder)
+	case domain.SortByType:
+		sortBy["type"] = constructEventSortOrder(filter.SortOrder)
+	default:
+		sortBy["start_date"] = 1
+	}
+
+	return sortBy
 }

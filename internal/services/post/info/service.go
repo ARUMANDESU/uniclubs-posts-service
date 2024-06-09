@@ -4,6 +4,7 @@ import (
 	"context"
 	clubv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/club"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
+	dtos "github.com/arumandesu/uniclubs-posts-service/internal/domain/dto"
 	postservice "github.com/arumandesu/uniclubs-posts-service/internal/services/post"
 	"log/slog"
 )
@@ -16,6 +17,7 @@ type Service struct {
 
 type PostProvider interface {
 	GetPostById(ctx context.Context, postId string) (*domain.Post, error)
+	ListPosts(ctx context.Context, filters *dtos.ListPostsRequest) ([]domain.Post, *domain.PaginationMetadata, error)
 }
 
 type ClubProvider interface {
@@ -40,4 +42,16 @@ func (s Service) GetPost(ctx context.Context, postId string, userId int64) (*dom
 	}
 
 	return post, nil
+}
+
+func (s Service) ListPosts(ctx context.Context, filter *dtos.ListPostsRequest) ([]domain.Post, *domain.PaginationMetadata, error) {
+	const op = "services.post.info.listPosts"
+	log := s.log.With(slog.String("op", op))
+
+	posts, metadata, err := s.postProvider.ListPosts(ctx, filter)
+	if err != nil {
+		return nil, nil, postservice.HandleError(log, "failed to list posts", err)
+	}
+
+	return posts, metadata, nil
 }

@@ -13,4 +13,5 @@ var (
 	ErrInviteNotFound          = errors.New("invite not found")
 	ErrParticipantNotFound     = errors.New("participant not found")
 	ErrBanRecordNotFound       = errors.New("ban record not found")
+	ErrNotFound                = errors.New("not found")
 )

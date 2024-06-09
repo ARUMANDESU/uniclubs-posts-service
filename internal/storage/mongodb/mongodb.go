@@ -11,11 +11,16 @@ import (
 )
 
 type Storage struct {
-	client                 *mongo.Client
+	client *mongo.Client
+	collections
+}
+
+type collections struct {
 	eventsCollection       *mongo.Collection
 	invitesCollection      *mongo.Collection
 	participantsCollection *mongo.Collection
 	bansCollection         *mongo.Collection
+	postsCollection        *mongo.Collection
 }
 
 func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
@@ -37,8 +42,9 @@ func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
 	inviteCollection := db.Collection("invites")
 	participantsCollection := db.Collection("participants")
 	bansCollection := db.Collection("bans")
+	postsCollection := db.Collection("posts")
 
-	// Create text index on the 'name' field
+	// Create text index on the 'title', 'description', 'tags' fields
 	eventIndex := mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "title", Value: "text"},
@@ -47,6 +53,12 @@ func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
 		},
 	}
 	_, err = eventsCollection.Indexes().CreateOne(ctx, eventIndex)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	// index for posts collection is similar to the one for events collection
+	_, err = postsCollection.Indexes().CreateOne(ctx, eventIndex)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -65,11 +77,14 @@ func New(ctx context.Context, cfg config.MongoDB) (*Storage, error) {
 	}
 
 	return &Storage{
-		client:                 client,
-		eventsCollection:       eventsCollection,
-		invitesCollection:      inviteCollection,
-		participantsCollection: participantsCollection,
-		bansCollection:         bansCollection,
+		client: client,
+		collections: collections{
+			eventsCollection:       eventsCollection,
+			invitesCollection:      inviteCollection,
+			participantsCollection: participantsCollection,
+			bansCollection:         bansCollection,
+			postsCollection:        postsCollection,
+		},
 	}, nil
 }
 

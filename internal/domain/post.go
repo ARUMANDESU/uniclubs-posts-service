@@ -18,7 +18,11 @@ type Post struct {
 	UpdatedAt     time.Time
 }
 
-func PostToPb(post Post) *postv1.PostObject {
+func PostToPb(post *Post) *postv1.PostObject {
+	if post == nil {
+		return nil
+	}
+
 	return &postv1.PostObject{
 		Id:            post.ID,
 		Club:          post.Club.ToProto(),

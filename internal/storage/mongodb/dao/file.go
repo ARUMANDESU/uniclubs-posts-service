@@ -2,24 +2,24 @@ package dao
 
 import "github.com/arumandesu/uniclubs-posts-service/internal/domain"
 
-type FileMongo struct {
+type File struct {
 	URL  string `bson:"url"`
 	Name string `bson:"name"`
 	Type string `bson:"type"`
 }
 
-type CoverImageMongo struct {
-	FileMongo
+type CoverImage struct {
+	File
 	Position uint32 `bson:"position"`
 }
 
 // Into dao
 
-func ToCoverImages(coverImages []domain.CoverImage) []CoverImageMongo {
-	coverImagesMongo := make([]CoverImageMongo, len(coverImages))
+func ToCoverImages(coverImages []domain.CoverImage) []CoverImage {
+	coverImagesMongo := make([]CoverImage, len(coverImages))
 	for i, coverImage := range coverImages {
-		coverImagesMongo[i] = CoverImageMongo{
-			FileMongo: FileMongo{
+		coverImagesMongo[i] = CoverImage{
+			File: File{
 				URL:  coverImage.Url,
 				Name: coverImage.Name,
 				Type: coverImage.Type,
@@ -30,10 +30,10 @@ func ToCoverImages(coverImages []domain.CoverImage) []CoverImageMongo {
 	return coverImagesMongo
 }
 
-func ToFiles(files []domain.File) []FileMongo {
-	filesMongo := make([]FileMongo, len(files))
+func ToFiles(files []domain.File) []File {
+	filesMongo := make([]File, len(files))
 	for i, file := range files {
-		filesMongo[i] = FileMongo{
+		filesMongo[i] = File{
 			URL:  file.Url,
 			Name: file.Name,
 			Type: file.Type,
@@ -44,7 +44,7 @@ func ToFiles(files []domain.File) []FileMongo {
 
 // From dao to domain
 
-func ToDomainFiles(filesMongo []FileMongo) []domain.File {
+func ToDomainFiles(filesMongo []File) []domain.File {
 	files := make([]domain.File, len(filesMongo))
 	for i, file := range filesMongo {
 		files[i] = domain.File{
@@ -56,7 +56,7 @@ func ToDomainFiles(filesMongo []FileMongo) []domain.File {
 	return files
 }
 
-func ToDomainCoverImages(coverImagesMongo []CoverImageMongo) []domain.CoverImage {
+func ToDomainCoverImages(coverImagesMongo []CoverImage) []domain.CoverImage {
 	coverImages := make([]domain.CoverImage, len(coverImagesMongo))
 	for i, coverImage := range coverImagesMongo {
 		coverImages[i] = domain.CoverImage{

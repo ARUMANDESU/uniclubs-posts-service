@@ -28,6 +28,7 @@ type PostStorage interface {
 	DeletePost(ctx context.Context, postId string) (*domain.Post, error)
 	HidePost(ctx context.Context, postId string) (*domain.Post, error)
 	UnhidePost(ctx context.Context, postId string) (*domain.Post, error)
+	GetPostById(ctx context.Context, postId string) (*domain.Post, error)
 }
 
 type ClubProvider interface {
@@ -94,8 +95,44 @@ func (s Service) CreatePost(ctx context.Context, dto *dtos.CreatePostRequest) (*
 }
 
 func (s Service) UpdatePost(ctx context.Context, dto *dtos.UpdatePostRequest) (*domain.Post, error) {
-	//TODO implement me
-	panic("implement me")
+	const op = "services.post.management.updatePost"
+	log := s.log.With(slog.String("op", op))
+
+	post, err := s.postStorage.GetPostById(ctx, dto.PostId)
+	if err != nil {
+		return nil, s.handleError(log, "failed to get post by id", err)
+	}
+
+	hasPermission, err := s.clubProvider.HasPermission(ctx, dto.UserId, post.Club.ID, clubv1.Permission_PERMISSION_MANAGE_POSTS)
+	if err != nil {
+		return nil, s.handleError(log, "failed to check permission", err)
+	}
+	if !hasPermission {
+		return nil, fmt.Errorf("%w: user %d does not have permission to manage posts in club %d", postservice.ErrPermissionDenied, dto.UserId, post.Club.ID)
+	}
+
+	if dto.Paths["title"] {
+		post.Title = dto.Title
+	}
+	if dto.Paths["description"] {
+		post.Description = dto.Description
+	}
+	if dto.Paths["tags"] {
+		post.Tags = dto.Tags
+	}
+	if dto.Paths["cover_images"] {
+		post.CoverImages = dto.CoverImages
+	}
+	if dto.Paths["attached_files"] {
+		post.AttachedFiles = dto.AttachedFiles
+	}
+
+	post, err = s.postStorage.UpdatePost(ctx, post)
+	if err != nil {
+		return nil, s.handleError(log, "failed to update post", err)
+	}
+
+	return post, nil
 }
 
 func (s Service) DeletePost(ctx context.Context, dto *dtos.ActionRequest) (*domain.Post, error) {
@@ -121,6 +158,10 @@ func (s Service) handleError(log *slog.Logger, msg string, err error) error {
 		return postservice.ErrInvalidArg
 	case errors.Is(err, storage.ErrNotFound):
 		return postservice.ErrPostNotFound
+	case errors.Is(err, storage.ErrInvalidID):
+		return postservice.ErrInvalidID
+	case errors.Is(err, storage.ErrOptimisticLockingFailed):
+		return postservice.ErrOptimisticLockingFailed
 	default:
 		log.Error(msg, logger.Err(err))
 		return err

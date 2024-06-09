@@ -154,3 +154,21 @@ func createPostMask(value interface{}) error {
 		),
 	)
 }
+
+func updatePostMask(value interface{}) error {
+	req, ok := value.(*fieldmaskpb.FieldMask)
+	if !ok {
+		return validation.NewInternalError(errors.New("update post mask invalid type"))
+	}
+
+	validUpdateFields := []any{"title", "description", "tags", "cover_images", "attached_files"}
+
+	return validation.ValidateStruct(req,
+		validation.Field(&req.Paths,
+			validation.Required,
+			validation.Each(validation.In(validUpdateFields...).
+				Error(fmt.Sprintf("update fields must be one of %v", validUpdateFields)),
+			),
+		),
+	)
+}

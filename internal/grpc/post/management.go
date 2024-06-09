@@ -33,8 +33,17 @@ func (s serverApi) CreatePost(ctx context.Context, req *postv1.CreatePostRequest
 }
 
 func (s serverApi) UpdatePost(ctx context.Context, req *postv1.UpdatePostRequest) (*postv1.PostObject, error) {
-	//TODO implement me
-	panic("implement me")
+	err := validate.UpdatePostRequest(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	post, err := s.Services.management.UpdatePost(ctx, dtos.ToUpdatePostRequest(req))
+	if err != nil {
+		return nil, handleServiceError(err)
+	}
+
+	return domain.PostToPb(post), nil
 }
 
 func (s serverApi) DeletePost(ctx context.Context, req *postv1.ActionRequest) (*postv1.PostObject, error) {

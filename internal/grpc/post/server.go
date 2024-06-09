@@ -47,8 +47,10 @@ func handleServiceError(err error) error {
 		return status.Error(codes.NotFound, err.Error())
 	case errors.Is(err, postservice.ErrPermissionDenied):
 		return status.Error(codes.PermissionDenied, err.Error())
-	case errors.Is(err, postservice.ErrInvalidArg):
+	case errors.Is(err, postservice.ErrInvalidArg), errors.Is(err, postservice.ErrInvalidID):
 		return status.Error(codes.InvalidArgument, err.Error())
+	case errors.Is(err, postservice.ErrOptimisticLockingFailed):
+		return status.Error(codes.Aborted, err.Error())
 	default:
 		return status.Error(codes.Internal, "internal error")
 	}

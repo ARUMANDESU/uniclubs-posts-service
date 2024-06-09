@@ -1,7 +1,7 @@
 package domain
 
 import (
-	eventv1 "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts/event"
+	posts "github.com/ARUMANDESU/uniclubs-protos/gen/go/posts"
 )
 
 type Club struct {
@@ -10,23 +10,23 @@ type Club struct {
 	LogoURL string `json:"logo_url"`
 }
 
-func (c Club) ToProto() *eventv1.ClubObject {
-	return &eventv1.ClubObject{
+func (c Club) ToProto() *posts.ClubObject {
+	return &posts.ClubObject{
 		Id:      c.ID,
 		Name:    c.Name,
 		LogoUrl: c.LogoURL,
 	}
 }
 
-func ClubsToProto(clubs []Club) []*eventv1.ClubObject {
-	convertedClubs := make([]*eventv1.ClubObject, len(clubs))
+func ClubsToProto(clubs []Club) []*posts.ClubObject {
+	convertedClubs := make([]*posts.ClubObject, len(clubs))
 	for i, club := range clubs {
 		convertedClubs[i] = club.ToProto()
 	}
 	return convertedClubs
 }
 
-func ClubFromProto(club *eventv1.ClubObject) Club {
+func ClubFromProto(club *posts.ClubObject) Club {
 	return Club{
 		ID:      club.GetId(),
 		Name:    club.GetName(),

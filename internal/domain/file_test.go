@@ -13,7 +13,7 @@ func TestFile_ToProto(t *testing.T) {
 		Type: "jpg",
 	}
 
-	protoFile := file.ToProto()
+	protoFile := file.ToPb()
 
 	assert.Equal(t, file.Name, protoFile.GetName())
 	assert.Equal(t, file.Url, protoFile.GetUrl())
@@ -30,7 +30,7 @@ func TestCoverImage_ToProto(t *testing.T) {
 		Position: 1,
 	}
 
-	protoCoverImage := coverImage.ToProto()
+	protoCoverImage := coverImage.ToPb()
 
 	assert.Equal(t, coverImage.Name, protoCoverImage.GetName())
 	assert.Equal(t, coverImage.Url, protoCoverImage.GetUrl())
@@ -45,7 +45,7 @@ func TestProtoToFile(t *testing.T) {
 		Type: "jpg",
 	}
 
-	file := ProtoToFile(protoFile)
+	file := PbToFile(protoFile)
 
 	assert.Equal(t, protoFile.GetName(), file.Name)
 	assert.Equal(t, protoFile.GetUrl(), file.Url)
@@ -60,7 +60,7 @@ func TestProtoToCoverImage(t *testing.T) {
 		Position: 1,
 	}
 
-	coverImage := ProtoToCoverImage(protoCoverImage)
+	coverImage := PbToCoverImage(protoCoverImage)
 
 	assert.Equal(t, protoCoverImage.GetName(), coverImage.Name)
 	assert.Equal(t, protoCoverImage.GetUrl(), coverImage.Url)

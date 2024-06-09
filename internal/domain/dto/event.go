@@ -150,9 +150,9 @@ func UpdateToDTO(event *eventv1.UpdateEventRequest) (*UpdateEvent, error) {
 		LocationUniversity:    event.GetLocationUniversity(),
 		StartDate:             startDate,
 		EndDate:               endDate,
-		CoverImages:           domain.ProtoToCoverImages(event.GetCoverImages()),
-		AttachedImages:        domain.ProtoToFiles(event.GetAttachedImages()),
-		AttachedFiles:         domain.ProtoToFiles(event.GetAttachedFiles()),
+		CoverImages:           domain.PbToCoverImages(event.GetCoverImages()),
+		AttachedImages:        domain.PbToFiles(event.GetAttachedImages()),
+		AttachedFiles:         domain.PbToFiles(event.GetAttachedFiles()),
 		IsHiddenForNonMembers: event.GetIsHiddenForNonMembers(),
 		Paths:                 paths,
 	}, nil

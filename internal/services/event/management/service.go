@@ -17,11 +17,16 @@ import (
 )
 
 type Service struct {
-	log                *slog.Logger
-	wg                 *sync.WaitGroup
-	eventStorage       EventStorage
-	participantsPurger ParticipantsPurger
-	banRecordsPurger   BanRecordsPurger
+	log *slog.Logger
+	wg  *sync.WaitGroup
+	Storages
+}
+
+type Storages struct {
+	EventStorage       EventStorage
+	ParticipantsPurger ParticipantsPurger
+	BanRecordsPurger   BanRecordsPurger
+	InvitePurger       InvitePurger
 }
 
 //go:generate mockery --name EventStorage
@@ -40,8 +45,12 @@ type BanRecordsPurger interface {
 	PurgeBanRecords(ctx context.Context, eventId string) error
 }
 
-func New(log *slog.Logger, wg *sync.WaitGroup, eventStorage EventStorage) Service {
-	return Service{log: log, wg: wg, eventStorage: eventStorage}
+type InvitePurger interface {
+	PurgeInvites(ctx context.Context, eventId string) error
+}
+
+func New(log *slog.Logger, wg *sync.WaitGroup, storages Storages) Service {
+	return Service{log: log, wg: wg, Storages: storages}
 }
 
 func (s Service) CreateEvent(ctx context.Context, club domain.Club, user domain.User) (*domain.Event, error) {
@@ -50,7 +59,7 @@ func (s Service) CreateEvent(ctx context.Context, club domain.Club, user domain.
 
 	createCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	event, err := s.eventStorage.CreateEvent(createCtx, club, user)
+	event, err := s.EventStorage.CreateEvent(createCtx, club, user)
 	if err != nil {
 		log.Error("failed to create event", logger.Err(err))
 		return nil, err
@@ -119,7 +128,7 @@ func (s Service) UpdateEvent(ctx context.Context, dto *dtos.UpdateEvent) (*domai
 	updateCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	updatedEvent, err := s.eventStorage.UpdateEvent(updateCtx, event)
+	updatedEvent, err := s.EventStorage.UpdateEvent(updateCtx, event)
 	if err != nil {
 		return nil, s.handleError("failed to update event", log, err)
 	}
@@ -142,7 +151,7 @@ func (s Service) DeleteEvent(ctx context.Context, dto *dtos.DeleteEvent) (*domai
 
 	deleteCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	err = s.eventStorage.DeleteEventById(deleteCtx, dto.EventId)
+	err = s.EventStorage.DeleteEventById(deleteCtx, dto.EventId)
 	if err != nil {
 		return nil, s.handleError("failed to delete event", log, err)
 	}
@@ -151,16 +160,21 @@ func (s Service) DeleteEvent(ctx context.Context, dto *dtos.DeleteEvent) (*domai
 		s.wg.Add(1)
 		defer s.wg.Done()
 
-		purgeCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		purgeCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
-		err := s.participantsPurger.PurgeParticipants(purgeCtx, dto.EventId)
+		err := s.ParticipantsPurger.PurgeParticipants(purgeCtx, dto.EventId)
 		if err != nil {
-			log.Error("failed to purge participants", logger.Err(err))
+			log.Error("background: failed to purge participants", logger.Err(err), slog.String("event_id", dto.EventId))
 		}
 
-		err = s.banRecordsPurger.PurgeBanRecords(purgeCtx, dto.EventId)
+		err = s.BanRecordsPurger.PurgeBanRecords(purgeCtx, dto.EventId)
 		if err != nil {
-			log.Error("failed to purge ban records", logger.Err(err))
+			log.Error("background: failed to purge ban records", logger.Err(err), slog.String("event_id", dto.EventId))
+		}
+
+		err = s.InvitePurger.PurgeInvites(purgeCtx, dto.EventId)
+		if err != nil {
+			log.Error("background: failed to purge invites", logger.Err(err), slog.String("event_id", dto.EventId))
 		}
 	}()
 
@@ -188,7 +202,7 @@ func (s Service) PublishEvent(ctx context.Context, eventId string, userId int64)
 
 	updateCtx, cancel := context.WithTimeout(ctx, 7*time.Second)
 	defer cancel()
-	updatedEvent, err := s.eventStorage.UpdateEvent(updateCtx, event)
+	updatedEvent, err := s.EventStorage.UpdateEvent(updateCtx, event)
 	if err != nil {
 		return nil, s.handleError("failed to update event", log, err)
 	}
@@ -217,7 +231,7 @@ func (s Service) SendToReview(ctx context.Context, eventId string, userId int64)
 
 	updateCtx, cancel := context.WithTimeout(ctx, 7*time.Second)
 	defer cancel()
-	updatedEvent, err := s.eventStorage.UpdateEvent(updateCtx, event)
+	updatedEvent, err := s.EventStorage.UpdateEvent(updateCtx, event)
 	if err != nil {
 		return nil, s.handleError("failed to update event", log, err)
 	}
@@ -241,7 +255,7 @@ func (s Service) RevokeReview(ctx context.Context, eventId string, userId int64)
 
 	updateCtx, cancel := context.WithTimeout(ctx, 7*time.Second)
 	defer cancel()
-	updatedEvent, err := s.eventStorage.UpdateEvent(updateCtx, event)
+	updatedEvent, err := s.EventStorage.UpdateEvent(updateCtx, event)
 	if err != nil {
 		return nil, s.handleError("failed to update event", log, err)
 	}
@@ -265,7 +279,7 @@ func (s Service) ApproveEvent(ctx context.Context, eventId string, user domain.U
 
 	updateCtx, cancel := context.WithTimeout(ctx, 7*time.Second)
 	defer cancel()
-	updatedEvent, err := s.eventStorage.UpdateEvent(updateCtx, event)
+	updatedEvent, err := s.EventStorage.UpdateEvent(updateCtx, event)
 	if err != nil {
 		return nil, s.handleError("failed to update event", log, err)
 	}
@@ -289,7 +303,7 @@ func (s Service) RejectEvent(ctx context.Context, dto *dtos.RejectEvent) (*domai
 
 	updateCtx, cancel := context.WithTimeout(ctx, 7*time.Second)
 	defer cancel()
-	updatedEvent, err := s.eventStorage.UpdateEvent(updateCtx, event)
+	updatedEvent, err := s.EventStorage.UpdateEvent(updateCtx, event)
 	if err != nil {
 		return nil, s.handleError("failed to update event", log, err)
 	}
@@ -313,7 +327,7 @@ func (s Service) UnpublishEvent(ctx context.Context, eventId string, userId int6
 
 	updateCtx, cancel := context.WithTimeout(ctx, 7*time.Second)
 	defer cancel()
-	updatedEvent, err := s.eventStorage.UpdateEvent(updateCtx, event)
+	updatedEvent, err := s.EventStorage.UpdateEvent(updateCtx, event)
 	if err != nil {
 		return nil, s.handleError("failed to update event", log, err)
 	}
@@ -326,7 +340,7 @@ func (s Service) FetchEventAndCheckOwner(ctx context.Context, eventId string, us
 	const op = "services.event.management.fetchEventAndCheckOwner"
 	log := s.log.With(slog.String("op", op))
 
-	event, err := s.eventStorage.GetEvent(ctx, eventId)
+	event, err := s.EventStorage.GetEvent(ctx, eventId)
 	if err != nil {
 		return nil, s.handleError("failed to get event", log, err)
 	}
@@ -342,7 +356,7 @@ func (s Service) getEvent(ctx context.Context, eventId string) (*domain.Event, e
 	const op = "services.event.management.getEvent"
 	log := s.log.With(slog.String("op", op))
 
-	event, err := s.eventStorage.GetEvent(ctx, eventId)
+	event, err := s.EventStorage.GetEvent(ctx, eventId)
 	if err != nil {
 		return nil, s.handleError("failed to get event", log, err)
 	}

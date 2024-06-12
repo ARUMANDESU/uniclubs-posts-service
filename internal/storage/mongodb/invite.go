@@ -136,6 +136,26 @@ func (s *Storage) DeleteInvite(ctx context.Context, inviteId string) error {
 	return nil
 }
 
+func (s *Storage) PurgeInvites(ctx context.Context, eventId string) error {
+	const op = "storage.mongodb.purgeInvites"
+
+	eventObjectId, err := primitive.ObjectIDFromHex(eventId)
+	if err != nil {
+		if errors.Is(err, primitive.ErrInvalidHex) {
+			return fmt.Errorf("%s: %w", op, storage.ErrInvalidID)
+		}
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = s.invitesCollection.DeleteMany(ctx, bson.M{"event_id": eventObjectId})
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+
+}
+
 /*
 
 Club Invite Storage

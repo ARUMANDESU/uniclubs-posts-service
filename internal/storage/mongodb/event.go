@@ -103,12 +103,6 @@ func (s *Storage) DeleteEventById(ctx context.Context, eventId string) error {
 		return handleError(op, err)
 	}
 
-	// Deletes all invites related to the event
-	_, err = s.invitesCollection.DeleteMany(ctx, bson.M{"event_id": objectId})
-	if err != nil {
-		return handleError(op, err)
-	}
-
 	return nil
 }
 

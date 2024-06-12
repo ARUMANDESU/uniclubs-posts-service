@@ -229,3 +229,41 @@ func (s *Storage) ListBannedParticipants(ctx context.Context, dto *dtos.ListBans
 
 	return dao.BanRecordsToDomain(bans), &paginationMetadata, nil
 }
+
+func (s *Storage) PurgeParticipants(ctx context.Context, eventId string) error {
+	const op = "storage.mongodb.event.purgeParticipants"
+
+	objectID, err := primitive.ObjectIDFromHex(eventId)
+	if err != nil {
+		if errors.Is(err, primitive.ErrInvalidHex) {
+			return fmt.Errorf("%s: %w", op, storage.ErrInvalidID)
+		}
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = s.participantsCollection.DeleteMany(ctx, bson.M{"event_id": objectID})
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *Storage) PurgeBanRecords(ctx context.Context, eventId string) error {
+	const op = "storage.mongodb.event.purgeBans"
+
+	objectID, err := primitive.ObjectIDFromHex(eventId)
+	if err != nil {
+		if errors.Is(err, primitive.ErrInvalidHex) {
+			return fmt.Errorf("%s: %w", op, storage.ErrInvalidID)
+		}
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	_, err = s.bansCollection.DeleteMany(ctx, bson.M{"event_id": objectID})
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}

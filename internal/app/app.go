@@ -86,7 +86,12 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 
 	// events grpc server
 	eventServices := eventgrpc.NewServices(
-		eventmanagement.New(log, &wg, mongoDB),
+		eventmanagement.New(log, &wg, eventmanagement.Storages{
+			EventStorage:       mongoDB,
+			ParticipantsPurger: mongoDB,
+			BanRecordsPurger:   mongoDB,
+			InvitePurger:       mongoDB,
+		}),
 		eventCollaboratorService,
 		eventCollaboratorService,
 		eventInfoService,
@@ -104,6 +109,7 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 
 	return &App{
 		log:     log,
+		wg:      &wg,
 		GRPCSrv: grpcApp,
 		AMQPApp: amqpApp,
 		mongoDB: mongoDB,

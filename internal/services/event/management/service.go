@@ -9,6 +9,7 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/validate"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
@@ -16,8 +17,11 @@ import (
 )
 
 type Service struct {
-	log          *slog.Logger
-	eventStorage EventStorage
+	log                *slog.Logger
+	wg                 *sync.WaitGroup
+	eventStorage       EventStorage
+	participantsPurger ParticipantsPurger
+	banRecordsPurger   BanRecordsPurger
 }
 
 //go:generate mockery --name EventStorage
@@ -28,8 +32,16 @@ type EventStorage interface {
 	DeleteEventById(ctx context.Context, eventId string) error
 }
 
-func New(log *slog.Logger, eventStorage EventStorage) Service {
-	return Service{log: log, eventStorage: eventStorage}
+type ParticipantsPurger interface {
+	PurgeParticipants(ctx context.Context, eventId string) error
+}
+
+type BanRecordsPurger interface {
+	PurgeBanRecords(ctx context.Context, eventId string) error
+}
+
+func New(log *slog.Logger, wg *sync.WaitGroup, eventStorage EventStorage) Service {
+	return Service{log: log, wg: wg, eventStorage: eventStorage}
 }
 
 func (s Service) CreateEvent(ctx context.Context, club domain.Club, user domain.User) (*domain.Event, error) {
@@ -134,6 +146,23 @@ func (s Service) DeleteEvent(ctx context.Context, dto *dtos.DeleteEvent) (*domai
 	if err != nil {
 		return nil, s.handleError("failed to delete event", log, err)
 	}
+
+	go func() {
+		s.wg.Add(1)
+		defer s.wg.Done()
+
+		purgeCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		err := s.participantsPurger.PurgeParticipants(purgeCtx, dto.EventId)
+		if err != nil {
+			log.Error("failed to purge participants", logger.Err(err))
+		}
+
+		err = s.banRecordsPurger.PurgeBanRecords(purgeCtx, dto.EventId)
+		if err != nil {
+			log.Error("failed to purge ban records", logger.Err(err))
+		}
+	}()
 
 	return event, nil
 }

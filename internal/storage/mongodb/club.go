@@ -12,32 +12,24 @@ import (
 func (s *Storage) UpdateClub(ctx context.Context, club *domain.Club) error {
 	const op = "storage.mongodb.updateClub"
 
+	updateFuncs := []func(context.Context, *domain.Club) error{
+		s.updateClubsInEventsCollection,
+		s.updateClubInInviteCollection,
+		s.updateClubInPostsCollection,
+	}
+
 	var wg sync.WaitGroup
 	errChan := make(chan error, 2)
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := s.updateClubsInEventsCollection(ctx, club); err != nil {
-			errChan <- fmt.Errorf("%s: %w", op, err)
-		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := s.updateClubInInviteCollection(ctx, club); err != nil {
-			errChan <- fmt.Errorf("%s: %w", op, err)
-		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := s.updateClubInPostsCollection(ctx, club); err != nil {
-			errChan <- fmt.Errorf("%s: %w", op, err)
-		}
-	}()
+	for _, updateFunc := range updateFuncs {
+		wg.Add(1)
+		go func(updateFunc func(context.Context, *domain.Club) error) {
+			defer wg.Done()
+			if err := updateFunc(ctx, club); err != nil {
+				errChan <- fmt.Errorf("%s: %w", op, err)
+			}
+		}(updateFunc)
+	}
 
 	wg.Wait()
 	close(errChan)

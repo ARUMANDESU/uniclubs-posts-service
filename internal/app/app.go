@@ -21,19 +21,34 @@ import (
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage/mongodb"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
 	"log/slog"
+	"sync"
 	"time"
 )
 
 type App struct {
 	log     *slog.Logger
+	wg      *sync.WaitGroup
 	GRPCSrv *grpcapp.App
 	AMQPApp *amqpapp.App
 	mongoDB *mongodb.Storage
 }
 
+/*
+New creates a new App instance
+
+	 It initializes the following services:
+		- MongoDB, RabbitMQ
+		- User, Club microservice gRPC client
+		- Event, Post gRPC services
+		- gRPC server
+		- AMQP server
+	 It returns a pointer to the App instance
+*/
 func New(log *slog.Logger, cfg *config.Config) *App {
 	const op = "app.new"
 	l := log.With(slog.String("op", op))
+
+	var wg sync.WaitGroup
 
 	mongoDB, err := mongodb.New(context.Background(), cfg.MongoDB)
 	if err != nil {
@@ -49,12 +64,14 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 	}
 	l.Info("connected to rabbitmq")
 
+	// user microservice grpc client
 	userClient, err := userclient.New(log, cfg.Clients.User.Address, cfg.Clients.User.Timeout, cfg.Clients.User.RetriesCount)
 	if err != nil {
 		log.Error("user service client init error", logger.Err(err))
 		panic(err)
 	}
 
+	// club microservice grpc client
 	clubClient, err := club.New(log, cfg.Clients.Club.Address, cfg.Clients.Club.Timeout, cfg.Clients.Club.RetriesCount)
 	if err != nil {
 		log.Error("club service client init error", logger.Err(err))
@@ -67,14 +84,16 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 	participateService := eventparticipant.New(log, eventparticipant.NewStorage(mongoDB, userClient, clubClient, mongoDB, mongoDB))
 	eventInfoService := eventinfo.New(log, eventinfo.NewStorage(mongoDB, mongoDB, mongoDB, clubClient, mongoDB))
 
+	// events grpc server
 	eventServices := eventgrpc.NewServices(
-		eventmanagement.New(log, mongoDB),
+		eventmanagement.New(log, &wg, mongoDB),
 		eventCollaboratorService,
 		eventCollaboratorService,
 		eventInfoService,
 		participateService,
 	)
 
+	// posts grpc server
 	postServices := postgrpc.NewServices(
 		postmanagement.New(log, mongoDB, clubClient),
 		postinfo.New(log, mongoDB, clubClient),
@@ -82,6 +101,7 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 
 	grpcApp := grpcapp.New(log, cfg.GRPC.Port, eventServices, postServices)
 	amqpApp := amqpapp.New(log, userService, clubService, rmq)
+
 	return &App{
 		log:     log,
 		GRPCSrv: grpcApp,
@@ -90,6 +110,15 @@ func New(log *slog.Logger, cfg *config.Config) *App {
 	}
 }
 
+/*
+Stop gracefully stops the app
+
+	 It stops the following services:
+		- gRPC server
+		- AMQP server
+		- MongoDB
+	 It waits for all background works to be completed
+*/
 func (a *App) Stop() {
 	const op = "app.stop"
 	log := a.log.With(slog.String("op", op))
@@ -107,4 +136,7 @@ func (a *App) Stop() {
 	if err != nil {
 		log.Error("failed to close mongodb connection", logger.Err(err))
 	}
+
+	// wait for background works to be completed
+	a.wg.Wait()
 }

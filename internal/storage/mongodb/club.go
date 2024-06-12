@@ -31,6 +31,14 @@ func (s *Storage) UpdateClub(ctx context.Context, club *domain.Club) error {
 		}
 	}()
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := s.updateClubInPostsCollection(ctx, club); err != nil {
+			errChan <- fmt.Errorf("%s: %w", op, err)
+		}
+	}()
+
 	wg.Wait()
 	close(errChan)
 
@@ -63,6 +71,22 @@ func (s *Storage) updateClubInInviteCollection(ctx context.Context, club *domain
 	const op = "storage.mongodb.updateClubInInviteCollection"
 
 	_, err := s.invitesCollection.UpdateMany(ctx, bson.M{"club._id": club.ID}, bson.M{
+		"$set": bson.M{
+			"club.name":     club.Name,
+			"club.logo_url": club.LogoURL,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *Storage) updateClubInPostsCollection(ctx context.Context, club *domain.Club) error {
+	const op = "storage.mongodb.updateClubInPostsCollection"
+
+	_, err := s.postsCollection.UpdateMany(ctx, bson.M{"club._id": club.ID}, bson.M{
 		"$set": bson.M{
 			"club.name":     club.Name,
 			"club.logo_url": club.LogoURL,

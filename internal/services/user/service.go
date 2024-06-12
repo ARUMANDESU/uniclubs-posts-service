@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/arumandesu/uniclubs-posts-service/internal/domain"
 	"github.com/arumandesu/uniclubs-posts-service/internal/storage"
 	"github.com/arumandesu/uniclubs-posts-service/pkg/logger"
@@ -40,7 +39,7 @@ func (s Service) HandleUpdateUser(msg amqp091.Delivery) error {
 	err := json.Unmarshal(msg.Body, &user)
 	if err != nil {
 		log.Error("failed to unmarshal message", logger.Err(err))
-		return fmt.Errorf("%s: %w", op, err)
+		return err
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -50,10 +49,10 @@ func (s Service) HandleUpdateUser(msg amqp091.Delivery) error {
 	if err != nil {
 		switch {
 		case errors.Is(err, storage.ErrUserNotExists):
-			return fmt.Errorf("%s: %w", op, ErrUserNotExist)
+			return ErrUserNotExist
 		default:
 			log.Error("failed to update user", logger.Err(err))
-			return fmt.Errorf("%s: %w", op, err)
+			return err
 		}
 	}
 
